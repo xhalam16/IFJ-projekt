@@ -23,6 +23,7 @@ enum token_type {
     TOKEN_COLON, // :
     TOKEN_COMMA, // ,
     TOKEN_ARROW, // ->
+    TOKEN_UNDERSCORE, // _
 
 
     TOKEN_SEMICOLON, // ;
