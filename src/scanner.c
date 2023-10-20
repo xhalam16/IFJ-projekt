@@ -153,7 +153,6 @@ token_t get_token(FILE *source_file){
 
 
    
-
    token.type = TOKEN_EOF;
     return token;
     

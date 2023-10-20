@@ -11,7 +11,6 @@ enum token_type {
     TOKEN_OPERATOR_ASSIGN, // =
     TOKEN_OPERATOR_BINARY, // + - * / % < > <= >= == != && ||
     TOKEN_OPERATOR_UNARY, // ! -
-
     TOKEN_EOL,
     TOKEN_EOF,
 

@@ -26,7 +26,6 @@ const char * keyword_strings[] = {
     "Int?",
     "Double?",
     "String?"
-
 };
 
 #define KEYWORD_COUNT sizeof(keyword_strings) / sizeof(keyword_strings[0])
