@@ -1,15 +1,18 @@
 #pragma once
 
 enum token_type {
-    TOKEN_NIL, // nil
+    //TOKEN_NIL, // nil
     TOKEN_IDENTIFIER, // id
     TOKEN_KEYWORD, // klíčové slovo
 
+    TOKEN_DATATYPE, // datový typ
 
     TOKEN_INT, // celé číslo
     TOKEN_DOUBLE, // desetinné číslo
     TOKEN_STRING, // řetězec
 
+    TOKEN_OPERATOR_BINARY, // binární operátor
+    TOKEN_OPERATOR_UNARY, // unární operátor
 
     TOKEN_OPERATOR_PLUS, // +
     TOKEN_OPERATOR_MINUS, // -
@@ -37,7 +40,7 @@ enum token_type {
     TOKEN_COLON, // :
     TOKEN_COMMA, // ,
     TOKEN_ARROW, // ->
-
+    TOKEN_UNDERSCORE // _
 
     TOKEN_SEMICOLON, // ;
 
