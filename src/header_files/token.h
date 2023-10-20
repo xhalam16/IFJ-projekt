@@ -1,28 +1,16 @@
 #pragma once
 
 enum token_type {
-    TOKEN_NIL, // nil
     TOKEN_IDENTIFIER, // id
-    TOKEN_KEYWORD, // klíčové slovo
+    TOKEN_KEYWORD, // keyword
 
 
-    TOKEN_INT, // celé číslo
-    TOKEN_DOUBLE, // desetinné číslo
-    TOKEN_STRING, // řetězec
+    TOKEN_DATATYPE,
+    TOKEN_IMMEDIATE_OPERAND, 
 
-
-    TOKEN_OPERATOR_PLUS, // +
-    TOKEN_OPERATOR_MINUS, // -
-    TOKEN_OPERATOR_MULTIPLY, // *
-    TOKEN_OPERATOR_DIVIDE, // /
-    TOKEN_OPERATOR_LESS, // <
-    TOKEN_OPERATOR_LESS_EQUAL, // <=
-    TOKEN_OPERATOR_GREATER, // >
-    TOKEN_OPERATOR_GREATER_EQUAL, // >=
-    TOKEN_OPERATOR_EQUAL, // ==
-    TOKEN_OPERATOR_NOT_EQUAL, // !=
     TOKEN_OPERATOR_ASSIGN, // =
-    TOKEN_OPERATOR_EXCLAMATION, // !
+    TOKEN_OPERATOR_BINARY, // + - * / % < > <= >= == != && ||
+    TOKEN_OPERATOR_UNARY, // ! -
 
     TOKEN_EOL,
     TOKEN_EOF,
@@ -44,6 +32,7 @@ enum token_type {
     TOKEN_UNKNOWN, // neznámý token
     TOKEN_ERROR // chyba
 };
+
 
 typedef enum token_type token_type_t;
 
