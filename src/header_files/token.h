@@ -4,9 +4,11 @@ enum token_type {
     TOKEN_IDENTIFIER, // id
     TOKEN_KEYWORD, // keyword
 
+    TOKEN_DATATYPE, // datový typ
 
     TOKEN_DATATYPE,
     TOKEN_IMMEDIATE_OPERAND, 
+
 
     TOKEN_OPERATOR_ASSIGN, // =
     TOKEN_OPERATOR_BINARY, // + - * / % < > <= >= == != && ||
