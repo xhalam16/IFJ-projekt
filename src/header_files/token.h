@@ -14,7 +14,6 @@ enum token_type {
     TOKEN_EOL,
     TOKEN_EOF,
 
-
     TOKEN_LEFT_PARENTHESIS, // (
     TOKEN_RIGHT_PARENTHESIS, // )
     TOKEN_LEFT_BRACE, // {
