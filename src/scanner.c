@@ -1,5 +1,37 @@
 #include "header_files/scanner.h"
 
+int skip_block_comment(FILE *source_file){
+    int c;
+    while((c = get_char(source_file)) != EOF){
+        if(c == '*'){
+            c = get_char(source_file);
+            if(c == '/'){
+                return 0;
+            }else{
+                ungetc(c, source_file);
+            }
+        }
+    }
+
+    if(c == EOF)
+        return EOF;
+
+    return 1;
+}
+
+int skip_line_comment(FILE *source_file){
+    int c;
+    while((c = get_char(source_file)) != EOF){
+        if(c == '\n'){
+            return 0;
+        }
+    }
+
+    if(c == EOF)
+        return EOF;
+
+    return 1;
+}
 
 bool word_is_keyword(char *word){
     for (int i = 0; i < KEYWORD_COUNT; i++)
@@ -74,7 +106,6 @@ token_t get_token(FILE *source_file){
 
     skip_whitespace(source_file);
    int c = get_char(source_file);
-
    // TODO throw error?
     if (c == EOF){
         token.type = TOKEN_EOF;
@@ -139,8 +170,85 @@ token_t get_token(FILE *source_file){
     return token;
 
     } else if(c == '='){
-        token.type = TOKEN_OPERATOR_ASSIGN;
+        // could be assignment or comparison
+        c = get_char(source_file);
+        if(c == '='){
+            token.type = TOKEN_OPERATOR_BINARY;
+            token.value.string_value = malloc(3);
+            strcpy(token.value.string_value, "==");
+        }
+        else{
+            token.type = TOKEN_OPERATOR_ASSIGN;
+            token.value.string_value = malloc(2);
+            strcpy(token.value.string_value, "=");
+        }
+        
         return token;
+
+    } else if(c == '!'){
+        // could be either unary operator or comparison (not equal)
+
+        c = get_char(source_file);
+        if(c == '='){
+            token.type = TOKEN_OPERATOR_BINARY;
+            token.value.string_value = malloc(3);
+            strcpy(token.value.string_value, "!=");
+        }
+        else{
+            token.type = TOKEN_OPERATOR_UNARY;
+            token.value.string_value = malloc(2);
+            strcpy(token.value.string_value, "!");
+        }
+    }else if(c == '?'){
+        // has to be another ? else error (since identifiers are already checked) 
+        // ?? - null coalescing operator
+        c = get_char(source_file);
+        if(c == '?'){
+            token.type = TOKEN_OPERATOR_BINARY;
+            token.value.string_value = malloc(3);
+            strcpy(token.value.string_value, "??");
+        }
+        else{
+            token.type = TOKEN_UNKNOWN;
+        }
+    } else if(c == '/'){
+        // could be either line comment, division or block comment
+        c = get_char(source_file);
+
+        if(c == '/'){
+            // comment
+            // skip until end of line
+           int res = skip_line_comment(source_file);
+              if(res == EOF){
+                token.type = TOKEN_EOF;
+            }else if(res == 1){
+                token.type = TOKEN_ERROR;
+            }else{
+                token.type = TOKEN_NONE;
+            }
+               
+        }
+        else if(c == '*'){
+            /* block comment
+             skip until end of block comment */
+            int result = skip_block_comment(source_file);
+            if(result == EOF){
+                token.type = TOKEN_EOF;
+            }else if(result == 1){
+                token.type = TOKEN_ERROR;
+            }else{
+                token.type = TOKEN_NONE;
+            }
+
+
+        }
+        else{
+            // division
+            token.type = TOKEN_OPERATOR_BINARY;
+            token.value.string_value = malloc(2);
+            strcpy(token.value.string_value, "/");
+           
+        }
 
     }
     
@@ -153,7 +261,6 @@ token_t get_token(FILE *source_file){
 
 
 
-   token.type = TOKEN_EOF;
     return token;
     
 

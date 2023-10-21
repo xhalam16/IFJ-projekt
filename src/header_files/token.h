@@ -48,7 +48,8 @@ enum token_type
     TOKEN_SEMICOLON, // ;
 
     TOKEN_UNKNOWN, // neznámý token
-    TOKEN_ERROR    // chyba
+    TOKEN_ERROR, // chyba
+    TOKEN_NONE // syntax analysis - skip token
 };
 
 typedef enum token_type token_type_t;
