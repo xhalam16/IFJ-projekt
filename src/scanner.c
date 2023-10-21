@@ -1,5 +1,19 @@
 #include "header_files/scanner.h"
 
+token_type_t keyword_2_token_type(char *keyword){
+    for (int i = 0; i < KEYWORD_COUNT; i++)
+    {
+        if(strcmp(keyword, keywords_map[i].keyword) == 0){
+            return keywords_map[i].type;
+        }
+        
+        
+    }
+
+    return TOKEN_UNKNOWN;
+}
+
+
 int skip_block_comment(FILE *source_file){
     int c;
     while((c = get_char(source_file)) != EOF){
@@ -36,7 +50,7 @@ int skip_line_comment(FILE *source_file){
 bool word_is_keyword(char *word){
     for (int i = 0; i < KEYWORD_COUNT; i++)
     {
-        if(strcmp(word, keyword_strings[i]) == 0){
+        if(strcmp(word, keywords_map[i].keyword) == 0){
             return true;
         }
         
@@ -82,14 +96,15 @@ bool word_is_keyword_datatype(char *word){
 void skip_whitespace(FILE *source_file){
     int c;
     while((c = get_char(source_file)) != EOF){
-        if (isspace(c)){
+        if (isspace(c) && c != '\n'){
             continue;
         }
         else{
-            ungetc(c, source_file);
+             ungetc(c, source_file);
             break;
         }
     }
+
 }
 
 
@@ -106,15 +121,20 @@ token_t get_token(FILE *source_file){
 
     skip_whitespace(source_file);
    int c = get_char(source_file);
+   if(c == '\n'){
+         token.type = TOKEN_EOL;
+         return token;
+   }
    // TODO throw error?
     if (c == EOF){
         token.type = TOKEN_EOF;
         return token;
     }
+    
 
     if(isdigit(c)){
     // určitě nemůže být klíčové slovo a identifikátor
-        token.type = TOKEN_IMMEDIATE_OPERAND;
+        token.type = TOKEN_INT;
         token.value.int_value = c - '0';
         while(isdigit(c = get_char(source_file))){
             token.value.int_value = token.value.int_value * 10 + (c - '0');
@@ -122,7 +142,7 @@ token_t get_token(FILE *source_file){
 
         // todo vyresit desetinna cisla ve tvaru cisloe+cislo
         if (c == '.'){
-            token.type = TOKEN_IMMEDIATE_OPERAND;
+            token.type = TOKEN_DOUBLE;
             token.value.double_value = token.value.int_value;
             double decimal = 0.1;
             while(isdigit(c = get_char(source_file))){
@@ -153,7 +173,8 @@ token_t get_token(FILE *source_file){
 
        
         if(word_is_keyword(buffer)){
-            token.type = word_is_keyword_datatype(buffer) ? TOKEN_DATATYPE : TOKEN_KEYWORD;
+            token_type_t type = keyword_2_token_type(buffer);
+            token.type = type;
             token.value.string_value = malloc(strlen(buffer) + 1);
             strcpy(token.value.string_value, buffer);
         }
@@ -173,7 +194,7 @@ token_t get_token(FILE *source_file){
         // could be assignment or comparison
         c = get_char(source_file);
         if(c == '='){
-            token.type = TOKEN_OPERATOR_BINARY;
+            token.type = TOKEN_OPERATOR_EQUAL;
             token.value.string_value = malloc(3);
             strcpy(token.value.string_value, "==");
         }
@@ -190,7 +211,7 @@ token_t get_token(FILE *source_file){
 
         c = get_char(source_file);
         if(c == '='){
-            token.type = TOKEN_OPERATOR_BINARY;
+            token.type = TOKEN_OPERATOR_NEQ;
             token.value.string_value = malloc(3);
             strcpy(token.value.string_value, "!=");
         }
@@ -204,7 +225,7 @@ token_t get_token(FILE *source_file){
         // ?? - null coalescing operator
         c = get_char(source_file);
         if(c == '?'){
-            token.type = TOKEN_OPERATOR_BINARY;
+            token.type = TOKEN_OPERATOR_NIL_COALESCING;
             token.value.string_value = malloc(3);
             strcpy(token.value.string_value, "??");
         }
@@ -244,7 +265,7 @@ token_t get_token(FILE *source_file){
         }
         else{
             // division
-            token.type = TOKEN_OPERATOR_BINARY;
+            token.type = TOKEN_OPERATOR_DIV;
             token.value.string_value = malloc(2);
             strcpy(token.value.string_value, "/");
            
@@ -255,7 +276,7 @@ token_t get_token(FILE *source_file){
     
     else{
 
-    ungetc(c, source_file);
+    //ungetc(c, source_file);
     }
 
 
@@ -269,12 +290,13 @@ token_t get_token(FILE *source_file){
 
 
 
-// DEBUG PURPOSE
+
 int main(){
     FILE *source_file = fopen("test.txt", "r");
     token_t token;
     while((token = get_token(source_file)).type != TOKEN_EOF){
-        printf("type: %d\n", token.type);
+        
+        printf("type: %s\n", token_type_string_values[token.type]);
         printf("int_value: %d\n", token.value.int_value);
         printf("double_value: %f\n", token.value.double_value);
         printf("string_value: %s\n", token.value.string_value);
@@ -283,5 +305,3 @@ int main(){
     fclose(source_file);
     return 0;
 }
-
-// end DEBUG PURPOSE
