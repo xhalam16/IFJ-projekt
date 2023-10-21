@@ -5,8 +5,6 @@ enum token_type {
     TOKEN_KEYWORD, // keyword
 
     TOKEN_DATATYPE, // datový typ
-
-    TOKEN_DATATYPE,
     TOKEN_IMMEDIATE_OPERAND, 
 
 
@@ -31,7 +29,8 @@ enum token_type {
     TOKEN_SEMICOLON, // ;
 
     TOKEN_UNKNOWN, // neznámý token
-    TOKEN_ERROR // chyba
+    TOKEN_ERROR, // chyba
+    TOKEN_NONE // syntax analysis - skip token
 };
 
 
