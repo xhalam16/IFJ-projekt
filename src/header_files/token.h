@@ -1,4 +1,5 @@
 #pragma once
+#include "dynamic_buffer.h"
 
 enum token_type
 {
@@ -49,18 +50,16 @@ enum token_type
     TOKEN_ARROW,                // ->
     TOKEN_UNDERSCORE,           // _
     // TOKEN_SEMICOLON, 
+    TOKEN_DOUBLE_QUOTE,         // "
 
-    TOKEN_UNKNOWN, // neznámý token
-    TOKEN_ERROR, // chyba
+    TOKEN_UNKNOWN, // neznámý token (lex error)
+    TOKEN_ERROR, // chyba (např. malloc)
     TOKEN_NONE // syntax analysis - skip token
 };
 
 
-// ONLY FOR DEBUGGING WILL BE DELETED
+// ONLY FOR DEBUGGING, WILL BE DELETED
 const char * token_type_string_values[] = {
-    // copy the enum values from above here but into strings
-
-
  "TOKEN_IDENTIFIER", // id
     "TOKEN_KEYWORD_IF", // keyword
     "TOKEN_KEYWORD_ELSE",
@@ -104,15 +103,15 @@ const char * token_type_string_values[] = {
     "TOKEN_COLON",                // :
     "TOKEN_COMMA",               
     "TOKEN_ARROW",                
-    "TOKEN_UNDERSCORE",           
+    "TOKEN_UNDERSCORE",   
+    "TOKEN_DOUBLE_QUOTE",        
 
     "TOKEN_UNKNOWN", 
     "TOKEN_ERROR", 
-    "TOKEN_NONE" 
+    "TOKEN_NONE",
+    
 
 };
-
-
 
 // END OF DEBUGGING
 
@@ -123,7 +122,7 @@ typedef struct token_value
 {
     int int_value;
     double double_value;
-    char *string_value;
+    DynamicBuffer* string_value;
 } token_value_t;
 
 typedef struct token
