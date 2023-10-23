@@ -1,40 +1,36 @@
 #include "header_files/parser.h"
-#include "parser.h"
 
-TreeNode tree;
-
-TreeNode *createNewNode(TreeNode *node)
+TreeNode *createNewNode(TreeNode *node, error_code_t *error)
 {
     TreeNode *newNode = realloc(node->children, sizeof(TreeNode) * ++node->numChildren);
     if (newNode == NULL)
     {
+        *error = ERR_INTERNAL;
         return NULL;
     }
-    newNode[node->numChildren - 1]->type = NULL;
-    newNode[node->numChildren - 1]->children = NULL;
-    newNode[node->numChildren - 1]->numChildren = 0;
+    newNode->children = NULL;
+    newNode->numChildren = 0;
     return newNode;
 }
 
-void dispose(TreeNode *node)
+void dispose(TreeNode *parseTree)
 {
-    while (node->children != NULL)
+    while (parseTree->children != NULL)
     {
-        for (unsigned i = 0; i < node->numChildren; i++)
+        for (unsigned i = 0; i < parseTree->numChildren; i++)
         {
-            dispose(node->children[i]);
+            dispose(&parseTree->children[i]);
         }
     }
-    free(node->children);
+    free(parseTree->children);
 }
 
-token_t emptyLines(token_t token)
+void emptyLines(token_t *token)
 {
-    while (token.type == TOKEN_EOL)
+    while (token->type == TOKEN_EOL)
     {
-        token = get_token(stdin);
+        *token = get_token(stdin);
     }
-    return token;
 }
 
 bool parseKeyWord(error_code_t *error)
@@ -46,106 +42,432 @@ bool parseKeyWord(error_code_t *error)
     }
 }
 
-bool parseParameter(TreeNode *node, error_code_t *error, bool assign)
+bool parseComma(TreeNode *funcParams, error_code_t *error)
 {
     token_t token = get_token(stdin);
-    if (token.type == TOKEN_IDENTIFIER)
+    emptyLines(&token);
+    switch (token.type)
     {
+    case TOKEN_IDENTIFIER:
+    case TOKEN_STRING:
+    case TOKEN_INT:
+    case TOKEN_DOUBLE:
+    case TOKEN_NIL:
+        if (token.type == TOKEN_IDENTIFIER)
+        {
+            return parseParameter(funcParams, error, true);
+        }
+        return parseParameter(funcParams, error, false);
+    default:
+        return false;
+    }
+}
+
+bool parseParameter(TreeNode *funcParams, error_code_t *error, bool isIdentifier)
+{
+    TreeNode *funcParam = createNewNode(funcParams, error);
+    if (funcParam == NULL)
+    {
+        return false;
+    }
+    funcParam->type = NODE_EXPRESSION;
+    token_t token = get_token(stdin);
+    emptyLines(&token);
+    switch (token.type)
+    {
+    case TOKEN_OPERATOR_UNARY:
+        if (isIdentifier)
+        {
+            // precedenční analýza
+        }
+        return false;
+    case TOKEN_OPERATOR_ADD:
+    case TOKEN_OPERATOR_SUB:
+    case TOKEN_OPERATOR_MUL:
+    case TOKEN_OPERATOR_DIV:
+        // precedenční analýza
+        break;
+    case TOKEN_COMMA:
+        return parseComma(funcParams, error);
+    case TOKEN_COLON:
         token = get_token(stdin);
+        emptyLines(&token);
         switch (token.type)
         {
-        case TOKEN_OPERATOR_ADD:
-        
-        case TOKEN_COMMA:
-            return parseParameter(node, error, assign);
+        case TOKEN_IDENTIFIER:
         case TOKEN_STRING:
         case TOKEN_INT:
         case TOKEN_DOUBLE:
         case TOKEN_NIL:
-            /* code */
-            break;
+            token = get_token(stdin);
+            emptyLines(&token);
+            if (token.type == TOKEN_COMMA)
+            {
+                return parseComma(funcParams, error);
+            }
+            if (token.type == TOKEN_RIGHT_PARENTHESIS)
+            {
+                return true;
+            }
+            return false;
         default:
-            break;
+            return false;
         }
-        
+        break;
+    case TOKEN_LEFT_PARENTHESIS:
+        if (isIdentifier)
+        {
+            return parseFuncCall(funcParam, error);
+        }
+        break;
+    case TOKEN_RIGHT_PARENTHESIS:
+        return true;
+        break;
+    default:
+        return false;
     }
     return false;
 }
 
 bool parseFuncCall(TreeNode *node, error_code_t *error)
 {
-    TreeNode child = createNewNode(node);
-    child->type = NODE_IDENTIFIER;
+    TreeNode *funcCall = createNewNode(node, error);
+    if (funcCall == NULL)
+    {
+        return false;
+    }
+    funcCall->type = NODE_EXPRESSION;
+    TreeNode *funcId = createNewNode(funcCall, error);
+    if (funcId == NULL)
+    {
+        return false;
+    }
+    funcId->type = NODE_IDENTIFIER;
+
     token_t token = get_token(stdin);
-    switch (token->type)
+    emptyLines(&token);
+    switch (token.type)
     {
     case TOKEN_IDENTIFIER:
-        return parseParameter(node, error, false);
-        break;
-    case TOKEN_RIGHT_PARENTHESIS:
-        token = get_token(stdin);
-        if (token.type == TOKEN_EOL || token.type == TOKEN_SEMICOLON)
+    case TOKEN_STRING:
+    case TOKEN_INT:
+    case TOKEN_DOUBLE:
+    case TOKEN_NIL:
+        TreeNode *funcParams = createNewNode(funcCall, error);
+        if (funcParams == NULL)
         {
-            return parse(error);
+            return false;
         }
+        funcParams->type = NODE_EXPRESSION;
+
+        if (token.type == TOKEN_IDENTIFIER)
+        {
+            return parseParameter(funcParams, error, true);
+        }
+        return parseParameter(funcParams, error, false);
+    case TOKEN_RIGHT_PARENTHESIS:
+        return true;
         break;
     default:
+        return false;
         break;
     }
+    return false;
 }
 
-bool parseId(TreeNode *node, error_code_t *error, bool declaration)
+bool parseLeftBrace(TreeNode *startNeterminal, TreeNode *neterminal, error_code_t *error)
+{
+    if (parse(neterminal, error, true))
+    {
+        token_t token = get_token(stdin);
+        emptyLines(&token);
+
+        if (token.type == TOKEN_RIGHT_BRACE)
+        {
+            token = get_token(stdin);
+
+            if (token.type == TOKEN_EOL)
+            {
+                return parse(startNeterminal, error, false);
+            }
+        }
+    }
+    return false;
+}
+
+bool parseCondition(TreeNode *startNeterminal, TreeNode *neterminal, error_code_t *error, bool inParenthesis)
 {
     token_t token = get_token(stdin);
+    emptyLines(&token);
+
     switch (token.type)
     {
     case TOKEN_LEFT_PARENTHESIS:
-        node->type = NODE_FUNCTION_CALL;
-        return parseFuncCall(node, error);
-    case TOKEN_OPERATOR_ASSIGN:
-        node->type = NODE_ASSIGN;
-        return parseAssign(error);
-    default:
-        return false;
+        token_t token = get_token(stdin);
+        emptyLines(&token);
+        if (token.type == TOKEN_IDENTIFIER)
+        {
+            if (parseFuncCall(neterminal, error))
+            {
+                token = get_token(stdin);
+                emptyLines(&token);
+
+                switch (token.type)
+                {
+                case TOKEN_RIGHT_PARENTHESIS:
+                    token = get_token(stdin);
+                    emptyLines(&token);
+
+                    if (token.type == TOKEN_LEFT_BRACE && inParenthesis)
+                    {
+                        return parseLeftBrace(startNeterminal, neterminal, error);
+                    }
+                    break;
+                case TOKEN_LEFT_BRACE:
+                    if (!inParenthesis)
+                    {
+                        return parseLeftBrace(startNeterminal, neterminal, error);
+                    }
+                    break;
+                case TOKEN_OPERATOR_ABOVE:
+                case TOKEN_OPERATOR_BELOW:
+                case TOKEN_OPERATOR_MUL:
+                case TOKEN_OPERATOR_DIV:
+                case TOKEN_OPERATOR_ADD:
+                case TOKEN_OPERATOR_SUB:
+                case TOKEN_OPERATOR_BEQ:
+                case TOKEN_OPERATOR_AEQ:
+                case TOKEN_OPERATOR_EQUAL:
+                case TOKEN_OPERATOR_NEQ:
+                case TOKEN_OPERATOR_UNARY:
+                    // precedenční analýza
+                    break;
+
+                default:
+                    return false;
+                }
+            }
+        }
+        break;
     }
+    return false;
 }
 
-bool parse(TreeNode *node, error_code_t *error)
+bool parseDeclaration(TreeNode *startNeterminal, TreeNode *neterminal, error_code_t *error)
+{
+    return false;
+}
+
+bool parse(TreeNode *startNeterminal, error_code_t *error, bool innerBlock)
 {
     token_t token = get_token(stdin);
-    while (token.type != TOKEN_EOF)
-    {
-        while (token.type == TOKEN_EOL)
-        {
-            token = get_token(stdin);
-        }
-        TreeNode child = createNewNode(node);
+    emptyLines(&token);
 
+    TreeNode *nextNeterminal = createNewNode(startNeterminal, error);
+    if (nextNeterminal == NULL)
+    {
+        return false;
+    }
+
+    switch (token.type)
+    {
+    case TOKEN_RIGHT_BRACE:
+        if (innerBlock)
+        {
+            return true;
+        }
+        break;
+
+    case TOKEN_EOF:
+        if (!innerBlock)
+        {
+            return true;
+        }
+        break;
+
+    case TOKEN_IDENTIFIER:
+        token = get_token(stdin);
+        emptyLines(&token);
         switch (token.type)
         {
-        case TOKEN_IDENTIFIER:
-            if (!parseId(child, error, false))
+        case TOKEN_LEFT_PARENTHESIS:
+            nextNeterminal->type = NODE_EXPRESSION;
+            if (parseFuncCall(nextNeterminal, error))
             {
+                token = get_token(stdin);
+                emptyLines(&token);
+                if (token.type == TOKEN_EOL)
+                {
+                    return parse(startNeterminal, error, false);
+                }
+            }
+            break;
+        case TOKEN_OPERATOR_ASSIGN:
+            nextNeterminal->type = NODE_ASSIGN;
+            if (parseAssign(error))
+            {
+                if (token.type == TOKEN_EOL)
+                {
+                    return parse(startNeterminal, error, false);
+                }
+            }
+            break;
+        default:
+            return false;
+        }
+    case TOKEN_KEYWORD_IF:
+        nextNeterminal->type = NODE_IF;
+        TreeNode *ifCond = createNewNode(nextNeterminal, error);
+
+        if (ifCond == NULL)
+        {
+            return false;
+        }
+        ifCond->type = NODE_EXPRESSION;
+        token = get_token(stdin);
+        emptyLines(&token);
+        switch (token.type)
+        {
+        case TOKEN_LEFT_PARENTHESIS:
+            token = get_token(stdin);
+            emptyLines(&token);
+
+            switch (token.type)
+            {
+            case TOKEN_IDENTIFIER:
+            case TOKEN_STRING:
+            case TOKEN_INT:
+            case TOKEN_DOUBLE:
+            case TOKEN_NIL:
+                return parseCondition(startNeterminal, nextNeterminal, error, true);
+            default:
                 return false;
             }
-            return parse(node, error);
-        case TOKEN_KEYWORD_IF:
-            token = get_token(stdin);
-            if (token.type == TOKEN_LEFT_PARENTHESIS)
-            {
-                /* code */
-            }
-            break;
+
         case TOKEN_KEYWORD_LET:
-        case TOKEN_KEYWORD_VAR:
             token = get_token(stdin);
+            emptyLines(&token);
             if (token.type == TOKEN_IDENTIFIER)
             {
-                return parseId(error, true);
+                token = get_token(stdin);
+                emptyLines(&token);
+                if (token.type == TOKEN_LEFT_BRACE)
+                {
+                    return parseLeftBrace(startNeterminal, nextNeterminal, error);
+                }
             }
-            break;
+            return false;
+
+        case TOKEN_IDENTIFIER:
+        case TOKEN_STRING:
+        case TOKEN_INT:
+        case TOKEN_DOUBLE:
+        case TOKEN_NIL:
+            return parseCondition(startNeterminal, nextNeterminal, error, false);
+        default:
+            return false;
         }
-        token_t token = get_token(stdin);
+
+    case TOKEN_KEYWORD_LET:
+    case TOKEN_KEYWORD_VAR:
+        token = get_token(stdin);
+        emptyLines(&token);
+        if (token.type == TOKEN_IDENTIFIER)
+        {
+            nextNeterminal->type = NODE_ASSIGN;
+            token = get_token(stdin);
+            emptyLines(&token);
+            if (token.type == TOKEN_OPERATOR_ASSIGN)
+            {
+                token = get_token(stdin);
+                emptyLines(&token);
+                switch (token.type)
+                {
+                case TOKEN_IDENTIFIER:
+                case TOKEN_STRING:
+                case TOKEN_INT:
+                case TOKEN_DOUBLE:
+                case TOKEN_NIL:
+                    bool isIdentifier = false;
+                    if (token.type == TOKEN_IDENTIFIER)
+                    {
+                        isIdentifier = true;
+                        token = get_token(stdin);
+                        emptyLines(&token);
+                        if (token.type == TOKEN_LEFT_PARENTHESIS)
+                        {
+                            if (parseFuncCall(nextNeterminal, error))
+                            {
+                                token = get_token(stdin);
+                                if (token.type == TOKEN_EOL)
+                                {
+                                    return parse(startNeterminal, error, false);
+                                }
+                                
+                            }
+                        }
+                    }
+                    else
+                    {
+                        token = get_token(stdin);
+                        emptyLines(&token);
+                    }
+                    switch (token.type)
+                    {
+                    case TOKEN_OPERATOR_UNARY:
+                        if (isIdentifier)
+                        {
+                            // precedenční analýza
+                        }
+                        return false;
+                    case TOKEN_OPERATOR_ADD:
+                    case TOKEN_OPERATOR_SUB:
+                    case TOKEN_OPERATOR_MUL:
+                    case TOKEN_OPERATOR_DIV:
+                        // precedenční analýza
+                        break;
+
+                    default:
+                        return false;
+                    }
+                default:
+                    break;
+                }
+            }
+            if (token.type == TOKEN_COLON)
+            {
+                token = get_token(stdin);
+                emptyLines(&token);
+                if (token.type == TOKEN_DATATYPE)
+                {
+                    token = get_token(stdin);
+                    if (token.type == TOKEN_EOL)
+                    {
+                        emptyLines(&token);
+                        if (token.type == TOKEN_OPERATOR_ASSIGN)
+                        {
+
+                            if (parseAssign())
+                            {
+                                token = get_token(stdin);
+                                if (token.type == TOKEN_EOL)
+                                {
+                                    return parse(startNeterminal, error, false);
+                                }
+                                
+                            }
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+        break;
+    case TOKEN_UNKNOWN:
+        *error = ERR_LEX_ANALYSIS;
+        return false;
+    default:
+        return false;
     }
 
     return false;
@@ -153,17 +475,17 @@ bool parse(TreeNode *node, error_code_t *error)
 
 int main()
 {
-    TreeNode tree;
-    tree.type = NODE_START;
-    tree.numChildren = 0;
-    tree.children = NULL;
+    TreeNode startNeterminal;
+    startNeterminal.type = NODE_PROGRAM;
+    startNeterminal.numChildren = 0;
+    startNeterminal.children = NULL;
 
     error_code_t error;
     error = ERR_SYNTAX_ANALYSIS;
-    if (parse(&tree, &error))
+    if (parse(&startNeterminal, &error, false))
     {
         error = ERR_NONE;
     }
-    dispose(&tree);
+    dispose(&startNeterminal);
     return error;
 }
