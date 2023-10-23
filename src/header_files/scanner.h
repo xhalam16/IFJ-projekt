@@ -8,6 +8,7 @@
 #include "token.h"
 #include "error.h"
 
+extern bool in_string_global;
 
 typedef struct keyword_type
 {
