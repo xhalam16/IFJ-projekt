@@ -118,7 +118,7 @@ const char * token_type_string_values[] = {
 typedef enum token_type token_type_t;
 
 
-typedef struct token_value
+typedef union token_value
 {
     int int_value;
     double double_value;
@@ -129,4 +129,5 @@ typedef struct token
 {
     token_type_t type;
     token_value_t value;
+    DynamicBuffer* source_value;
 } token_t;
