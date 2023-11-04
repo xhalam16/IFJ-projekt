@@ -465,7 +465,7 @@ bool parse(TreeNode *startNeterminal, error_code_t *error, bool innerBlock)
     return true;
 }
 
-int main()
+int main(void)
 {
     error_code_t error;
     error = ERR_SYNTAX_ANALYSIS;
