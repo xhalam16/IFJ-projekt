@@ -41,6 +41,7 @@ bool parseKeyWord(error_code_t *error)
     {
         /* code */
     }
+    return false;
 }
 
 bool parseComma(TreeNode *funcParams, error_code_t *error)
@@ -214,7 +215,6 @@ bool parseCondition(TreeNode *startNeterminal, TreeNode *neterminal, error_code_
     switch (token.type)
     {
     case TOKEN_LEFT_PARENTHESIS:
-        token_t token = get_token(file);
         skipEmptyLines(&token);
         if (token.type == TOKEN_IDENTIFIER)
         {
@@ -260,6 +260,8 @@ bool parseCondition(TreeNode *startNeterminal, TreeNode *neterminal, error_code_
             }
         }
         break;
+    default:
+        return false;
     }
     return false;
 }
@@ -382,16 +384,14 @@ bool parse(TreeNode *startNeterminal, error_code_t *error, bool innerBlock)
 
         case TOKEN_KEYWORD_LET:
         case TOKEN_KEYWORD_VAR:
-            token = get_token(file);
             skipEmptyLines(&token);
             if (token.type == TOKEN_IDENTIFIER)
             {
                 nextNeterminal->type = NODE_ASSIGN;
-                token = get_token(file);
                 skipEmptyLines(&token);
                 if (token.type == TOKEN_OPERATOR_ASSIGN)
                 {
-                    token = get_token(file);
+                    bool isIdentifier = false;
                     skipEmptyLines(&token);
                     switch (token.type)
                     {
@@ -400,7 +400,6 @@ bool parse(TreeNode *startNeterminal, error_code_t *error, bool innerBlock)
                     case TOKEN_INT:
                     case TOKEN_DOUBLE:
                     case TOKEN_NIL:
-                        bool isIdentifier = false;
                         if (token.type == TOKEN_IDENTIFIER)
                         {
                             isIdentifier = true;
@@ -507,7 +506,7 @@ int main()
     startNeterminal.numChildren = 0;
     startNeterminal.children = NULL;
 
-        if (parse(&startNeterminal, &error, false))
+    if (parse(&startNeterminal, &error, false))
     {
         error = ERR_NONE;
     }
