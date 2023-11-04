@@ -43,11 +43,9 @@ bool parseCondition(TreeNode *startNeterminal, TreeNode *neterminal, error_code_
 
 bool parseLeftBrace(TreeNode *startNeterminal, TreeNode *neterminal, error_code_t *error);
 
-bool parseComma(TreeNode *funcParams, error_code_t *error);
-
 bool parseKeyWord(error_code_t *error);
 
-bool parseParameter(TreeNode *node, error_code_t *error);
+bool parseParameters(TreeNode *node, error_code_t *error);
 
 bool parseAssign(error_code_t *error);
 
