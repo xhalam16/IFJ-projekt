@@ -30,6 +30,7 @@ void skipEmptyLines(token_t *token)
     *token = get_token(file);
     while (token->type == TOKEN_EOL)
     {
+
         *token = get_token(file);
     }
 }
@@ -56,9 +57,6 @@ bool parseParameters(TreeNode *funcParams, error_code_t *error)
     funcParam->type = NODE_FUNCTION_PARAM;
     funcParam->terminal = false;
 
-    token_t token;
-    skipEmptyLines(&token);
-
     TreeNode *funcParamValue = createNewNode(funcParam, error);
     if (funcParam == NULL)
     {
@@ -66,6 +64,7 @@ bool parseParameters(TreeNode *funcParams, error_code_t *error)
     }
     funcParamValue->terminal = true;
 
+    token_t token;
     skipEmptyLines(&token);
 
     switch (token.type)
@@ -101,10 +100,18 @@ bool parseParameters(TreeNode *funcParams, error_code_t *error)
                 break;
 
             default:
+                return false;
                 break;
             }
         }
-
+        if (token.type == TOKEN_COMMA)
+        {
+            return parseParameters(funcParams, error);
+        }
+        if (token.type == TOKEN_RIGHT_PARENTHESIS)
+        {
+            return true;
+        }
         break;
     case TOKEN_STRING:
         funcParamValue->type = NODE_STRING;
@@ -118,10 +125,21 @@ bool parseParameters(TreeNode *funcParams, error_code_t *error)
     case TOKEN_NIL:
         funcParamValue->type = NODE_NIL;
         break;
+    case TOKEN_RIGHT_PARENTHESIS:
+        return true;
     default:
         return false;
     }
-    return true;
+    skipEmptyLines(&token);
+    if (token.type == TOKEN_COMMA)
+    {
+        return parseParameters(funcParams, error);
+    }
+    if (token.type == TOKEN_RIGHT_PARENTHESIS)
+    {
+        return true;
+    }
+    return false;
 }
 
 bool parseFuncCall(TreeNode *node, error_code_t *error)
@@ -134,23 +152,20 @@ bool parseFuncCall(TreeNode *node, error_code_t *error)
     funcCallId->type = NODE_IDENTIFIER;
     funcCallId->terminal = true;
 
-    token_t token;
-    skipEmptyLines(&token);
-
-    while (token.type != TOKEN_RIGHT_PARENTHESIS)
+    TreeNode *funcCallParams = createNewNode(node, error);
+    if (funcCallParams == NULL)
     {
-        if (!parseParameters(node, error))
-        {
-            return false;
-        }
-        skipEmptyLines(&token);
-        if (token.type != TOKEN_RIGHT_PARENTHESIS && token.type != TOKEN_COMMA)
-        {
-            return false;
-        }
+        return false;
     }
+    funcCallId->type = NODE_FUNCTION_PARAMS;
+    funcCallId->terminal = false;
 
-    return true;
+    if (parseParameters(funcCallParams, error))
+    {
+
+        return true;
+    }
+    return false;
 }
 
 bool parseLeftBrace(TreeNode *startNeterminal, TreeNode *neterminal, error_code_t *error)
@@ -279,9 +294,10 @@ bool parse(TreeNode *startNeterminal, error_code_t *error, bool innerBlock)
                 else
                 {
                     token = get_token(file);
-                    if (token.type == TOKEN_EOL)
+                    if (token.type != TOKEN_EOL)
                     {
-                        return parse(startNeterminal, error, false);
+
+                        return false;
                     }
                 }
                 break;
