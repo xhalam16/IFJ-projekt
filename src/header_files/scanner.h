@@ -11,6 +11,7 @@
 
 extern bool in_string_global;
 extern bool in_block_comment_global;
+extern bool in_multi_line_string_global;
 
 typedef struct keyword_type
 {
@@ -19,23 +20,7 @@ typedef struct keyword_type
 } keyword_token_type_t;
 
 
-const keyword_token_type_t keywords_map[] = {
-    {"func", TOKEN_KEYWORD_FUNC},
-    {"Double", TOKEN_DATATYPE_DOUBLE},
-    {"String", TOKEN_DATATYPE_STRING},
-    {"Int", TOKEN_DATATYPE_INT},
-    {"if", TOKEN_KEYWORD_IF},
-    {"else", TOKEN_KEYWORD_ELSE},
-    {"return", TOKEN_KEYWORD_RETURN},
-    {"nil", TOKEN_NIL},
-    {"let", TOKEN_KEYWORD_LET},
-    {"var", TOKEN_KEYWORD_VAR},
-    {"while", TOKEN_KEYWORD_WHILE},
-    {"Int?", TOKEN_DATATYPE_INT_NILABLE},
-    {"Double?", TOKEN_DATATYPE_DOUBLE_NILABLE},
-    {"String?", TOKEN_DATATYPE_STRING_NILABLE}
-
-};
+extern const keyword_token_type_t keywords_map[];
 
 #define KEYWORD_COUNT sizeof(keywords_map) / sizeof(keywords_map[0])
 
@@ -53,6 +38,7 @@ void skip_whitespace(FILE *source_file);
 token_t get_token(FILE *source_file);
 void unget_token(token_t token, FILE *source_file);
 token_t peek_token(FILE *source_file);
+
 
 
 

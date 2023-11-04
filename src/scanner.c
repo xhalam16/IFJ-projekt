@@ -3,9 +3,84 @@
 
 bool in_string_global = false;
 bool in_block_comment_global = false;
+bool in_multi_line_string_global = false;
+
+const keyword_token_type_t keywords_map[] = {
+    {"func", TOKEN_KEYWORD_FUNC},
+    {"Double", TOKEN_DATATYPE_DOUBLE},
+    {"String", TOKEN_DATATYPE_STRING},
+    {"Int", TOKEN_DATATYPE_INT},
+    {"if", TOKEN_KEYWORD_IF},
+    {"else", TOKEN_KEYWORD_ELSE},
+    {"return", TOKEN_KEYWORD_RETURN},
+    {"nil", TOKEN_NIL},
+    {"let", TOKEN_KEYWORD_LET},
+    {"var", TOKEN_KEYWORD_VAR},
+    {"while", TOKEN_KEYWORD_WHILE},
+    {"Int?", TOKEN_DATATYPE_INT_NILABLE},
+    {"Double?", TOKEN_DATATYPE_DOUBLE_NILABLE},
+    {"String?", TOKEN_DATATYPE_STRING_NILABLE}
+
+};
+
+const char * token_type_string_values[] = {
+ "TOKEN_IDENTIFIER", // id
+    "TOKEN_KEYWORD_IF", // keyword
+    "TOKEN_KEYWORD_ELSE",
+    "TOKEN_KEYWORD_WHILE",
+    "TOKEN_KEYWORD_LET",
+    "TOKEN_KEYWORD_VAR",
+    "TOKEN_KEYWORD_RETURN",
+    "TOKEN_KEYWORD_FUNC",
+
+    "TOKEN_DATATYPE_INT",
+    "TOKEN_DATATYPE_DOUBLE",
+    "TOKEN_DATATYPE_STRING",
+    "TOKEN_DATATYPE_INT_NILABLE",
+    "TOKEN_DATATYPE_DOUBLE_NILABLE",
+    "TOKEN_DATATYPE_STRING_NILABLE",
+    "TOKEN_INT",
+    "TOKEN_DOUBLE",
+    "TOKEN_STRING",
+    "TOKEN_NIL",
+
+    "TOKEN_OPERATOR_ADD",    // +
+    "TOKEN_OPERATOR_SUB",    // -
+    "TOKEN_OPERATOR_MUL",    // *
+    "TOKEN_OPERATOR_DIV",    // /
+    "TOKEN_OPERATOR_BELOW",  // <
+    "TOKEN_OPERATOR_ABOVE",  // >
+    "TOKEN_OPERATOR_BEQ",    // <=
+    "TOKEN_OPERATOR_AEQ",    // >=
+    "TOKEN_OPERATOR_EQUAL",  // ==
+    "TOKEN_OPERATOR_NEQ",    // !=
+    "TOKEN_OPERATOR_NIL_COALESCING", // ??
+    "TOKEN_OPERATOR_ASSIGN", // =
+    "TOKEN_OPERATOR_UNARY",  // !
+    "TOKEN_EOL",
+    "TOKEN_EOF",
+
+    "TOKEN_LEFT_PARENTHESIS",     // (
+    "TOKEN_RIGHT_PARENTHESIS",    // )
+    "TOKEN_LEFT_BRACE",           // {
+    "TOKEN_RIGHT_BRACE",          // }
+    "TOKEN_COLON",                // :
+    "TOKEN_COMMA",               
+    "TOKEN_ARROW",                
+    "TOKEN_UNDERSCORE",   
+    "TOKEN_DOUBLE_QUOTE",
+    "TOKEN_TRIPLE_DOUBLE_QUOTE",     
+
+    "TOKEN_UNKNOWN", 
+    "TOKEN_ERROR", 
+    "TOKEN_NONE",
+    
+
+};
+
 
 token_type_t keyword_2_token_type(char *keyword){
-    for (int i = 0; i < KEYWORD_COUNT; i++)
+    for (size_t i = 0; i < KEYWORD_COUNT; i++)
     {
         if(strcmp(keyword, keywords_map[i].keyword) == 0){
             return keywords_map[i].type;
@@ -76,7 +151,7 @@ int skip_line_comment(FILE *source_file){
 }
 
 bool word_is_keyword(char *word){
-    for (int i = 0; i < KEYWORD_COUNT; i++)
+    for (size_t i = 0; i < KEYWORD_COUNT; i++)
     {
         if(strcmp(word, keywords_map[i].keyword) == 0){
             return true;
@@ -109,7 +184,7 @@ bool word_is_keyword_datatype(char *word){
         "String?"
     };
     
-    for (int i = 0; i < sizeof(keyword_datatypes) / sizeof(keyword_datatypes[0]); i++)
+    for (int i = 0; i < (int)(sizeof(keyword_datatypes) / sizeof(keyword_datatypes[0])); i++)
     {
         if(strcmp(word, keyword_datatypes[i]) == 0){
             return true;
@@ -258,6 +333,7 @@ token_t get_token(FILE *source_file){
 
     skip_whitespace(source_file);
    int c = get_char(source_file);
+
    if(c == '\n' && !in_block_comment_global){
          token.type = TOKEN_EOL;
          return token;
@@ -293,6 +369,21 @@ token_t get_token(FILE *source_file){
 
     if(c == '"'){
         // this branch either sets that string is being loaded (string literal)
+        
+        // we need to check for 2 other consecutive " to determine if it is multiline string
+        int potential_quote = get_char(source_file);
+        if(potential_quote == '"'){
+            int potential_quote2 = get_char(source_file);
+            if(potential_quote2 == '"'){
+                token.type = TOKEN_TRIPLE_DOUBLE_QUOTE;
+                buffer_append_string(raw_buffer, "\"\"\"");
+                in_multi_line_string_global = !in_multi_line_string_global;
+                return token;
+            }
+        }
+        
+
+
         token.type = TOKEN_DOUBLE_QUOTE;
         buffer_append_string(raw_buffer, "\"");
         if(in_string_global){
@@ -452,7 +543,9 @@ token_t get_token(FILE *source_file){
 
     }
 
+    if(in_multi_line_string_global){
 
+    }
     
     if(isdigit(c)){
         // určitě nemůže být klíčové slovo a identifikátor
@@ -755,36 +848,37 @@ token_t peek_token(FILE *source_file){
 
 
 
-int main(){
-    FILE *source_file = fopen("test.txt", "r");
-    token_t token;
-    while((token = get_token(source_file)).type != TOKEN_EOF){
+// int main(){
+//     FILE *source_file = fopen("test.txt", "r");
+//     token_t token;
+//     while((token = get_token(source_file)).type != TOKEN_EOF){
 
-        if(token.type == TOKEN_UNKNOWN){
-            printf("Lexical analysis ended with an error\n");
-            return ERR_LEX_ANALYSIS;
-        }
+//         if(token.type == TOKEN_UNKNOWN){
+//             printf("Lexical analysis ended with an error\n");
+//             return ERR_LEX_ANALYSIS;
+//         }
 
-        if(token.type == TOKEN_ERROR){ // malloc, realloc etc. failed
-            printf("Lexical analysis ended unexpectedly\n");
-            return ERR_INTERNAL;
-        }
+//         if(token.type == TOKEN_ERROR){ // malloc, realloc etc. failed
+//             printf("Lexical analysis ended unexpectedly\n");
+//             return ERR_INTERNAL;
+//         }
         
-        printf("type: %s\n", token_type_string_values[token.type]);
-        if(token.type == TOKEN_INT){
-            printf("int_value: %d\n", token.value.int_value);
-        }else if(token.type == TOKEN_DOUBLE){
-            printf("double_value: %f\n", token.value.double_value);
-        }else if(token.type == TOKEN_STRING){
-            printf("string_value: %s\n", token.value.string_value->buffer);
-        }
+//         printf("type: %s\n", token_type_string_values[token.type]);
+//         if(token.type == TOKEN_INT){
+//             printf("int_value: %d\n", token.value.int_value);
+//         }else if(token.type == TOKEN_DOUBLE){
+//             printf("double_value: %f\n", token.value.double_value);
+//         }else if(token.type == TOKEN_STRING){
+//             printf("string_value: %s\n", token.value.string_value->buffer);
+//         }
 
-        printf("source_value: %s\n", token.source_value->buffer);
-        printf("\n");
-    }
+//         printf("source_value: %s\n", token.source_value->buffer);
+//         printf("in-multiline-string: %d\n", in_multi_line_string_global);
+//         printf("\n");
+//     }
 
-    free_buffer(token.value.string_value);
-    free_buffer(token.source_value);
-    fclose(source_file);
-    return 0;
-}
+//     free_buffer(token.value.string_value);
+//     free_buffer(token.source_value);
+//     fclose(source_file);
+//     return 0;
+// }
