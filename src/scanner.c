@@ -409,7 +409,8 @@ token_t get_token(FILE *source_file){
 
 
     if(in_string_global){
-        // allowed escape sequences: \n, \t, \", \\
+        /* allowed escape sequences: \n, \t, \", \\
+        */
         // todo solve escape sequences \u{XXXXXXXX}
         // raw_buffer should contain the string in source code
         // while buffer should contain the string value (meaning escape sequences should be expanded)
