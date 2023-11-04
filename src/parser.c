@@ -33,40 +33,29 @@ void skipEmptyLines(token_t *token)
         *token = get_token(file);
     }
 }
-
+/*
 bool parseKeyWord(error_code_t *error)
 {
     token_t token;
     if (token.type != TOKEN_IDENTIFIER)
     {
-        /* code */
+
     }
     return false;
 }
+*/
 
-bool parseComma(TreeNode *funcParams, error_code_t *error)
+bool parseParameters(TreeNode *funcParams, error_code_t *error)
 {
-    token_t token;
-    skipEmptyLines(&token);
-    switch (token.type)
+
+    TreeNode *funcParam = createNewNode(funcParams, error);
+    if (funcParam == NULL)
     {
-    case TOKEN_IDENTIFIER:
-    case TOKEN_STRING:
-    case TOKEN_INT:
-    case TOKEN_DOUBLE:
-    case TOKEN_NIL:
-        if (token.type == TOKEN_IDENTIFIER)
-        {
-            return parseParameter(funcParams, error);
-        }
-        return parseParameter(funcParams, error);
-    default:
         return false;
     }
-}
+    funcParam->type = NODE_FUNCTION_PARAM;
+    funcParam->terminal = false;
 
-bool parseParameter(TreeNode *funcParam, error_code_t *error)
-{
     token_t token;
     skipEmptyLines(&token);
 
@@ -83,6 +72,39 @@ bool parseParameter(TreeNode *funcParam, error_code_t *error)
     {
     case TOKEN_IDENTIFIER:
         funcParamValue->type = NODE_IDENTIFIER;
+        skipEmptyLines(&token);
+        if (token.type == TOKEN_COLON)
+        {
+            TreeNode *funcParamRight = createNewNode(funcParam, error);
+            if (funcParamRight == NULL)
+            {
+                return false;
+            }
+            funcParamRight->terminal = true;
+            skipEmptyLines(&token);
+            switch (token.type)
+            {
+            case TOKEN_IDENTIFIER:
+                funcParamRight->type = NODE_IDENTIFIER;
+                break;
+            case TOKEN_STRING:
+                funcParamRight->type = NODE_STRING;
+                break;
+            case TOKEN_INT:
+                funcParamRight->type = NODE_INT;
+                break;
+            case TOKEN_DOUBLE:
+                funcParamRight->type = NODE_DOUBLE;
+                break;
+            case TOKEN_NIL:
+                funcParamRight->type = NODE_NIL;
+                break;
+
+            default:
+                break;
+            }
+        }
+
         break;
     case TOKEN_STRING:
         funcParamValue->type = NODE_STRING;
@@ -99,7 +121,6 @@ bool parseParameter(TreeNode *funcParam, error_code_t *error)
     default:
         return false;
     }
-
     return true;
 }
 
@@ -116,73 +137,19 @@ bool parseFuncCall(TreeNode *node, error_code_t *error)
     token_t token;
     skipEmptyLines(&token);
 
-    TreeNode *funcParams = NULL;
-
-    if (token.type != TOKEN_RIGHT_PARENTHESIS)
-    {
-        funcParams = createNewNode(node, error);
-        if (funcParams == NULL)
-        {
-            return false;
-        }
-        funcParams->type = NODE_FUNCTION_PARAMS;
-        funcParams->terminal = false;
-    }
-
     while (token.type != TOKEN_RIGHT_PARENTHESIS)
     {
-        if (funcParams == NULL)
+        if (!parseParameters(node, error))
         {
             return false;
         }
-
-        TreeNode *funcParam = createNewNode(funcParams, error);
-        if (funcParam == NULL)
-        {
-            return false;
-        }
-        funcParams->type = NODE_FUNCTION_PARAM;
-        funcParams->terminal = false;
-
-        TreeNode *funcParamType = createNewNode(funcParam, error);
-        if (funcParamType == NULL)
-        {
-            return false;
-        }
-        funcParamType->terminal = true;
-
-        switch (token.type)
-        {
-        case TOKEN_IDENTIFIER:
-            funcParamType->type = NODE_IDENTIFIER;
-            skipEmptyLines(&token);
-            if (token.type == TOKEN_COLON && !parseParameter(funcParam, error))
-            {
-                return false;
-            }
-            break;
-        case TOKEN_STRING:
-            funcParamType->type = NODE_STRING;
-            break;
-        case TOKEN_INT:
-            funcParamType->type = NODE_INT;
-            break;
-        case TOKEN_DOUBLE:
-            funcParamType->type = NODE_DOUBLE;
-            break;
-        case TOKEN_NIL:
-            funcParamType->type = NODE_NIL;
-            break;
-        default:
-            return false;
-        }
-
         skipEmptyLines(&token);
         if (token.type != TOKEN_RIGHT_PARENTHESIS && token.type != TOKEN_COMMA)
         {
             return false;
         }
     }
+
     return true;
 }
 
@@ -265,12 +232,17 @@ bool parseCondition(TreeNode *startNeterminal, TreeNode *neterminal, error_code_
     }
     return false;
 }
-
+/*
 bool parseDeclaration(TreeNode *startNeterminal, TreeNode *neterminal, error_code_t *error)
 {
     return false;
 }
-
+*/
+/*
+bool parseAssign()
+{
+}
+*/
 bool parse(TreeNode *startNeterminal, error_code_t *error, bool innerBlock)
 {
     token_t token;
@@ -288,9 +260,9 @@ bool parse(TreeNode *startNeterminal, error_code_t *error, bool innerBlock)
         switch (token.type)
         {
         case TOKEN_RIGHT_BRACE:
-            if (innerBlock)
+            if (!innerBlock)
             {
-                return true;
+                return false;
             }
             break;
 
@@ -313,23 +285,26 @@ bool parse(TreeNode *startNeterminal, error_code_t *error, bool innerBlock)
                     }
                 }
                 break;
-                /*
+            /*
             case TOKEN_OPERATOR_ASSIGN: // assign
                 nextNeterminal->type = NODE_ASSIGN;
                 if (parseAssign(error))
                 {
-                    if (token.type == TOKEN_EOL)
+                    if (token.type != TOKEN_EOL)
                     {
-                        return parse(startNeterminal, error, false);
+                        return false;
                     }
                 }
                 break;
-                */
+            */
             default:
                 return false;
             }
+            break;
         case TOKEN_KEYWORD_IF:
+
             nextNeterminal->type = NODE_IF;
+
             TreeNode *ifCond = createNewNode(nextNeterminal, error);
 
             if (ifCond == NULL)
