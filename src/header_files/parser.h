@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include "scanner.h"
+#include "symtable.h"
 
 FILE *file;
 error_code_t error;
@@ -40,6 +41,8 @@ typedef struct TreeNode {
     bool terminal;
     struct TreeNode **children;
     unsigned numChildren;
+    char *label;
+    local_symtable_t *local_symtable;
 } TreeNode;
 
 void dispose(TreeNode *parseTree);

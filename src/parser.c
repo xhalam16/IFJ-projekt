@@ -22,7 +22,7 @@ bool addNode(TreeNode *parent, TreeNode *son)
     return true;
 }
 
-TreeNode *createNewNode(TreeNode *parent, NodeType type, bool terminal)
+TreeNode *createNewNode(TreeNode *parent, NodeType type, bool isTerminal)
 {
     TreeNode *newNode = (TreeNode *)malloc(sizeof(TreeNode));
     if (newNode == NULL)
@@ -32,6 +32,10 @@ TreeNode *createNewNode(TreeNode *parent, NodeType type, bool terminal)
     }
     newNode->children = NULL;
     newNode->numChildren = 0;
+    newNode->type = type;
+    newNode->terminal = isTerminal;
+    newNode->label = NULL;
+    newNode->local_symtable = NULL;
 
     if (!addNode(parent, newNode))
     {
@@ -522,14 +526,15 @@ bool parseParameter(TreeNode *funcParamList)
     {
         return false;
     }
+
     token_t token;
     if (!skipEmptyLines(&token))
     {
         return false;
     }
 
-    TreeNode *paramName = createNewNode(funcParameter, NODE_IDENTIFIER, true);
-    if (funcParameter == NULL)
+    TreeNode *paramLabel = createNewNode(funcParameter, NODE_UNDERSCORE, true);
+    if (paramLabel == NULL)
     {
         return false;
     }
@@ -539,9 +544,10 @@ bool parseParameter(TreeNode *funcParamList)
         return false;
     }
 
-    if (token.type == TOKEN_UNDERSCORE)
+    if (token.type == TOKEN_IDENTIFIER)
     {
-        paramName->type = NODE_UNDERSCORE;
+        paramLabel->type = NODE_IDENTIFIER;
+        // vložení labelu parametru do tabulky symbolů
     }
 
     if (!skipEmptyLines(&token))
@@ -625,17 +631,19 @@ bool parseParamList(TreeNode *funcParamList)
     }
     else
     {
-        if (!parseParameter(funcParamList))
+        if (parseParameter(funcParamList))
         {
-            return false;
+            return true;
         }
     }
-    return true;
+    return false;
 }
 
 bool parseFuncDeclaration(TreeNode *node)
 {
     node->type = NODE_DECLARATION_FUNCTION;
+
+    
 
     if (createNewNode(node, NODE_KEYWORD_FUNC, true) == NULL)
     {
@@ -659,6 +667,8 @@ bool parseFuncDeclaration(TreeNode *node)
         return false;
     }
 
+    // vložení názvu funkce do tabulky symbolů
+
     if (!skipEmptyLines(&token))
     {
         return false;
@@ -675,7 +685,7 @@ bool parseFuncDeclaration(TreeNode *node)
         return false;
     }
 
-    if (!parseParameters(funcParamList))
+    if (!parseParamList(funcParamList))
     {
         return false;
     }
@@ -694,7 +704,7 @@ bool parse(TreeNode *startNeterminal, bool innerBlock)
     while (token.type != TOKEN_EOF)
     {
 
-        TreeNode *nextNeterminal = createNewNode(startNeterminal, NODE_EXPRESSION, false);
+        TreeNode *nextNeterminal = createNewNode(startNeterminal, NODE_IDENTIFIER, false);
         if (nextNeterminal == NULL)
         {
             return false;
