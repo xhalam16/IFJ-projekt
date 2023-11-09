@@ -1,32 +1,62 @@
 #include "header_files/parser.h"
 
-TreeNode *createNewNode(TreeNode *node, error_code_t *error)
+bool addNode(TreeNode *parent, TreeNode *son)
 {
-    TreeNode *newNode = realloc(node->children, sizeof(TreeNode) * ++node->numChildren);
+    if (parent == NULL)
+    {
+        return true;
+    }
+
+    if (son == NULL)
+    {
+        error = ERR_INTERNAL;
+        return false;
+    }
+    parent->children = realloc(parent->children, sizeof(TreeNode *) * ++parent->numChildren);
+    if (parent->children == NULL)
+    {
+        error = ERR_INTERNAL;
+        return false;
+    }
+    parent->children[parent->numChildren - 1] = son;
+    return true;
+}
+
+TreeNode *createNewNode(TreeNode *parent, NodeType type, bool terminal)
+{
+    TreeNode *newNode = (TreeNode *)malloc(sizeof(TreeNode));
     if (newNode == NULL)
     {
-        *error = ERR_INTERNAL;
+        error = ERR_INTERNAL;
+        return NULL;
+    }
+    newNode->children = NULL;
+    newNode->numChildren = 0;
+
+    if (!addNode(parent, newNode))
+    {
+        free(newNode);
         return NULL;
     }
     return newNode;
 }
 
-void dispose(TreeNode *parseTree, unsigned numChildren)
+void dispose(TreeNode *parseTree)
 {
     if (parseTree == NULL)
     {
         return;
     }
 
-    for (unsigned i = 0; i < numChildren; i++)
+    for (unsigned i = 0; i < parseTree->numChildren; i++)
     {
-        
-        dispose(parseTree->children[i], parseTree->children[i]->numChildren);
-        free(parseTree->children);
-        
+        dispose(parseTree->children[i]);
     }
 
-    
+    free(parseTree->children);
+
+    free(parseTree);
+
     /*
     while (parseTree->children != NULL)
     {
@@ -39,7 +69,7 @@ void dispose(TreeNode *parseTree, unsigned numChildren)
     */
 }
 
-int skipEmptyLines(token_t *token, error_code_t *error)
+int skipEmptyLines(token_t *token)
 {
     int numEols = 0;
     *token = get_token(file);
@@ -49,22 +79,24 @@ int skipEmptyLines(token_t *token, error_code_t *error)
         {
             numEols++;
         }
+        free_token(*token);
         *token = get_token(file);
     }
+    free_token(*token);
     if (token->type == TOKEN_UNKNOWN)
     {
-        *error = ERR_LEX_ANALYSIS;
+        error = ERR_LEX_ANALYSIS;
         return 0;
     }
     if (token->type == TOKEN_ERROR)
     {
-        *error = ERR_INTERNAL;
+        error = ERR_INTERNAL;
         return 0;
     }
     return 1 + numEols;
 }
 /*
-bool parseKeyWord(error_code_t *error)
+bool parseKeyWord(error_code_t error)
 {
     token_t token;
     if (token.type != TOKEN_IDENTIFIER)
@@ -73,20 +105,18 @@ bool parseKeyWord(error_code_t *error)
     }
     return false;
 }
-*/
 
-bool parseParameters(TreeNode *funcParams, error_code_t *error)
+
+bool parseParameters(TreeNode *funcParams)
 {
 
-    TreeNode *funcParam = createNewNode(funcParams, error);
+    TreeNode *funcParam = createNewNode(funcParams, NODE_FUNCTION_PARAM, false);
     if (funcParam == NULL)
     {
         return false;
     }
-    funcParam->type = NODE_FUNCTION_PARAM;
-    funcParam->terminal = false;
 
-    TreeNode *funcParamValue = createNewNode(funcParam, error);
+    TreeNode *funcParamValue = createNewNode(funcParam, NODE_PARAM_VALUE, false);
     if (funcParam == NULL)
     {
         return false;
@@ -94,7 +124,7 @@ bool parseParameters(TreeNode *funcParams, error_code_t *error)
     funcParamValue->terminal = true;
 
     token_t token;
-    if (!skipEmptyLines(&token, error))
+    if (!skipEmptyLines(&token))
     {
         return false;
     }
@@ -103,20 +133,20 @@ bool parseParameters(TreeNode *funcParams, error_code_t *error)
     {
     case TOKEN_IDENTIFIER:
         funcParamValue->type = NODE_IDENTIFIER;
-        if (!skipEmptyLines(&token, error))
+        if (!skipEmptyLines(&token))
         {
             return false;
         }
 
         if (token.type == TOKEN_COLON)
         {
-            TreeNode *funcParamRight = createNewNode(funcParam, error);
+            TreeNode *funcParamRight = createNewNode(funcParam, NODE_PARAM_VALUE, false);
             if (funcParamRight == NULL)
             {
                 return false;
             }
             funcParamRight->terminal = true;
-            if (!skipEmptyLines(&token, error))
+            if (!skipEmptyLines(&token))
             {
                 return false;
             }
@@ -146,7 +176,7 @@ bool parseParameters(TreeNode *funcParams, error_code_t *error)
         }
         if (token.type == TOKEN_COMMA)
         {
-            return parseParameters(funcParams, error);
+            return parseParameters(funcParams);
         }
         if (token.type == TOKEN_RIGHT_PARENTHESIS)
         {
@@ -170,14 +200,14 @@ bool parseParameters(TreeNode *funcParams, error_code_t *error)
     default:
         return false;
     }
-    if (!skipEmptyLines(&token, error))
+    if (!skipEmptyLines(&token))
     {
         return false;
     }
 
     if (token.type == TOKEN_COMMA)
     {
-        return parseParameters(funcParams, error);
+        return parseParameters(funcParams);
     }
     if (token.type == TOKEN_RIGHT_PARENTHESIS)
     {
@@ -186,52 +216,47 @@ bool parseParameters(TreeNode *funcParams, error_code_t *error)
     return false;
 }
 
-bool parseFuncCall(TreeNode *node, error_code_t *error)
+*/
+
+bool parseFuncCall(TreeNode *node)
 {
 
-    TreeNode *funcCallId = createNewNode(node, error);
+    TreeNode *funcCallId = createNewNode(node, NODE_IDENTIFIER, true);
     if (funcCallId == NULL)
     {
         return false;
     }
-    funcCallId->type = NODE_IDENTIFIER;
-    funcCallId->terminal = true;
 
-    TreeNode *funcCallParams = createNewNode(node, error);
+    TreeNode *funcCallParams = createNewNode(node, NODE_PARAM_LIST, false);
     if (funcCallParams == NULL)
     {
         return false;
     }
-    funcCallId->type = NODE_FUNCTION_PARAMS;
-    funcCallId->terminal = false;
 
-    if (parseParameters(funcCallParams, error))
+    if (parseParameters(funcCallParams))
     {
         return true;
     }
     return false;
 }
 
-bool parseAssign(TreeNode *assign, error_code_t *error)
+bool parseAssign(TreeNode *assign)
 {
-    TreeNode *assignId = createNewNode(assign, error);
+    TreeNode *assignId = createNewNode(assign, NODE_IDENTIFIER, true);
     if (assignId == NULL)
     {
         return false;
     }
-    assignId->type = NODE_IDENTIFIER;
-    assignId->terminal = true;
 
-    TreeNode *assignValue = createNewNode(assign, error);
+    TreeNode *assignValue = createNewNode(assign, NODE_EXPRESSION, false);
     if (assignValue == NULL)
     {
         return false;
     }
-    assignValue->terminal = false;
 
     token_t token;
     int numEols;
-    if (!skipEmptyLines(&token, error))
+    if (!skipEmptyLines(&token))
     {
         return false;
     }
@@ -244,14 +269,14 @@ bool parseAssign(TreeNode *assign, error_code_t *error)
     case TOKEN_DOUBLE:
     case TOKEN_NIL:
 
-        if (!(numEols = skipEmptyLines(&token, error)))
+        if (!(numEols = skipEmptyLines(&token)))
         {
             return false;
         }
 
         if (token.type == TOKEN_LEFT_PARENTHESIS && prevToken.type == TOKEN_IDENTIFIER)
         {
-            if (parseFuncCall(assignValue, error))
+            if (parseFuncCall(assignValue))
             {
                 return true;
             }
@@ -286,11 +311,11 @@ bool parseAssign(TreeNode *assign, error_code_t *error)
     return true;
 }
 
-bool parseCondition(TreeNode *neterminal, error_code_t *error, bool inParenthesis)
+bool parseCondition(TreeNode *neterminal, bool inParenthesis)
 {
 
     token_t token = get_token(file);
-    if (!skipEmptyLines(&token, error))
+    if (!skipEmptyLines(&token))
     {
         return false;
     }
@@ -298,17 +323,17 @@ bool parseCondition(TreeNode *neterminal, error_code_t *error, bool inParenthesi
     switch (token.type)
     {
     case TOKEN_LEFT_PARENTHESIS:
-        if (!skipEmptyLines(&token, error))
+        if (!skipEmptyLines(&token))
         {
             return false;
         }
 
         if (token.type == TOKEN_IDENTIFIER)
         {
-            if (parseFuncCall(neterminal, error))
+            if (parseFuncCall(neterminal))
             {
                 token = get_token(file);
-                if (!skipEmptyLines(&token, error))
+                if (!skipEmptyLines(&token))
                 {
                     return false;
                 }
@@ -317,20 +342,20 @@ bool parseCondition(TreeNode *neterminal, error_code_t *error, bool inParenthesi
                 {
                 case TOKEN_RIGHT_PARENTHESIS:
                     token = get_token(file);
-                    if (!skipEmptyLines(&token, error))
+                    if (!skipEmptyLines(&token))
                     {
                         return false;
                     }
 
                     if (token.type == TOKEN_LEFT_BRACE && inParenthesis)
                     {
-                        // return parseLeftBrace(startNeterminal, neterminal, error);
+                        // return parseLeftBrace(startNeterminal, neterminal);
                     }
                     break;
                 case TOKEN_LEFT_BRACE:
                     if (!inParenthesis)
                     {
-                        // return parseLeftBrace(startNeterminal, neterminal, error);
+                        // return parseLeftBrace(startNeterminal, neterminal);
                     }
                     break;
                 case TOKEN_OPERATOR_ABOVE:
@@ -359,10 +384,10 @@ bool parseCondition(TreeNode *neterminal, error_code_t *error, bool inParenthesi
     return false;
 }
 
-bool parseDeclaration(TreeNode *neterminal, error_code_t *error)
+bool parseDeclaration(TreeNode *neterminal)
 {
     token_t token;
-    if (!skipEmptyLines(&token, error))
+    if (!skipEmptyLines(&token))
     {
         return false;
     }
@@ -370,27 +395,24 @@ bool parseDeclaration(TreeNode *neterminal, error_code_t *error)
     {
         return false;
     }
-    TreeNode *id = createNewNode(neterminal, error);
+    TreeNode *id = createNewNode(neterminal, NODE_IDENTIFIER, true);
     if (id == NULL)
     {
         return false;
     }
-    id->terminal = true;
-    id->type = NODE_IDENTIFIER;
     return true;
 }
 
-bool parseIfStatement(TreeNode *node, error_code_t *error)
+bool parseIfStatement(TreeNode *node)
 {
     token_t token;
-    TreeNode *ifCond = createNewNode(node, error);
+    TreeNode *ifCond = createNewNode(node, NODE_EXPRESSION, false);
     if (ifCond == NULL)
     {
         return false;
     }
-    ifCond->terminal = false;
 
-    if (!skipEmptyLines(&token, error))
+    if (!skipEmptyLines(&token))
     {
         return false;
     }
@@ -399,7 +421,7 @@ bool parseIfStatement(TreeNode *node, error_code_t *error)
     {
     case TOKEN_LEFT_PARENTHESIS:
         ifCond->type = NODE_EXPRESSION;
-        if (!skipEmptyLines(&token, error))
+        if (!skipEmptyLines(&token))
         {
             return false;
         }
@@ -411,7 +433,7 @@ bool parseIfStatement(TreeNode *node, error_code_t *error)
         case TOKEN_INT:
         case TOKEN_DOUBLE:
         case TOKEN_NIL:
-            if (!parseCondition(ifCond, error, true))
+            if (!parseCondition(ifCond, true))
             {
                 return false;
             }
@@ -422,15 +444,13 @@ bool parseIfStatement(TreeNode *node, error_code_t *error)
     case TOKEN_KEYWORD_LET:
         ifCond->type = NODE_DECLARATION;
 
-        TreeNode *let = createNewNode(node, error);
+        TreeNode *let = createNewNode(node, NODE_KEYWORD_LET, true);
         if (let == NULL)
         {
             return false;
         }
-        let->terminal = true;
-        let->type = NODE_KEYWORD_LET;
 
-        if (!parseDeclaration(ifCond, error))
+        if (!parseDeclaration(ifCond))
         {
 
             return false;
@@ -444,7 +464,7 @@ bool parseIfStatement(TreeNode *node, error_code_t *error)
     case TOKEN_DOUBLE:
     case TOKEN_NIL:
         ifCond->type = NODE_EXPRESSION;
-        if (!parseCondition(ifCond, error, false))
+        if (!parseCondition(ifCond, false))
         {
             return false;
         }
@@ -452,7 +472,7 @@ bool parseIfStatement(TreeNode *node, error_code_t *error)
     default:
         return false;
     }
-    if (!skipEmptyLines(&token, error))
+    if (!skipEmptyLines(&token))
     {
         return false;
     }
@@ -460,24 +480,24 @@ bool parseIfStatement(TreeNode *node, error_code_t *error)
     {
         return false;
     }
-    if (!parse(node, error, true))
+    if (!parse(node, true))
     {
         return false;
     }
-    if (!skipEmptyLines(&token, error))
+    if (!skipEmptyLines(&token))
     {
         return false;
     }
     if (token.type == TOKEN_KEYWORD_ELSE)
     {
 
-        TreeNode *elseStatement = createNewNode(node, error);
+        TreeNode *elseStatement = createNewNode(node, NODE_ELSE_STATEMENT, false);
         if (elseStatement == NULL)
         {
             return false;
         }
-        elseStatement->terminal = false;
-        if (!skipEmptyLines(&token, error))
+
+        if (!skipEmptyLines(&token))
         {
             return false;
         }
@@ -486,7 +506,7 @@ bool parseIfStatement(TreeNode *node, error_code_t *error)
         {
             return false;
         }
-        if (!parse(elseStatement, error, true))
+        if (!parse(elseStatement, true))
         {
             return false;
         }
@@ -495,10 +515,178 @@ bool parseIfStatement(TreeNode *node, error_code_t *error)
     return true;
 }
 
-bool parse(TreeNode *startNeterminal, error_code_t *error, bool innerBlock)
+bool parseParameter(TreeNode *funcParamList)
+{
+    TreeNode *funcParameter = createNewNode(funcParamList, NODE_FUNCTION_PARAM, false);
+    if (funcParameter == NULL)
+    {
+        return false;
+    }
+    token_t token;
+    if (!skipEmptyLines(&token))
+    {
+        return false;
+    }
+
+    TreeNode *paramName = createNewNode(funcParameter, NODE_IDENTIFIER, true);
+    if (funcParameter == NULL)
+    {
+        return false;
+    }
+
+    if (token.type != TOKEN_IDENTIFIER || token.type != TOKEN_UNDERSCORE)
+    {
+        return false;
+    }
+
+    if (token.type == TOKEN_UNDERSCORE)
+    {
+        paramName->type = NODE_UNDERSCORE;
+    }
+
+    if (!skipEmptyLines(&token))
+    {
+        return false;
+    }
+
+    if (token.type != TOKEN_IDENTIFIER)
+    {
+        return false;
+    }
+
+    if (!skipEmptyLines(&token))
+    {
+        return false;
+    }
+
+    if (token.type != TOKEN_COLON)
+    {
+        return false;
+    }
+
+    if (!skipEmptyLines(&token))
+    {
+        return false;
+    }
+
+    TreeNode *paramType = createNewNode(funcParameter, NODE_FUNCTION_PARAM_TYPE, true);
+    if (funcParameter == NULL)
+    {
+        return false;
+    }
+
+    switch (token.type)
+    {
+    case TOKEN_DATATYPE_INT:
+    case TOKEN_DATATYPE_DOUBLE:
+    case TOKEN_DATATYPE_STRING:
+    case TOKEN_DATATYPE_INT_NILABLE:
+    case TOKEN_DATATYPE_DOUBLE_NILABLE:
+    case TOKEN_DATATYPE_STRING_NILABLE:
+        break;
+
+    default:
+        return false;
+    }
+    
+    if (!skipEmptyLines(&token))
+    {
+        return false;
+    }
+
+    if (token.type == TOKEN_COMMA)
+    {
+        return parseParameter(funcParamList);
+    }
+
+    if (token.type != TOKEN_RIGHT_PARENTHESIS)
+    {
+        return false;
+    }
+    return true;
+}
+
+bool parseParamList(TreeNode *funcParamList)
 {
     token_t token;
-    if (!skipEmptyLines(&token, error))
+    if (!skipEmptyLines(&token))
+    {
+        return false;
+    }
+
+    if (token.type == TOKEN_RIGHT_PARENTHESIS)
+    {
+        TreeNode *funcParameter = createNewNode(funcParamList, NODE_EPSILON, true);
+        if (funcParameter == NULL)
+        {
+            return false;
+        }
+        return true;
+    }
+    else
+    {
+        if (!parseParameter(funcParamList))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool parseFuncDeclaration(TreeNode *node)
+{
+    node->type = NODE_DECLARATION_FUNCTION;
+
+    if (createNewNode(node, NODE_KEYWORD_FUNC, true) == NULL)
+    {
+        return false;
+    }
+
+    token_t token;
+    if (!skipEmptyLines(&token))
+    {
+        return false;
+    }
+
+    if (token.type != TOKEN_IDENTIFIER)
+    {
+        return false;
+    }
+
+    TreeNode *funcName = createNewNode(node, NODE_IDENTIFIER, true);
+    if (funcName == NULL)
+    {
+        return false;
+    }
+
+    if (!skipEmptyLines(&token))
+    {
+        return false;
+    }
+
+    if (token.type != TOKEN_LEFT_PARENTHESIS)
+    {
+        return false;
+    }
+
+    TreeNode *funcParamList = createNewNode(node, NODE_PARAM_LIST, false);
+    if (funcParamList == NULL)
+    {
+        return false;
+    }
+
+    if (!parseParameters(funcParamList))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+bool parse(TreeNode *startNeterminal, bool innerBlock)
+{
+    token_t token;
+    if (!skipEmptyLines(&token))
     {
         return false;
     }
@@ -506,12 +694,11 @@ bool parse(TreeNode *startNeterminal, error_code_t *error, bool innerBlock)
     while (token.type != TOKEN_EOF)
     {
 
-        TreeNode *nextNeterminal = createNewNode(startNeterminal, error);
+        TreeNode *nextNeterminal = createNewNode(startNeterminal, NODE_EXPRESSION, false);
         if (nextNeterminal == NULL)
         {
             return false;
         }
-        nextNeterminal->terminal = false;
 
         switch (token.type)
         {
@@ -522,9 +709,8 @@ bool parse(TreeNode *startNeterminal, error_code_t *error, bool innerBlock)
                 return false;
             }
             return true;
-
         case TOKEN_IDENTIFIER:
-            if (!skipEmptyLines(&token, error))
+            if (!skipEmptyLines(&token))
             {
                 return false;
             }
@@ -533,7 +719,7 @@ bool parse(TreeNode *startNeterminal, error_code_t *error, bool innerBlock)
             {
             case TOKEN_LEFT_PARENTHESIS: // func call
                 nextNeterminal->type = NODE_FUNCTION_CALL;
-                if (!parseFuncCall(nextNeterminal, error))
+                if (!parseFuncCall(nextNeterminal))
                 {
                     return false;
                 }
@@ -549,7 +735,7 @@ bool parse(TreeNode *startNeterminal, error_code_t *error, bool innerBlock)
 
             case TOKEN_OPERATOR_ASSIGN: // assign
                 nextNeterminal->type = NODE_ASSIGN;
-                if (!parseAssign(nextNeterminal, error))
+                if (!parseAssign(nextNeterminal))
                 {
                     return false;
                 }
@@ -563,11 +749,12 @@ bool parse(TreeNode *startNeterminal, error_code_t *error, bool innerBlock)
             default:
                 return false;
             }
+
             break;
         case TOKEN_KEYWORD_IF:
             nextNeterminal->type = NODE_IF_STATEMENT;
 
-            if (!parseIfStatement(nextNeterminal, error))
+            if (!parseIfStatement(nextNeterminal))
             {
 
                 return false;
@@ -582,7 +769,7 @@ bool parse(TreeNode *startNeterminal, error_code_t *error, bool innerBlock)
             break;
         case TOKEN_KEYWORD_LET:
         case TOKEN_KEYWORD_VAR:
-            if (!skipEmptyLines(&token, error))
+            if (!skipEmptyLines(&token))
             {
                 return false;
             }
@@ -590,7 +777,7 @@ bool parse(TreeNode *startNeterminal, error_code_t *error, bool innerBlock)
             if (token.type == TOKEN_IDENTIFIER)
             {
                 nextNeterminal->type = NODE_ASSIGN;
-                if (!skipEmptyLines(&token, error))
+                if (!skipEmptyLines(&token))
                 {
                     return false;
                 }
@@ -598,7 +785,7 @@ bool parse(TreeNode *startNeterminal, error_code_t *error, bool innerBlock)
                 if (token.type == TOKEN_OPERATOR_ASSIGN)
                 {
                     bool isIdentifier = false;
-                    if (!skipEmptyLines(&token, error))
+                    if (!skipEmptyLines(&token))
                     {
                         return false;
                     }
@@ -614,19 +801,19 @@ bool parse(TreeNode *startNeterminal, error_code_t *error, bool innerBlock)
                         {
                             isIdentifier = true;
                             token = get_token(file);
-                            if (!skipEmptyLines(&token, error))
+                            if (!skipEmptyLines(&token))
                             {
                                 return false;
                             }
 
                             if (token.type == TOKEN_LEFT_PARENTHESIS)
                             {
-                                if (parseFuncCall(nextNeterminal, error))
+                                if (parseFuncCall(nextNeterminal))
                                 {
                                     token = get_token(file);
                                     if (token.type == TOKEN_EOL)
                                     {
-                                        return parse(startNeterminal, error, false);
+                                        return parse(startNeterminal, false);
                                     }
                                 }
                             }
@@ -634,7 +821,7 @@ bool parse(TreeNode *startNeterminal, error_code_t *error, bool innerBlock)
                         else
                         {
                             token = get_token(file);
-                            if (!skipEmptyLines(&token, error))
+                            if (!skipEmptyLines(&token))
                             {
                                 return false;
                             }
@@ -665,7 +852,7 @@ bool parse(TreeNode *startNeterminal, error_code_t *error, bool innerBlock)
                 if (token.type == TOKEN_COLON)
                 {
                     token = get_token(file);
-                    if (!skipEmptyLines(&token, error))
+                    if (!skipEmptyLines(&token))
                     {
                         return false;
                     }
@@ -675,7 +862,7 @@ bool parse(TreeNode *startNeterminal, error_code_t *error, bool innerBlock)
                         token = get_token(file);
                         if (token.type == TOKEN_EOL)
                         {
-                            if (!skipEmptyLines(&token, error))
+                            if (!skipEmptyLines(&token))
                             {
                                 return false;
                             }
@@ -688,7 +875,7 @@ bool parse(TreeNode *startNeterminal, error_code_t *error, bool innerBlock)
                                     token = get_token(file);
                                     if (token.type == TOKEN_EOL)
                                     {
-                                        return parse(startNeterminal, error, false);
+                                        return parse(startNeterminal, false);
                                     }
                                 }
                             }
@@ -699,17 +886,23 @@ bool parse(TreeNode *startNeterminal, error_code_t *error, bool innerBlock)
                 return false;
             }
             break;
+        case TOKEN_KEYWORD_FUNC:
+            if (!parseFuncDeclaration(nextNeterminal))
+            {
+                return false;
+            }
+            break;
         case TOKEN_UNKNOWN:
-            *error = ERR_LEX_ANALYSIS;
+            error = ERR_LEX_ANALYSIS;
             return false;
         case TOKEN_ERROR:
-            *error = ERR_INTERNAL;
+            error = ERR_INTERNAL;
             return false;
         default:
             return false;
         }
 
-        if (!skipEmptyLines(&token, error))
+        if (!skipEmptyLines(&token))
         {
             return false;
         }
@@ -720,8 +913,6 @@ bool parse(TreeNode *startNeterminal, error_code_t *error, bool innerBlock)
 
 int main(void)
 {
-
-    error_code_t error;
     error = ERR_SYNTAX_ANALYSIS;
     file = fopen("test.txt", "r");
     if (file == NULL)
@@ -730,32 +921,23 @@ int main(void)
         return error;
     }
 
-    TreeNode startNeterminal;
-    startNeterminal.type = NODE_PROGRAM;
-    startNeterminal.numChildren = 10;
-    startNeterminal.children = NULL;
-    startNeterminal.terminal = false;
+    TreeNode *startNeterminal = createNewNode(NULL, NODE_PROGRAM, false);
 
-
-    startNeterminal.children = realloc(NULL, sizeof(TreeNode *) * 10);
-
-    for (unsigned i = 0; i < 10; i++)
-    {
-        startNeterminal.children[i]->numChildren = 0;
-    }
-    
-    // TreeNode *dite = createNewNode(&startNeterminal, &error);
-
-    // printf("%d\n", (*dite).numChildren);
-    // return 0;
-    /*
-    if (parse(&startNeterminal, &error, false))
+    if (parse(startNeterminal, false))
     {
         error = ERR_NONE;
     }
-    */
-    dispose(&startNeterminal, startNeterminal.numChildren);
-    
-    fclose(file);
+
+    for (unsigned i = 0; i < startNeterminal->numChildren; i++)
+    {
+        printf("%d\n", startNeterminal->children[i]->children[0]->type);
+    }
+
+    dispose(startNeterminal);
+
+    if (fclose(file) == EOF)
+    {
+        error = ERR_INTERNAL;
+    }
     return error;
 }
