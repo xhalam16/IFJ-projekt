@@ -1,5 +1,46 @@
 #include "header_files/parser.h"
 
+global_symtable *global_table = NULL;
+
+bool node_type_to_d_type(void *data, TreeNode* node){
+    symtable_global_data_t *d = (symtable_global_data_t *)data;
+    switch (node->type)
+    {
+    case NODE_DATATYPE_INT:
+        d->data_type = DATA_INT;
+        break;
+    case NODE_DATATYPE_DOUBLE:
+        d->data_type = DATA_DOUBLE;
+        break;
+
+    case NODE_DATATYPE_STRING:
+        d->data_type = DATA_STRING;
+        break;
+    
+    case NODE_DATATYPE_INT_NILABLE:
+        d->data_type = DATA_INT;
+        d->nilable = true;
+        break;
+
+    case NODE_DATATYPE_DOUBLE_NILABLE:
+        d->data_type = DATA_DOUBLE;
+        d->nilable = true;
+        break;
+
+    case NODE_DATATYPE_STRING_NILABLE:
+        d->data_type = DATA_STRING;
+        d->nilable = true;
+        break;
+
+    default:
+        return false;
+        break;
+    }
+
+    return true;
+
+}
+
 bool addNode(TreeNode *parent, TreeNode *son)
 {
     if (parent == NULL)
@@ -533,8 +574,10 @@ bool parseIfStatement(TreeNode *node)
     return true;
 }
 
-bool parseParameter(TreeNode *funcParamList)
+bool parseParameter(TreeNode *funcParamList, parameter_list_t *param_list)
 {
+    function_parameter_t *param = malloc(sizeof(function_parameter_t));
+    param->next = NULL;
     TreeNode *funcParameter = createNewNode(funcParamList, NODE_FUNCTION_PARAM, false);
     if (funcParameter == NULL)
     {
@@ -553,7 +596,7 @@ bool parseParameter(TreeNode *funcParamList)
         return false;
     }
 
-    if (token.type != TOKEN_IDENTIFIER || token.type != TOKEN_UNDERSCORE)
+    if (token.type != TOKEN_IDENTIFIER && token.type != TOKEN_UNDERSCORE)
     {
         return false;
     }
@@ -562,6 +605,13 @@ bool parseParameter(TreeNode *funcParamList)
     {
         paramLabel->type = NODE_IDENTIFIER;
         // vložení labelu parametru do tabulky symbolů
+        param->label = malloc(token.source_value->size + 1);
+        if (param->label == NULL)
+        {
+            return false;
+        }
+
+        strcpy(param->label, token.source_value->buffer);
     }
 
     if (!skipEmptyLines(&token))
@@ -581,6 +631,14 @@ bool parseParameter(TreeNode *funcParamList)
     }
 
     // vložení názvu parametru do tabulky symbolů
+    param->name = malloc(token.source_value->size + 1);
+    if (param->name == NULL)
+    {
+        return false;
+    }
+
+    strcpy(param->name, token.source_value->buffer);
+
 
     if (!skipEmptyLines(&token))
     {
@@ -604,6 +662,8 @@ bool parseParameter(TreeNode *funcParamList)
     }
 
     // vložení dat. typu parametru do tabulky symbolů
+    node_type_to_d_type(param, paramType);
+
     if (!chooseDataType(paramType, token))
     {
         return false;
@@ -614,9 +674,11 @@ bool parseParameter(TreeNode *funcParamList)
         return false;
     }
 
+    parameter_list_insert(param_list, param);
+
     if (token.type == TOKEN_COMMA)
     {
-        return parseParameter(funcParamList);
+        return parseParameter(funcParamList, param_list);
     }
 
     if (token.type == TOKEN_RIGHT_PARENTHESIS)
@@ -626,7 +688,7 @@ bool parseParameter(TreeNode *funcParamList)
     return false;
 }
 
-bool parseParamList(TreeNode *funcParamList)
+bool parseParamList(TreeNode *funcParamList, parameter_list_t *param_list)
 {
     token_t token;
     if (!skipEmptyLines(&token))
@@ -644,63 +706,100 @@ bool parseParamList(TreeNode *funcParamList)
         return true;
     }
 
-    return parseParameter(funcParamList);
+    return parseParameter(funcParamList, param_list);
 }
 
 bool parseFuncDeclaration(TreeNode *node)
 {
     node->type = NODE_DECLARATION_FUNCTION;
+    parameter_list_t *param_list = malloc(sizeof(parameter_list_t));
+    if (param_list == NULL)
+    {
+        return false;
+    }
+    parameter_list_init(param_list);
+
+    symtable_global_data_t *data = create_global_data(SYM_FUNC, DATA_NONE, false, true, NULL, param_list);
+    char* key = NULL;
+
+    if (param_list == NULL)
+    {
+        return false;
+    }  
+
+
+    if (key == NULL)
+    {
+        return false;
+    }
 
     if (createNewNode(node, NODE_KEYWORD_FUNC, true) == NULL)
     {
 
+        
         return false;
     }
 
     token_t token;
     if (!skipEmptyLines(&token))
     {
-
+        
         return false;
     }
 
     if (token.type != TOKEN_IDENTIFIER)
     {
-
+        
         return false;
     }
 
     TreeNode *funcName = createNewNode(node, NODE_IDENTIFIER, true);
     if (funcName == NULL)
     {
+        
         return false;
     }
 
     // vložení názvu funkce do tabulky symbolů
+   
+    key = malloc(token.source_value->size + 1);
+    if (key == NULL)
+    {
+        
+        return false;
+    }
+
+    strcpy(key, token.source_value->buffer);
+    
 
     if (!skipEmptyLines(&token))
     {
+        
         return false;
     }
 
     if (token.type != TOKEN_LEFT_PARENTHESIS)
     {
+        
         return false;
     }
 
     TreeNode *funcParamList = createNewNode(node, NODE_PARAM_LIST, false);
     if (funcParamList == NULL)
     {
+        
         return false;
     }
 
-    if (!parseParamList(funcParamList))
+    if (!parseParamList(funcParamList, param_list))
     {
+        
         return false;
     }
 
     if (!skipEmptyLines(&token))
     {
+        
         return false;
     }
 
@@ -708,26 +807,33 @@ bool parseFuncDeclaration(TreeNode *node)
     {
         if (!skipEmptyLines(&token))
         {
+            
             return false;
         }
 
         TreeNode *funcReturnValue = createNewNode(node, NODE_DATATYPE_INT, true);
 
         // vložení dat. typu návratové hodnoty do tabulky symbolů
+        
         if (!chooseDataType(funcReturnValue, token))
         {
+            
             return false;
         }
 
+        node_type_to_d_type(data, funcReturnValue);
+
+
         if (!skipEmptyLines(&token))
         {
+            
             return false;
         }
     }
 
     if (token.type != TOKEN_LEFT_BRACE)
     {
-
+        
         return false;
     }
 
@@ -736,18 +842,29 @@ bool parseFuncDeclaration(TreeNode *node)
     token = peek_token(file);
     if (token.type != TOKEN_EOL)
     {
+        
         free_token(token);
         return false;
     }
     free_token(token);
 
     // funcBody->local_symtable = create_local_symtable();
+
     
+    int ret = symtable_insert(global_table, key, data, GLOBAL_TABLE);
+    
+    if(ret != ERR_CODE_ST_OK) return false;
+
     return parse(funcBody, true);
 }
 
 bool parse(TreeNode *startNeterminal, bool inBlock)
 {
+
+    if(global_table == NULL){
+        global_table = create_global_symtable(ST_GLOBAL_INIT_SIZE);
+    }
+    
 
     token_t token;
     if (!skipEmptyLines(&token))
@@ -992,6 +1109,20 @@ bool parse(TreeNode *startNeterminal, bool inBlock)
     return true;
 }
 
+
+void print_global_table(global_symtable *table){
+    printf("Global table:\n");
+    for(int i = 0; i < table->size; i++){
+        printf("%d: ", i);
+        symtable_global_data_t *item = (table->records[i]->data);
+        if(item != NULL){
+            printf("data type: %d, symbol type %d, nilable: %d, defined %d, param_size %zu", item->data_type, item->symbol_type, item->nilable, item->defined, item->parameters->size);
+        }
+        printf("\n");
+    }
+}
+
+
 int main(void)
 {
     error = ERR_SYNTAX_ANALYSIS;
@@ -1010,6 +1141,7 @@ int main(void)
     }
 
     printf("%d\n", error);
+    print_global_table(global_table);
 
     dispose(startNeterminal);
 

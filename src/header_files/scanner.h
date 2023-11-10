@@ -25,18 +25,15 @@ extern const keyword_token_type_t keywords_map[];
 #define KEYWORD_COUNT sizeof(keywords_map) / sizeof(keywords_map[0])
 
 token_type_t keyword_2_token_type(char *keyword);
-bool is_escape_sequence(char c);
-int skip_block_comment(FILE *source_file);
-int skip_line_comment(FILE *source_file);
-bool word_is_keyword(char *word);
-bool word_is_identifier(char *word);
-bool word_is_keyword_datatype(char *word);
 int get_char(FILE *source_file);
 
-void skip_whitespace(FILE *source_file);
 
 token_t get_token(FILE *source_file);
 void unget_token(token_t token, FILE *source_file);
+
+
+void free_token(token_t token);
+
 token_t peek_token(FILE *source_file);
 
 

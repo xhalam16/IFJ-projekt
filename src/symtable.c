@@ -126,7 +126,7 @@ symtable_local_data_t* create_local_data(symbol_type_t symbol_type, data_type_t 
     return data;
 }
 
-symtable_global_data_t* create_global_data(symbol_type_t symbol_type, data_type_t data_type, bool nilable, bool defined, void *value, local_symtable *local_table, function_parameter_t *parameters){
+symtable_global_data_t* create_global_data(symbol_type_t symbol_type, data_type_t data_type, bool nilable, bool defined, void *value, parameter_list_t *parameters){
     symtable_global_data_t *data = malloc(sizeof(symtable_global_data_t));
     if(data == NULL){
         return NULL;
@@ -137,7 +137,6 @@ symtable_global_data_t* create_global_data(symbol_type_t symbol_type, data_type_
     data->nilable = nilable;
     data->defined = defined;
     data->value = value;
-    data->local_table = local_table;
     data->parameters = parameters;
 
     return data;
@@ -379,3 +378,67 @@ void symtable_free(void *table){
     }
     free(table);
 }
+
+
+//********************PARAMETER LIST*************************
+void parameter_list_init(parameter_list_t *list){
+    list->size = 0;
+    list->first = NULL;
+    list->active = NULL;
+}
+
+bool parameter_list_empty(parameter_list_t *list){
+    return list->size == 0;
+}
+
+bool parameter_list_active(parameter_list_t *list){
+    return list->active != NULL;
+}
+
+void parameter_list_insert(parameter_list_t *list, function_parameter_t *parameter){
+    if(!parameter_list_active(list)){
+        return;
+    }
+
+    if(parameter_list_empty(list)){
+        list->first = parameter;
+        list->active = parameter;
+    }else{
+        list->active->next = parameter;
+        list->active = parameter;
+    }
+    list->size++;
+}
+
+void parameter_list_next(parameter_list_t *list){
+    if(!parameter_list_active(list)){
+        return;
+    }
+
+    list->active = list->active->next;
+}
+
+function_parameter_t *parameter_list_get_active(parameter_list_t *list){
+    if(!parameter_list_active(list)){
+        return NULL;
+    }
+
+    return list->active;
+}
+
+void parameter_list_free(parameter_list_t *list){
+    if(list == NULL){
+        return;
+    }
+
+    function_parameter_t *parameter = list->first;
+    while(parameter != NULL){
+        function_parameter_t *next = parameter->next;
+        free(parameter);
+        parameter = next;
+    }
+    free(list);
+}
+
+
+
