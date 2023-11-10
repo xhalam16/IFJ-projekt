@@ -2,36 +2,40 @@
 
 global_symtable *global_table = NULL;
 
-NodeType token_type_to_node(token_type_t t_type){
+NodeType token_type_to_node(token_type_t t_type)
+{
     const Token_to_node token_to_node[] = {
         {TOKEN_DATATYPE_INT, NODE_DATATYPE_INT},
         {TOKEN_DATATYPE_DOUBLE, NODE_DATATYPE_DOUBLE},
         {TOKEN_DATATYPE_STRING, NODE_DATATYPE_STRING},
         {TOKEN_DATATYPE_INT_NILABLE, NODE_DATATYPE_INT_NILABLE},
         {TOKEN_DATATYPE_DOUBLE_NILABLE, NODE_DATATYPE_DOUBLE_NILABLE},
-        {TOKEN_DATATYPE_STRING_NILABLE, NODE_DATATYPE_STRING_NILABLE}
-    };
+        {TOKEN_DATATYPE_STRING_NILABLE, NODE_DATATYPE_STRING_NILABLE}};
 
-    for(int i = 0; i < sizeof(token_to_node)/sizeof(Token_to_node); i++){
-        if(token_to_node[i].t_value == t_type){
+    for (int i = 0; i < sizeof(token_to_node) / sizeof(Token_to_node); i++)
+    {
+        if (token_to_node[i].t_value == t_type)
+        {
             return token_to_node[i].n_value;
         }
     }
     return -1;
 }
 
-data_type_t node_type_to_data(NodeType n_type){
+data_type_t node_type_to_data(NodeType n_type)
+{
     const Node_to_data node_to_data[] = {
         {NODE_DATATYPE_INT, DATA_INT},
         {NODE_DATATYPE_DOUBLE, DATA_DOUBLE},
         {NODE_DATATYPE_STRING, DATA_STRING},
         {NODE_DATATYPE_INT_NILABLE, DATA_INT},
         {NODE_DATATYPE_DOUBLE_NILABLE, DATA_DOUBLE},
-        {NODE_DATATYPE_STRING_NILABLE, DATA_STRING}
-    };
+        {NODE_DATATYPE_STRING_NILABLE, DATA_STRING}};
 
-    for(int i = 0; i < sizeof(node_to_data)/sizeof(Node_to_data); i++){
-        if(node_to_data[i].n_value == n_type){
+    for (int i = 0; i < sizeof(node_to_data) / sizeof(Node_to_data); i++)
+    {
+        if (node_to_data[i].n_value == n_type)
+        {
             return node_to_data[i].d_value;
         }
     }
@@ -133,7 +137,7 @@ int skipEmptyLines(token_t *token)
         free_token(*token);
         *token = get_token(file);
     }
-  
+
     if (token->type == TOKEN_UNKNOWN)
     {
         error = ERR_LEX_ANALYSIS;
@@ -146,7 +150,6 @@ int skipEmptyLines(token_t *token)
     }
     return 1 + numEols;
 }
-
 
 bool parseParameters(TreeNode *funcParams)
 {
@@ -439,16 +442,51 @@ bool parseDeclaration(TreeNode *neterminal)
     {
         return false;
     }
+    
     free_token(token);
+    
     if (!skipEmptyLines(&token))
     {
         return false;
     }
 
-    if (token.type != TOKEN_OPERATOR_ASSIGN)
+    
+
+    if (token.type != TOKEN_OPERATOR_ASSIGN && token.type != TOKEN_COLON)
     {
         return false;
     }
+
+    if (token.type == TOKEN_COLON)
+    {
+        free_token(token);
+        if (!skipEmptyLines(&token))
+        {
+            return false;
+        }
+
+        if (token_type_to_node(token.type) == -1)
+        {
+            return false;
+        }
+        
+        TreeNode *dataType = createNewNode(neterminal, token_type_to_node(token.type), true);
+
+        free_token(token);
+        token = get_token(file);
+
+        
+
+        if (token.type != TOKEN_OPERATOR_ASSIGN && token.type == TOKEN_EOL)
+        {
+            free_token(token);
+            return true;
+        }
+        free_token(token);
+    }
+
+
+    
 
     if (createNewNode(neterminal, NODE_ASSIGN, true) == NULL)
     {
@@ -687,15 +725,18 @@ bool parseParameter(TreeNode *funcParamList, parameter_list_t *param_list)
     }
 
     NodeType n_type = token_type_to_node(token.type);
-    if(n_type == -1) return false;
+    if (n_type == -1)
+        return false;
 
     paramType->type = n_type;
 
     // vložení dat. typu parametru do tabulky symbolů
     NodeType param_type = paramType->type;
     data_type_t d_type = node_type_to_data(param_type);
-    if(d_type == -1) return false;
-    if(param_type == NODE_DATATYPE_INT_NILABLE || param_type == NODE_DATATYPE_DOUBLE_NILABLE || param_type == NODE_DATATYPE_STRING_NILABLE){
+    if (d_type == -1)
+        return false;
+    if (param_type == NODE_DATATYPE_INT_NILABLE || param_type == NODE_DATATYPE_DOUBLE_NILABLE || param_type == NODE_DATATYPE_STRING_NILABLE)
+    {
         param->nilable = true;
     }
     param->data_type = d_type;
@@ -754,7 +795,7 @@ bool parseFuncDeclaration(TreeNode *node)
 
     symtable_global_data_t *data = create_global_data(SYM_FUNC, DATA_NONE, false, true, NULL, param_list);
 
-    char* key = NULL; 
+    char *key = NULL;
 
     if (createNewNode(node, NODE_KEYWORD_FUNC, true) == NULL)
     {
@@ -790,9 +831,7 @@ bool parseFuncDeclaration(TreeNode *node)
         return false;
     }
 
-
     move_buffer(key, token.source_value);
-    
 
     if (!skipEmptyLines(&token))
     {
@@ -839,14 +878,15 @@ bool parseFuncDeclaration(TreeNode *node)
         // vložení dat. typu návratové hodnoty do tabulky symbolů
 
         NodeType n_type = token_type_to_node(token.type);
-        if(n_type == -1) return false;
+        if (n_type == -1)
+            return false;
         funcReturnValue->type = n_type;
 
         NodeType node_type = funcReturnValue->type;
         data_type_t d_type = node_type_to_data(node_type);
-        if(d_type == -1) return false;
+        if (d_type == -1)
+            return false;
         data->data_type = d_type;
-
 
         if (!skipEmptyLines(&token))
         {
@@ -940,7 +980,7 @@ bool parseReturn(TreeNode *node, bool voidFunction)
     }
 
     // precedenční analýza
-    return true;
+    return false;
 }
 
 bool parse(TreeNode *startNeterminal, bool inBlock, bool inFunction, bool voidFunction)
@@ -1112,10 +1152,12 @@ void print_global_table(global_symtable *table)
 {
     printf("Global table:\n");
 
-    for(int i = 0; i < table->capacity; i++){
+    for (int i = 0; i < table->capacity; i++)
+    {
         symtable_record_global_t *item = table->records[i];
-        if(item != NULL){
-            printf("data type: %d, symbol type %d, nilable: %d, defined %d, key %s\n", item->data->data_type, item->data->symbol_type, item->data->nilable, item->data->defined,item->key);
+        if (item != NULL)
+        {
+            printf("data type: %d, symbol type %d, nilable: %d, defined %d, key %s\n", item->data->data_type, item->data->symbol_type, item->data->nilable, item->data->defined, item->key);
             printf("Parameters:\n");
             parameter_list_t *list = item->data->parameters;
             for (int i = 0; i < list->size; i++)
@@ -1153,6 +1195,6 @@ int main(void)
     {
         error = ERR_INTERNAL;
     }
-    // printf("%d\n", error);
+    printf("%d\n", error);
     return error;
 }
