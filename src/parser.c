@@ -2,43 +2,40 @@
 
 global_symtable *global_table = NULL;
 
-bool node_type_to_d_type(void *data, TreeNode *node)
-{
-    symtable_global_data_t *d = (symtable_global_data_t *)data;
-    switch (node->type)
-    {
-    case NODE_DATATYPE_INT:
-        d->data_type = DATA_INT;
-        break;
-    case NODE_DATATYPE_DOUBLE:
-        d->data_type = DATA_DOUBLE;
-        break;
+NodeType token_type_to_node(token_type_t t_type){
+    const Token_to_node token_to_node[] = {
+        {TOKEN_DATATYPE_INT, NODE_DATATYPE_INT},
+        {TOKEN_DATATYPE_DOUBLE, NODE_DATATYPE_DOUBLE},
+        {TOKEN_DATATYPE_STRING, NODE_DATATYPE_STRING},
+        {TOKEN_DATATYPE_INT_NILABLE, NODE_DATATYPE_INT_NILABLE},
+        {TOKEN_DATATYPE_DOUBLE_NILABLE, NODE_DATATYPE_DOUBLE_NILABLE},
+        {TOKEN_DATATYPE_STRING_NILABLE, NODE_DATATYPE_STRING_NILABLE}
+    };
 
-    case NODE_DATATYPE_STRING:
-        d->data_type = DATA_STRING;
-        break;
-
-    case NODE_DATATYPE_INT_NILABLE:
-        d->data_type = DATA_INT;
-        d->nilable = true;
-        break;
-
-    case NODE_DATATYPE_DOUBLE_NILABLE:
-        d->data_type = DATA_DOUBLE;
-        d->nilable = true;
-        break;
-
-    case NODE_DATATYPE_STRING_NILABLE:
-        d->data_type = DATA_STRING;
-        d->nilable = true;
-        break;
-
-    default:
-        return false;
-        break;
+    for(int i = 0; i < sizeof(token_to_node)/sizeof(Token_to_node); i++){
+        if(token_to_node[i].t_value == t_type){
+            return token_to_node[i].n_value;
+        }
     }
+    return -1;
+}
 
-    return true;
+data_type_t node_type_to_data(NodeType n_type){
+    const Node_to_data node_to_data[] = {
+        {NODE_DATATYPE_INT, DATA_INT},
+        {NODE_DATATYPE_DOUBLE, DATA_DOUBLE},
+        {NODE_DATATYPE_STRING, DATA_STRING},
+        {NODE_DATATYPE_INT_NILABLE, DATA_INT},
+        {NODE_DATATYPE_DOUBLE_NILABLE, DATA_DOUBLE},
+        {NODE_DATATYPE_STRING_NILABLE, DATA_STRING}
+    };
+
+    for(int i = 0; i < sizeof(node_to_data)/sizeof(Node_to_data); i++){
+        if(node_to_data[i].n_value == n_type){
+            return node_to_data[i].d_value;
+        }
+    }
+    return -1;
 }
 
 bool addNode(TreeNode *parent, TreeNode *son)
@@ -136,7 +133,7 @@ int skipEmptyLines(token_t *token)
         free_token(*token);
         *token = get_token(file);
     }
-
+  
     if (token->type == TOKEN_UNKNOWN)
     {
         error = ERR_LEX_ANALYSIS;
@@ -150,33 +147,6 @@ int skipEmptyLines(token_t *token)
     return 1 + numEols;
 }
 
-bool chooseDataType(TreeNode *node, token_t token)
-{
-    switch (token.type)
-    {
-    case TOKEN_DATATYPE_INT:
-        node->type = NODE_DATATYPE_INT;
-        break;
-    case TOKEN_DATATYPE_DOUBLE:
-        node->type = NODE_DATATYPE_DOUBLE;
-        break;
-    case TOKEN_DATATYPE_STRING:
-        node->type = NODE_DATATYPE_STRING;
-        break;
-    case TOKEN_DATATYPE_INT_NILABLE:
-        node->type = NODE_DATATYPE_INT_NILABLE;
-        break;
-    case TOKEN_DATATYPE_DOUBLE_NILABLE:
-        node->type = NODE_DATATYPE_DOUBLE_NILABLE;
-        break;
-    case TOKEN_DATATYPE_STRING_NILABLE:
-        node->type = NODE_DATATYPE_STRING_NILABLE;
-        break;
-    default:
-        return false;
-    }
-    return true;
-}
 
 bool parseParameters(TreeNode *funcParams)
 {
@@ -693,7 +663,7 @@ bool parseParameter(TreeNode *funcParamList, parameter_list_t *param_list)
         return false;
     }
 
-    strcpy(param->name, token.source_value->buffer);
+    move_buffer(param->name, token.source_value);
 
     if (!skipEmptyLines(&token))
     {
@@ -716,13 +686,19 @@ bool parseParameter(TreeNode *funcParamList, parameter_list_t *param_list)
         return false;
     }
 
-    // vložení dat. typu parametru do tabulky symbolů
-    node_type_to_d_type(param, paramType);
+    NodeType n_type = token_type_to_node(token.type);
+    if(n_type == -1) return false;
 
-    if (!chooseDataType(paramType, token))
-    {
-        return false;
+    paramType->type = n_type;
+
+    // vložení dat. typu parametru do tabulky symbolů
+    NodeType param_type = paramType->type;
+    data_type_t d_type = node_type_to_data(param_type);
+    if(d_type == -1) return false;
+    if(param_type == NODE_DATATYPE_INT_NILABLE || param_type == NODE_DATATYPE_DOUBLE_NILABLE || param_type == NODE_DATATYPE_STRING_NILABLE){
+        param->nilable = true;
     }
+    param->data_type = d_type;
 
     if (!skipEmptyLines(&token))
     {
@@ -777,12 +753,8 @@ bool parseFuncDeclaration(TreeNode *node)
     parameter_list_init(param_list);
 
     symtable_global_data_t *data = create_global_data(SYM_FUNC, DATA_NONE, false, true, NULL, param_list);
-    char *key = NULL;
 
-    if (param_list == NULL)
-    {
-        return false;
-    }
+    char* key = NULL; 
 
     if (createNewNode(node, NODE_KEYWORD_FUNC, true) == NULL)
     {
@@ -818,7 +790,9 @@ bool parseFuncDeclaration(TreeNode *node)
         return false;
     }
 
-    strcpy(key, token.source_value->buffer);
+
+    move_buffer(key, token.source_value);
+    
 
     if (!skipEmptyLines(&token))
     {
@@ -864,13 +838,15 @@ bool parseFuncDeclaration(TreeNode *node)
 
         // vložení dat. typu návratové hodnoty do tabulky symbolů
 
-        if (!chooseDataType(funcReturnValue, token))
-        {
+        NodeType n_type = token_type_to_node(token.type);
+        if(n_type == -1) return false;
+        funcReturnValue->type = n_type;
 
-            return false;
-        }
+        NodeType node_type = funcReturnValue->type;
+        data_type_t d_type = node_type_to_data(node_type);
+        if(d_type == -1) return false;
+        data->data_type = d_type;
 
-        node_type_to_d_type(data, funcReturnValue);
 
         if (!skipEmptyLines(&token))
         {
@@ -1136,18 +1112,19 @@ void print_global_table(global_symtable *table)
 {
     printf("Global table:\n");
 
-    for (int i = 0; i < table->size; i++)
-    {
-
-        printf("%d: ", i);
-
-        symtable_global_data_t *item = (table->records[i]->data);
-        printf("func\n");
-        if (item != NULL)
-        {
-            printf("data type: %d, symbol type %d, nilable: %d, defined %d, param_size %zu", item->data_type, item->symbol_type, item->nilable, item->defined, item->parameters->size);
+    for(int i = 0; i < table->capacity; i++){
+        symtable_record_global_t *item = table->records[i];
+        if(item != NULL){
+            printf("data type: %d, symbol type %d, nilable: %d, defined %d, key %s\n", item->data->data_type, item->data->symbol_type, item->data->nilable, item->data->defined,item->key);
+            printf("Parameters:\n");
+            parameter_list_t *list = item->data->parameters;
+            for (int i = 0; i < list->size; i++)
+            {
+                function_parameter_t *param = list->active;
+                printf("label: %s, name: %s, data type: %d, nilable: %d\n", param->label, param->name, param->data_type, param->nilable);
+                parameter_list_next(list);
+            }
         }
-        printf("\n");
     }
 }
 
