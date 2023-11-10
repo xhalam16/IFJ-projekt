@@ -396,16 +396,11 @@ bool parameter_list_active(parameter_list_t *list){
 }
 
 void parameter_list_insert(parameter_list_t *list, function_parameter_t *parameter){
-    if(!parameter_list_active(list)){
-        return;
-    }
-
     if(parameter_list_empty(list)){
         list->first = parameter;
         list->active = parameter;
     }else{
         list->active->next = parameter;
-        list->active = parameter;
     }
     list->size++;
 }
@@ -414,7 +409,6 @@ void parameter_list_next(parameter_list_t *list){
     if(!parameter_list_active(list)){
         return;
     }
-
     list->active = list->active->next;
 }
 

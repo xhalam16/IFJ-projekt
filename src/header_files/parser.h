@@ -12,6 +12,7 @@ FILE *file;
 error_code_t error;
 extern global_symtable *global_table;
 
+
 typedef enum NodeType {
     NODE_PROGRAM,
     NODE_BODY,
@@ -44,6 +45,19 @@ typedef enum NodeType {
     NODE_EPSILON,
     NODE_UNDERSCORE
 } NodeType;
+
+typedef struct t_n_mapping {
+    token_type_t t_value;
+    NodeType n_value;
+} Token_to_node;
+
+typedef struct n_d_mapping {
+    NodeType n_value;
+    data_type_t d_value;
+} Node_to_data;
+
+extern const Node_to_data node_to_data[];
+extern const Token_to_node token_to_node[];
 
 typedef struct TreeNode {
     NodeType type;
