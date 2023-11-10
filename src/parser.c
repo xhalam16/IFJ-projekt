@@ -553,11 +553,11 @@ bool parseParameter(TreeNode *funcParamList)
         return false;
     }
 
-    if (token.type != TOKEN_IDENTIFIER || token.type != TOKEN_UNDERSCORE)
+    if (token.type != TOKEN_IDENTIFIER && token.type != TOKEN_UNDERSCORE)
     {
         return false;
     }
-
+    
     if (token.type == TOKEN_IDENTIFIER)
     {
         paramLabel->type = NODE_IDENTIFIER;
@@ -568,7 +568,7 @@ bool parseParameter(TreeNode *funcParamList)
     {
         return false;
     }
-
+  
     if (token.type != TOKEN_IDENTIFIER)
     {
         return false;
@@ -629,10 +629,7 @@ bool parseParameter(TreeNode *funcParamList)
 bool parseParamList(TreeNode *funcParamList)
 {
     token_t token;
-    if (!skipEmptyLines(&token))
-    {
-        return false;
-    }
+    token = peek_token(file);
 
     if (token.type == TOKEN_RIGHT_PARENTHESIS)
     {
@@ -643,7 +640,6 @@ bool parseParamList(TreeNode *funcParamList)
         }
         return true;
     }
-
     return parseParameter(funcParamList);
 }
 
@@ -696,6 +692,7 @@ bool parseFuncDeclaration(TreeNode *node)
 
     if (!parseParamList(funcParamList))
     {
+        
         return false;
     }
 
@@ -1009,7 +1006,7 @@ int main(void)
         error = ERR_NONE;
     }
 
-    printf("%d\n", error);
+    
 
     dispose(startNeterminal);
 
@@ -1017,5 +1014,6 @@ int main(void)
     {
         error = ERR_INTERNAL;
     }
+    printf("%d\n", error);
     return error;
 }
