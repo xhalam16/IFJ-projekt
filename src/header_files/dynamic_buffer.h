@@ -24,4 +24,5 @@ bool buffer_equals_string(DynamicBuffer* buffer, const char* string);
 
 void free_buffer(DynamicBuffer* buffer);
 
+void move_buffer(char* dest, DynamicBuffer* src);
 

@@ -86,3 +86,9 @@ int buffer_insert_char_beggining(DynamicBuffer* buffer, char data){
 bool buffer_equals_string(DynamicBuffer* buffer, const char* string){
     return strcmp(buffer->buffer, string) == 0;
 }
+
+void move_buffer(char* dest, DynamicBuffer* src){
+    strcpy(dest, src->buffer);
+    buffer_clear(src);
+}
+
