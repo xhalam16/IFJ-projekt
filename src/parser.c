@@ -99,17 +99,34 @@ int skipEmptyLines(token_t *token)
     }
     return 1 + numEols;
 }
-/*
-bool parseKeyWord(error_code_t error)
+
+bool chooseDataType(TreeNode *node, token_t token)
 {
-    token_t token;
-    if (token.type != TOKEN_IDENTIFIER)
+    switch (token.type)
     {
-
+    case TOKEN_DATATYPE_INT:
+        node->type = NODE_DATATYPE_INT;
+        break;
+    case TOKEN_DATATYPE_DOUBLE:
+        node->type = NODE_DATATYPE_DOUBLE;
+        break;
+    case TOKEN_DATATYPE_STRING:
+        node->type = NODE_DATATYPE_STRING;
+        break;
+    case TOKEN_DATATYPE_INT_NILABLE:
+        node->type = NODE_DATATYPE_INT_NILABLE;
+        break;
+    case TOKEN_DATATYPE_DOUBLE_NILABLE:
+        node->type = NODE_DATATYPE_DOUBLE_NILABLE;
+        break;
+    case TOKEN_DATATYPE_STRING_NILABLE:
+        node->type = NODE_DATATYPE_STRING_NILABLE;
+        break;
+    default:
+        return false;
     }
-    return false;
+    return true;
 }
-
 
 bool parseParameters(TreeNode *funcParams)
 {
@@ -219,8 +236,6 @@ bool parseParameters(TreeNode *funcParams)
     }
     return false;
 }
-
-*/
 
 bool parseFuncCall(TreeNode *node)
 {
@@ -494,7 +509,6 @@ bool parseIfStatement(TreeNode *node)
     }
     if (token.type == TOKEN_KEYWORD_ELSE)
     {
-
         TreeNode *elseStatement = createNewNode(node, NODE_ELSE_STATEMENT, false);
         if (elseStatement == NULL)
         {
@@ -560,6 +574,14 @@ bool parseParameter(TreeNode *funcParamList)
         return false;
     }
 
+    TreeNode *paramName = createNewNode(funcParameter, NODE_IDENTIFIER, true);
+    if (paramName == NULL)
+    {
+        return false;
+    }
+
+    // vložení názvu parametru do tabulky symbolů
+
     if (!skipEmptyLines(&token))
     {
         return false;
@@ -575,26 +597,18 @@ bool parseParameter(TreeNode *funcParamList)
         return false;
     }
 
-    TreeNode *paramType = createNewNode(funcParameter, NODE_FUNCTION_PARAM_TYPE, true);
-    if (funcParameter == NULL)
+    TreeNode *paramType = createNewNode(funcParameter, NODE_INT, true);
+    if (paramType == NULL)
     {
         return false;
     }
 
-    switch (token.type)
+    // vložení dat. typu parametru do tabulky symbolů
+    if (!chooseDataType(paramType, token))
     {
-    case TOKEN_DATATYPE_INT:
-    case TOKEN_DATATYPE_DOUBLE:
-    case TOKEN_DATATYPE_STRING:
-    case TOKEN_DATATYPE_INT_NILABLE:
-    case TOKEN_DATATYPE_DOUBLE_NILABLE:
-    case TOKEN_DATATYPE_STRING_NILABLE:
-        break;
-
-    default:
         return false;
     }
-    
+
     if (!skipEmptyLines(&token))
     {
         return false;
@@ -605,11 +619,11 @@ bool parseParameter(TreeNode *funcParamList)
         return parseParameter(funcParamList);
     }
 
-    if (token.type != TOKEN_RIGHT_PARENTHESIS)
+    if (token.type == TOKEN_RIGHT_PARENTHESIS)
     {
-        return false;
+        return true;
     }
-    return true;
+    return false;
 }
 
 bool parseParamList(TreeNode *funcParamList)
@@ -629,35 +643,30 @@ bool parseParamList(TreeNode *funcParamList)
         }
         return true;
     }
-    else
-    {
-        if (parseParameter(funcParamList))
-        {
-            return true;
-        }
-    }
-    return false;
+
+    return parseParameter(funcParamList);
 }
 
 bool parseFuncDeclaration(TreeNode *node)
 {
     node->type = NODE_DECLARATION_FUNCTION;
 
-    
-
     if (createNewNode(node, NODE_KEYWORD_FUNC, true) == NULL)
     {
+
         return false;
     }
 
     token_t token;
     if (!skipEmptyLines(&token))
     {
+
         return false;
     }
 
     if (token.type != TOKEN_IDENTIFIER)
     {
+
         return false;
     }
 
@@ -690,11 +699,56 @@ bool parseFuncDeclaration(TreeNode *node)
         return false;
     }
 
-    return true;
+    if (!skipEmptyLines(&token))
+    {
+        return false;
+    }
+
+    if (token.type == TOKEN_ARROW)
+    {
+        if (!skipEmptyLines(&token))
+        {
+            return false;
+        }
+
+        TreeNode *funcReturnValue = createNewNode(node, NODE_DATATYPE_INT, true);
+
+        // vložení dat. typu návratové hodnoty do tabulky symbolů
+        if (!chooseDataType(funcReturnValue, token))
+        {
+            return false;
+        }
+
+        if (!skipEmptyLines(&token))
+        {
+            return false;
+        }
+    }
+
+    if (token.type != TOKEN_LEFT_BRACE)
+    {
+
+        return false;
+    }
+
+    TreeNode *funcBody = createNewNode(node, NODE_BODY, false);
+
+    token = peek_token(file);
+    if (token.type != TOKEN_EOL)
+    {
+        free_token(token);
+        return false;
+    }
+    free_token(token);
+
+    // funcBody->local_symtable = create_local_symtable();
+    
+    return parse(funcBody, true);
 }
 
-bool parse(TreeNode *startNeterminal, bool innerBlock)
+bool parse(TreeNode *startNeterminal, bool inBlock)
 {
+
     token_t token;
     if (!skipEmptyLines(&token))
     {
@@ -713,12 +767,20 @@ bool parse(TreeNode *startNeterminal, bool innerBlock)
         switch (token.type)
         {
         case TOKEN_RIGHT_BRACE:
-            if (!innerBlock)
+            if (inBlock)
             {
-
-                return false;
+                if (startNeterminal->numChildren == 1)
+                {
+                    nextNeterminal->type = NODE_EPSILON;
+                    nextNeterminal->terminal = true;
+                } else {
+                    free(nextNeterminal);
+                    startNeterminal->numChildren--;
+                    startNeterminal->children[startNeterminal->numChildren] = NULL;
+                }
+                return true;
             }
-            return true;
+            return false;
         case TOKEN_IDENTIFIER:
             if (!skipEmptyLines(&token))
             {
@@ -733,14 +795,13 @@ bool parse(TreeNode *startNeterminal, bool innerBlock)
                 {
                     return false;
                 }
-                else
+
+                token = get_token(file);
+                if (token.type != TOKEN_EOL && token.type != TOKEN_EOF)
                 {
-                    token = get_token(file);
-                    if (token.type != TOKEN_EOL && token.type != TOKEN_EOF)
-                    {
-                        return false;
-                    }
+                    return false;
                 }
+
                 break;
 
             case TOKEN_OPERATOR_ASSIGN: // assign
@@ -901,6 +962,11 @@ bool parse(TreeNode *startNeterminal, bool innerBlock)
             {
                 return false;
             }
+            token = get_token(file);
+            if (token.type != TOKEN_EOL && token.type != TOKEN_EOF)
+            {
+                return false;
+            }
             break;
         case TOKEN_UNKNOWN:
             error = ERR_LEX_ANALYSIS;
@@ -916,6 +982,11 @@ bool parse(TreeNode *startNeterminal, bool innerBlock)
         {
             return false;
         }
+    }
+
+    if (inBlock)
+    {
+        return false;
     }
 
     return true;
@@ -938,10 +1009,7 @@ int main(void)
         error = ERR_NONE;
     }
 
-    for (unsigned i = 0; i < startNeterminal->numChildren; i++)
-    {
-        printf("%d\n", startNeterminal->children[i]->children[0]->type);
-    }
+    printf("%d\n", error);
 
     dispose(startNeterminal);
 
