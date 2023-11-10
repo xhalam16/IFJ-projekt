@@ -21,13 +21,16 @@ typedef enum NodeType {
     NODE_EXPRESSION,
     NODE_IF_STATEMENT,
     NODE_ELSE_STATEMENT,
+    NODE_RETURN,
     NODE_KEYWORD_LET,
-    NODE_IDENTIFIER,
+    NODE_KEYWORD_VAR,
+    NODE_KEYWORD_RETURN,
     NODE_KEYWORD_FUNC,
     NODE_FUNCTION_CALL,
     NODE_FUNCTION_PARAM,
     NODE_PARAM_VALUE,
     NODE_PARAM_LIST,
+    NODE_IDENTIFIER,
     NODE_INT,
     NODE_DOUBLE,
     NODE_STRING,
@@ -58,5 +61,5 @@ void dispose(TreeNode *parseTree);
 
 TreeNode *createNewNode(TreeNode *parent, NodeType type, bool terminal);
 
-bool parse(TreeNode *startNeterminal, bool inBlock);
+bool parse(TreeNode *startNeterminal, bool inBlock, bool inFunction, bool voidFunction);
 
