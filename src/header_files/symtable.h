@@ -67,6 +67,30 @@ typedef struct function_parameter {
 } function_parameter_t;
 
 
+typedef struct parameter_list {
+    function_parameter_t *first;
+    function_parameter_t *active;
+    size_t size;
+} parameter_list_t;
+
+void parameter_list_init(parameter_list_t *list);
+
+bool parameter_list_empty(parameter_list_t *list);
+
+bool parameter_list_active(parameter_list_t *list);
+
+void parameter_list_insert(parameter_list_t *list, function_parameter_t *parameter);
+
+void parameter_list_next(parameter_list_t *list);
+
+void parameter_list_free(parameter_list_t *list);
+
+function_parameter_t *parameter_list_get_active(parameter_list_t *list);
+
+
+
+
+
 
 // ***************************************** LOCAL SYMTABLE ******************************************
 
@@ -123,7 +147,6 @@ typedef struct l_symtable{
  * @param nilable - true if data is nilable, false otherwise
  * @param defined - true if data is defined, false otherwise
  * @param value - pointer to value of any data type
- * @param local_table - pointer to local table (NULL if symbol_type != SYM_FUNC)
  * @param parameters - pointer to parameters of function (NULL if symbol_type != SYM_FUNC)
 */
 typedef struct symtable_global_data{
@@ -134,8 +157,7 @@ typedef struct symtable_global_data{
     bool defined;
     void * value;
 
-    local_symtable *local_table;
-    function_parameter_t *parameters;
+    parameter_list_t *parameters;
 
 } symtable_global_data_t;
 
@@ -253,7 +275,7 @@ symtable_local_data_t* create_local_data(symbol_type_t symbol_type, data_type_t 
  * @param parameters - pointer to parameters of function (NULL if symbol_type != SYM_FUNC)
  * @return pointer to symtable_local_data_t on success, NULL on failure
  */
-symtable_global_data_t* create_global_data(symbol_type_t symbol_type, data_type_t data_type, bool nilable, bool defined, void *value, local_symtable *local_table, function_parameter_t *parameters);
+symtable_global_data_t* create_global_data(symbol_type_t symbol_type, data_type_t data_type, bool nilable, bool defined, void *value, parameter_list_t *parameters);
 
 
 /**
@@ -327,3 +349,4 @@ void symtable_delete(void *table, char *key, table_type_t type);
  * @param table - pointer to table
  */
 void symtable_free(void *table);
+

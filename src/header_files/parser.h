@@ -10,6 +10,7 @@
 
 FILE *file;
 error_code_t error;
+extern global_symtable *global_table;
 
 typedef enum NodeType {
     NODE_PROGRAM,
