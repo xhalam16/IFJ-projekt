@@ -87,8 +87,19 @@ bool buffer_equals_string(DynamicBuffer* buffer, const char* string){
     return strcmp(buffer->buffer, string) == 0;
 }
 
-void move_buffer(char* dest, DynamicBuffer* src){
-    strcpy(dest, src->buffer);
+int move_buffer(char** dest, DynamicBuffer* src){
+   
+    if(*dest == NULL){
+        *dest = malloc(src->size * sizeof(char) + 1);
+        if(*dest == NULL){
+            return ERR_CODE_ALLOC;
+        }
+    }
+
+
+
+    strcpy(*dest, src->buffer);
     buffer_clear(src);
+    return ERR_CODE_OK;
 }
 

@@ -435,4 +435,20 @@ void parameter_list_free(parameter_list_t *list){
 }
 
 
+void init_param(function_parameter_t *param){
+    param->next = NULL;
+    param->name = NULL;
+    param->data_type = DATA_NONE;
+    param->label = NULL;
+}
+
+void free_param(function_parameter_t *param){
+    if(param == NULL){
+        return;
+    }
+    free(param->name);
+    free(param->label);
+    free(param);
+}
+
 
