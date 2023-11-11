@@ -1,5 +1,8 @@
 #include "header_files/parser.h"
 
+FILE *file;
+error_code_t error;
+bool inBlock = false;
 global_symtable *global_table = NULL;
 
 NodeType token_type_to_node(token_type_t t_type)
@@ -111,17 +114,6 @@ void dispose(TreeNode *parseTree)
     free(parseTree->children);
 
     free(parseTree);
-
-    /*
-    while (parseTree->children != NULL)
-    {
-        for (unsigned i = 0; i < parseTree->numChildren; i++)
-        {
-            dispose(parseTree->children + i);
-        }
-    }
-    free(parseTree->children);
-    */
 }
 
 int skipEmptyLines(token_t *token)
@@ -160,18 +152,25 @@ bool parseParameters(TreeNode *funcParams)
         return false;
     }
 
+    token_t token;
+    if (!skipEmptyLines(&token))
+    {
+        return false;
+    }
+
+    if (token.type == TOKEN_RIGHT_PARENTHESIS)
+    {
+        funcParam->type = NODE_EPSILON;
+        funcParam->terminal = true;
+        return true;
+    }
+
     TreeNode *funcParamValue = createNewNode(funcParam, NODE_PARAM_VALUE, false);
     if (funcParam == NULL)
     {
         return false;
     }
     funcParamValue->terminal = true;
-
-    token_t token;
-    if (!skipEmptyLines(&token))
-    {
-        return false;
-    }
 
     switch (token.type)
     {
@@ -184,7 +183,12 @@ bool parseParameters(TreeNode *funcParams)
 
         if (token.type == TOKEN_COLON)
         {
-            strcpy(funcParam->label, token.value.string_value->buffer);
+            funcParam->label = malloc(token.value.string_value->size + 1);
+            if (funcParam->label == NULL)
+            {
+                return false;
+            }
+            move_buffer(funcParam->label, token.value.string_value);
             TreeNode *funcParamRight = createNewNode(funcParam, NODE_PARAM_VALUE, false);
             if (funcParamRight == NULL)
             {
@@ -227,6 +231,7 @@ bool parseParameters(TreeNode *funcParams)
         {
             return true;
         }
+
         break;
     case TOKEN_STRING:
         funcParamValue->type = NODE_STRING;
@@ -263,6 +268,7 @@ bool parseParameters(TreeNode *funcParams)
 
 bool parseFuncCall(TreeNode *node)
 {
+
     node->type = NODE_FUNCTION_CALL;
     TreeNode *funcCallId = createNewNode(node, NODE_IDENTIFIER, true);
     if (funcCallId == NULL)
@@ -280,6 +286,7 @@ bool parseFuncCall(TreeNode *node)
     {
         return true;
     }
+
     return false;
 }
 
@@ -429,6 +436,21 @@ bool parseCondition(TreeNode *neterminal, bool inParenthesis)
 
 bool parseDeclaration(TreeNode *neterminal)
 {
+    symtable_global_data_t *data;
+    if (inBlock)
+    {
+        data = (symtable_local_data_t *)data;
+    }
+    
+    if (inBlock)
+    {
+        symtable_local_data_t *data = create_local_data(SYM_VAR, DATA_NONE, false, false, NULL);
+    }
+    else
+    {
+        symtable_global_data_t *data = create_global_data(SYM_VAR, DATA_NONE, false, false, NULL, NULL);
+    }
+
     token_t token;
     if (!skipEmptyLines(&token))
     {
@@ -442,17 +464,20 @@ bool parseDeclaration(TreeNode *neterminal)
     {
         return false;
     }
-    
+
     free_token(token);
-    
     if (!skipEmptyLines(&token))
     {
         return false;
     }
 
-    
-
     if (token.type != TOKEN_OPERATOR_ASSIGN && token.type != TOKEN_COLON)
+    {
+        return false;
+    }
+
+    TreeNode *dataType = createNewNode(neterminal, token_type_to_node(token.type), true);
+    if (dataType == NULL)
     {
         return false;
     }
@@ -469,31 +494,41 @@ bool parseDeclaration(TreeNode *neterminal)
         {
             return false;
         }
-        
-        TreeNode *dataType = createNewNode(neterminal, token_type_to_node(token.type), true);
+
+        data->data_type = node_type_to_data(token_type_to_node(token.type));
 
         free_token(token);
         token = get_token(file);
-
-        
 
         if (token.type != TOKEN_OPERATOR_ASSIGN && token.type == TOKEN_EOL)
         {
             free_token(token);
             return true;
         }
-        free_token(token);
+    }
+    else
+    {
+        TreeNode *dataType = createNewNode(neterminal, token_type_to_node(token.type), true);
+        if (dataType == NULL)
+        {
+            return false;
+        }
     }
 
+    if (token.type != TOKEN_OPERATOR_ASSIGN)
+    {
+        free_token(token);
+        return false;
+    }
 
-    
+    data->defined = true;
 
+    free_token(token);
     if (createNewNode(neterminal, NODE_ASSIGN, true) == NULL)
     {
         return NULL;
     }
 
-    free_token(token);
     if (!skipEmptyLines(&token))
     {
         return false;
@@ -510,11 +545,12 @@ bool parseDeclaration(TreeNode *neterminal)
         free_token(token);
         if (!skipEmptyLines(&token))
         {
+            free_token(token);
             return false;
         }
         if (token.type == TOKEN_LEFT_PARENTHESIS)
         {
-
+            free_token(token);
             if (parseFuncCall(expression))
             {
                 return true;
@@ -524,7 +560,7 @@ bool parseDeclaration(TreeNode *neterminal)
 
     // precedenční analýza
 
-    return true;
+    return false;
 }
 
 bool parseIfStatement(TreeNode *node)
@@ -604,10 +640,12 @@ bool parseIfStatement(TreeNode *node)
     {
         return false;
     }
-    if (!parse(node, true, false, false))
+    inBlock = true;
+    if (!parse(node, false, false))
     {
         return false;
     }
+    inBlock = false;
     if (!skipEmptyLines(&token))
     {
         return false;
@@ -629,10 +667,12 @@ bool parseIfStatement(TreeNode *node)
         {
             return false;
         }
-        if (!parse(elseStatement, true, false, false))
+        inBlock = true;
+        if (!parse(elseStatement, false, false))
         {
             return false;
         }
+        inBlock = false;
     }
 
     return true;
@@ -833,6 +873,7 @@ bool parseFuncDeclaration(TreeNode *node)
 
     move_buffer(key, token.source_value);
 
+    free_token(token);
     if (!skipEmptyLines(&token))
     {
 
@@ -858,9 +899,17 @@ bool parseFuncDeclaration(TreeNode *node)
         return false;
     }
 
+    free_token(token);
     if (!skipEmptyLines(&token))
     {
 
+        return false;
+    }
+
+    TreeNode *funcReturnValue = createNewNode(node, NODE_DATATYPE_INT, true);
+
+    if (funcReturnValue == NULL)
+    {
         return false;
     }
 
@@ -872,8 +921,6 @@ bool parseFuncDeclaration(TreeNode *node)
 
             return false;
         }
-
-        TreeNode *funcReturnValue = createNewNode(node, NODE_DATATYPE_INT, true);
 
         // vložení dat. typu návratové hodnoty do tabulky symbolů
 
@@ -887,12 +934,16 @@ bool parseFuncDeclaration(TreeNode *node)
         if (d_type == -1)
             return false;
         data->data_type = d_type;
+    }
+    else
+    {
+        funcReturnValue->type = NODE_EPSILON;
+    }
 
-        if (!skipEmptyLines(&token))
-        {
-
-            return false;
-        }
+    free_token(token);
+    if (!skipEmptyLines(&token))
+    {
+        return false;
     }
 
     if (token.type != TOKEN_LEFT_BRACE)
@@ -912,14 +963,18 @@ bool parseFuncDeclaration(TreeNode *node)
     }
     free_token(token);
 
-    // funcBody->local_symtable = create_local_symtable();
-
     int ret = symtable_insert(global_table, key, data, GLOBAL_TABLE);
 
     if (ret != ERR_CODE_ST_OK)
         return false;
 
-    return parse(funcBody, true, true, voidFunction);
+    inBlock = true;
+    if (parse(funcBody, true, voidFunction))
+    {
+        inBlock = false;
+        return true;
+    }
+    return false;
 }
 
 bool parseReturn(TreeNode *node, bool voidFunction)
@@ -983,12 +1038,16 @@ bool parseReturn(TreeNode *node, bool voidFunction)
     return false;
 }
 
-bool parse(TreeNode *startNeterminal, bool inBlock, bool inFunction, bool voidFunction)
+bool parse(TreeNode *startNeterminal, bool inFunction, bool voidFunction)
 {
 
     if (global_table == NULL)
     {
         global_table = create_global_symtable(ST_GLOBAL_INIT_SIZE);
+    }
+    else
+    {
+        local_symtable *local_table = create_local_symtable(ST_LOCAL_INIT_SIZE);
     }
 
     token_t token;
@@ -1034,6 +1093,7 @@ bool parse(TreeNode *startNeterminal, bool inBlock, bool inFunction, bool voidFu
             switch (token.type)
             {
             case TOKEN_LEFT_PARENTHESIS: // func call
+
                 nextNeterminal->type = NODE_FUNCTION_CALL;
                 if (!parseFuncCall(nextNeterminal))
                 {
@@ -1105,9 +1165,10 @@ bool parse(TreeNode *startNeterminal, bool inBlock, bool inFunction, bool voidFu
             {
                 return false;
             }
+            free_token(token);
             break;
         case TOKEN_KEYWORD_FUNC:
-            if (!parseFuncDeclaration(nextNeterminal))
+            if (inBlock == true || !parseFuncDeclaration(nextNeterminal))
             {
                 return false;
             }
@@ -1182,7 +1243,7 @@ int main(void)
 
     TreeNode *startNeterminal = createNewNode(NULL, NODE_PROGRAM, false);
 
-    if (parse(startNeterminal, false, false, false))
+    if (parse(startNeterminal, false, false))
     {
         error = ERR_NONE;
     }

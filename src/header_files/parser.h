@@ -8,8 +8,9 @@
 #include "scanner.h"
 #include "symtable.h"
 
-FILE *file;
-error_code_t error;
+extern FILE *file;
+extern error_code_t error;
+extern bool inBlock;
 extern global_symtable *global_table;
 
 
@@ -75,5 +76,5 @@ void dispose(TreeNode *parseTree);
 
 TreeNode *createNewNode(TreeNode *parent, NodeType type, bool terminal);
 
-bool parse(TreeNode *startNeterminal, bool inBlock, bool inFunction, bool voidFunction);
+bool parse(TreeNode *startNeterminal, bool inFunction, bool voidFunction);
 
