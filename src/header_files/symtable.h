@@ -87,6 +87,9 @@ void parameter_list_free(parameter_list_t *list);
 
 function_parameter_t *parameter_list_get_active(parameter_list_t *list);
 
+void init_param(function_parameter_t *param);
+
+void free_param(function_parameter_t *param);
 
 
 
@@ -349,4 +352,3 @@ void symtable_delete(void *table, char *key, table_type_t type);
  * @param table - pointer to table
  */
 void symtable_free(void *table);
-
