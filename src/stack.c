@@ -26,7 +26,7 @@ int resize_stack(Stack* stack, size_t new_cap){
     return STACK_SUCCESS;
 }
 
-bool is_full(Stack* stack){
+bool stack_is_full(Stack* stack){
     if(stack == NULL){
         return false;
     }
@@ -39,7 +39,7 @@ int stack_push(Stack* stack, void* data){
         return STACK_ERROR;
     }
 
-    if(is_full(stack)){
+    if(stack_is_full(stack)){
         int res = resize_stack(stack, stack->capacity * 2);
         if(res == STACK_ERROR){
             return STACK_ERROR;
