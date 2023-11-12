@@ -18,6 +18,7 @@ extern global_symtable *global_table;
 typedef enum NodeType {
     NODE_PROGRAM,
     NODE_BODY,
+    NODE_BODY_END,
     NODE_ASSIGN,
     NODE_DECLARATION,
     NODE_DECLARATION_FUNCTION,

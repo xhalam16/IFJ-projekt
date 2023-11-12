@@ -10,7 +10,7 @@ parser: scanner.o dynamic_buffer.o parser.o symtable.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDLIBS)
 
 scanner.o: $(DIRSOURCE)/scanner.c $(DIRH)/scanner.h dynamic_buffer.o
-	$(CC) $(CFLAGS) -c $<
+	$(CC) $(CFLAGS) -c $< $(LDLIBS)
 
 dynamic_buffer.o: $(DIRSOURCE)/dynamic_buffer.c $(DIRH)/dynamic_buffer.h
 	$(CC) $(CFLAGS) -c $<
