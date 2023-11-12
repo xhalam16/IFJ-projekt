@@ -8,9 +8,10 @@
 #include "scanner.h"
 #include "symtable.h"
 
+extern FILE *file;
+extern error_code_t error;
+extern bool inBlock;
 
-FILE *file;
-error_code_t error;
 extern global_symtable *global_table;
 
 
