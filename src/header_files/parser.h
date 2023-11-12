@@ -76,5 +76,12 @@ void dispose(TreeNode *parseTree);
 
 TreeNode *createNewNode(TreeNode *parent, NodeType type, bool terminal);
 
+data_type_t node_type_to_data(NodeType n_type);
+
 bool parse(TreeNode *startNeterminal, bool inBlock, bool inFunction, bool voidFunction);
+
+// for debug
+void print_global_table(global_symtable *table);
+
+void printTree(TreeNode *node);
 

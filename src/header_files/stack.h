@@ -75,7 +75,7 @@ void stack_pop(Stack* stack);
  * @param stack The stack to check
  * @return true if the stack is full, false otherwise
 */
-bool is_full(Stack* stack);
+bool stack_is_full(Stack* stack);
 
 /**
  * @brief Frees the stack
