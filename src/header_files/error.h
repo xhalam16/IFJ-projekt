@@ -5,7 +5,7 @@ enum error_codes {
 
     ERR_LEX_ANALYSIS = 1, 
 
-    ERR_SYNTAX_ANALYSIS = 2, // chyba v programu v rámci syntaktické analýzy (chybná syntaxe programu, chy- bějící hlavička, atp.)
+    ERR_SYNTAX_ANALYSIS = 2, // chyba v programu v rámci syntaktické analýzy (chybná syntaxe programu, chybějící hlavička, atp.)
 
     ERR_SEMANTIC_DEFINITION = 3,  // sémantická chyba v programu – nedefinovaná funkce, redefinice proměnné.
 

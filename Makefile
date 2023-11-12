@@ -18,10 +18,18 @@ dynamic_buffer.o: $(DIRSOURCE)/dynamic_buffer.c $(DIRH)/dynamic_buffer.h
 symtable.o: $(DIRSOURCE)/symtable.c $(DIRH)/symtable.h
 	$(CC) $(CFLAGS) -c $<
 
+semantic: parser.o semantic.o symtable.o dynamic_buffer.o scanner.o stack.o
+	$(CC) $(CFLAGS) $^ -o $@
+
+semantic.o: $(DIRSOURCE)/semantic.c
+	$(CC) $(CFLAGS) -c $<
+
+stack.o: $(DIRSOURCE)/stack.c $(DIRH)/stack.h
+	$(CC) $(CFLAGS) -c $<
 
 #implicit rule
 %.o: $(DIRSOURCE)/%.c $(DIRH)/%.h
 	$(CC) $(CFLAGS) -c $<
 
 clean:
-	rm -f *.o parser
+	rm -f *.o parser semantic

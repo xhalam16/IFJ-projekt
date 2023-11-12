@@ -11,6 +11,7 @@
 extern FILE *file;
 extern error_code_t error;
 extern bool inBlock;
+
 extern global_symtable *global_table;
 
 
@@ -76,5 +77,12 @@ void dispose(TreeNode *parseTree);
 
 TreeNode *createNewNode(TreeNode *parent, NodeType type, bool terminal);
 
-bool parse(TreeNode *startNeterminal, bool inFunction, bool voidFunction);
+data_type_t node_type_to_data(NodeType n_type);
+
+bool parse(TreeNode *startNeterminal, bool inBlock, bool inFunction, bool voidFunction);
+
+// for debug
+void print_global_table(global_symtable *table);
+
+void printTree(TreeNode *node);
 
