@@ -62,6 +62,11 @@ typedef struct n_d_mapping {
     data_type_t d_value;
 } Node_to_data;
 
+typedef struct tt_i_mapping {
+    token_type_t tt_value;
+    unsigned i_value;
+} TokenTypeToIndex;
+
 extern const Node_to_data node_to_data[];
 extern const Token_to_node token_to_node[];
 
