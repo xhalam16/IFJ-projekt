@@ -436,19 +436,19 @@ bool parseCondition(TreeNode *neterminal, bool inParenthesis)
 
 bool parseDeclaration(TreeNode *neterminal)
 {
+
+    
     symtable_global_data_t *data;
+
     if (inBlock)
     {
         data = (symtable_local_data_t *)data;
-    }
-    
-    if (inBlock)
-    {
-        symtable_local_data_t *data = create_local_data(SYM_VAR, DATA_NONE, false, false, NULL);
+        data = create_local_data(SYM_VAR, DATA_NONE, false, false, NULL);
     }
     else
     {
-        symtable_global_data_t *data = create_global_data(SYM_VAR, DATA_NONE, false, false, NULL, NULL);
+        // data = (symtable_global_data_t *)data;
+        data = create_global_data(SYM_VAR, DATA_NONE, false, false, NULL, NULL);
     }
 
     token_t token;
@@ -456,6 +456,7 @@ bool parseDeclaration(TreeNode *neterminal)
     {
         return false;
     }
+    
     if (token.type != TOKEN_IDENTIFIER)
     {
         return false;
@@ -475,7 +476,7 @@ bool parseDeclaration(TreeNode *neterminal)
     {
         return false;
     }
-
+    
     TreeNode *dataType = createNewNode(neterminal, token_type_to_node(token.type), true);
     if (dataType == NULL)
     {
@@ -495,12 +496,22 @@ bool parseDeclaration(TreeNode *neterminal)
             return false;
         }
 
-        data->data_type = node_type_to_data(token_type_to_node(token.type));
+        data_type_t dataType = node_type_to_data(token_type_to_node(token.type));
+
+        if (dataType == -1)
+        {
+            return false;
+        }
+
+        data->data_type = dataType;
 
         free_token(token);
         token = get_token(file);
 
-        if (token.type != TOKEN_OPERATOR_ASSIGN && token.type == TOKEN_EOL)
+        if (token.type != TOKEN_OPERATOR_ASSIGN && (token.type == TOKEN_EOL || (token.type == TOKEN_EOF && !inBlock)))
+        {
+            return true;
+        }
         {
             free_token(token);
             return true;
@@ -916,6 +927,7 @@ bool parseFuncDeclaration(TreeNode *node)
     if (token.type == TOKEN_ARROW)
     {
         voidFunction = false;
+        free_token(token);
         if (!skipEmptyLines(&token))
         {
 
@@ -934,17 +946,19 @@ bool parseFuncDeclaration(TreeNode *node)
         if (d_type == -1)
             return false;
         data->data_type = d_type;
+
+        free_token(token);
+        if (!skipEmptyLines(&token))
+        {
+            return false;
+        }
     }
     else
     {
         funcReturnValue->type = NODE_EPSILON;
     }
 
-    free_token(token);
-    if (!skipEmptyLines(&token))
-    {
-        return false;
-    }
+    printf("%d\n", token.type);
 
     if (token.type != TOKEN_LEFT_BRACE)
     {
@@ -974,6 +988,7 @@ bool parseFuncDeclaration(TreeNode *node)
         inBlock = false;
         return true;
     }
+
     return false;
 }
 
@@ -1157,11 +1172,6 @@ bool parse(TreeNode *startNeterminal, bool inFunction, bool voidFunction)
             }
 
             if (!parseDeclaration(nextNeterminal))
-            {
-                return false;
-            }
-            token = get_token(file);
-            if (token.type != TOKEN_EOL && token.type != TOKEN_EOF)
             {
                 return false;
             }
