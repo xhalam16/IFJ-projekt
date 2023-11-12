@@ -447,12 +447,15 @@ token_t get_token(FILE *source_file)
             else
             {
                 ungetc(potential_quote2, source_file);
+
             }
+            ungetc(potential_quote, source_file);
         }
         else
         {
             ungetc(potential_quote, source_file);
         }
+       
 
         token.type = TOKEN_DOUBLE_QUOTE;
         buffer_append_string(raw_buffer, "\"");
@@ -463,18 +466,19 @@ token_t get_token(FILE *source_file)
             return token;
         }
 
-        c = get_char(source_file);
-        if (c != '"')
-        {
+        // c = get_char(source_file);
+        // if (c != '"')
+        // {
 
-            in_string_global = true;
-            ungetc(c, source_file);
-        }
-        else
-        {
-            ungetc(c, source_file);
-        }
+        //     in_string_global = true;
+        //     ungetc(c, source_file);
+        // }
+        // else
+        // {
+        //     ungetc(c, source_file);
+        // }
 
+        in_string_global = true;
         return token;
     }
 
@@ -488,6 +492,7 @@ token_t get_token(FILE *source_file)
 
         buffer_clear(buffer);
         ungetc(c, source_file);
+
         token.type = TOKEN_STRING;
 
         while ((c = get_char(source_file)) != '"')
@@ -1162,3 +1167,22 @@ token_t peek_token(FILE *source_file)
     unget_token(token, source_file);
     return token;
 }
+
+
+// int main(void){
+//     token_t token;
+//     FILE *file = fopen("../test2.txt", "r");
+//     if (file == NULL)
+//     {
+//         return 1;
+//     }
+
+//     while ((token = get_token(file)).type != TOKEN_EOF)
+//     {
+//         printf("%s\n", token_type_string_values[token.type]);
+//         free_token(token);
+//     }
+
+//     fclose(file);
+// }
+

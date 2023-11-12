@@ -19,7 +19,7 @@ symtable.o: $(DIRSOURCE)/symtable.c $(DIRH)/symtable.h
 	$(CC) $(CFLAGS) -c $<
 
 semantic: parser.o semantic.o symtable.o dynamic_buffer.o scanner.o stack.o
-	$(CC) $(CFLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@ $(LDLIBS)
 
 semantic.o: $(DIRSOURCE)/semantic.c
 	$(CC) $(CFLAGS) -c $<
