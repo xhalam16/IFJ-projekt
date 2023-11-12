@@ -3,10 +3,12 @@
 
 
 Stack *stack_of_local_tables = NULL;
+bool in_body_neterminal = false;
 
 bool is_neterminal(TreeNode *node){
     return !node->terminal;
 }
+
 
 error_code_t semantic_func_call(TreeNode* node){
     TreeNode *function_name = node->children[0];
@@ -49,14 +51,23 @@ error_code_t semantic_func_call(TreeNode* node){
             data_type_t param_tree_type = node_type_to_data(passed_param->type);
             if(param_tree_type == -1){
                 // the data could not be converted straight away, check for identifier and look it up in symtable
-              
-
             }
     
-            if(param_table_type != param_tree_type){
+            // todo - vyřešit nil
+            if(param_tree_type == DATA_NIL){
+                // the passed param is nil
+                // thats ok if the param in the table has nilable set to true
+                if(!param_table->nilable){
+                    return ERR_SEMANTIC_FUNC;
+                }
+            }else{
+                if(param_table_type != param_tree_type){
                 
                 return ERR_SEMANTIC_FUNC;
+                }
             }
+
+            
 
 
             // if the param has a name, we need to check if they are matching
@@ -86,6 +97,15 @@ error_code_t semantic(TreeNode *node){
 
     if(type == NODE_FUNCTION_CALL){
         return semantic_func_call(node);
+    } else if(type == NODE_BODY){
+        // we hit a noterminal with a body, it's storing a pointer to a local table
+        // we need to push it to the stack
+        local_symtable *block_symtable = node->local_symtable;
+        stack_push(stack_of_local_tables, block_symtable);
+        // todo: we need to make sure to pop the table from the stack when we leave the block
+        in_body_neterminal = true;
+ 
+
     }
 
 
@@ -111,14 +131,14 @@ int main(void){
 
     TreeNode *startNeterminal = createNewNode(NULL, NODE_PROGRAM, false);
 
-    if (parse(startNeterminal, false, false, false))
+    if (parse(startNeterminal, false, false))
     {
         error = ERR_NONE;
     }
 
     //print_global_table(global_table);
-    //printTree(startNeterminal);
-    error = semantic(startNeterminal->children[1]);
+   printTree(startNeterminal);
+   // error = semantic(startNeterminal->children[1]);
 
     dispose(startNeterminal);
 
