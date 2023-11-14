@@ -6,7 +6,7 @@ DIRSOURCE=src
 DIRH=$(DIRSOURCE)/header_files
 
 
-parser: scanner.o dynamic_buffer.o parser.o symtable.o
+parser: scanner.o dynamic_buffer.o parser.o symtable.o semantic.o stack.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDLIBS)
 
 scanner.o: $(DIRSOURCE)/scanner.c $(DIRH)/scanner.h dynamic_buffer.o

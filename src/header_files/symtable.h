@@ -85,6 +85,8 @@ void parameter_list_next(parameter_list_t *list);
 
 void parameter_list_free(parameter_list_t *list);
 
+void first(parameter_list_t *list);
+
 function_parameter_t *parameter_list_get_active(parameter_list_t *list);
 
 void init_param(function_parameter_t *param);
