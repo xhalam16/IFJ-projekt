@@ -42,6 +42,23 @@ typedef enum NodeType {
     NODE_INT_NILABLE,
     NODE_DOUBLE_NILABLE,
     NODE_STRING_NILABLE,
+    NODE_OPERATOR_ADD,
+    NODE_OPERATOR_SUB,
+    NODE_OPERATOR_MUL,
+    NODE_OPERATOR_DIV,
+    NODE_OPERATOR_BELOW,
+    NODE_OPERATOR_ABOVE,
+    NODE_OPERATOR_BEQ,
+    NODE_OPERATOR_AEQ,
+    NODE_OPERATOR_EQUAL,
+    NODE_OPERATOR_NEQ,
+    NODE_OPERATOR_NIL_COALESCING,
+    NODE_OPERATOR_UNARY,
+    NODE_LEFT_PARENTHESIS,
+    NODE_RIGHT_PARENTHESIS,
+    NODE_RIGHT_BRACE,
+    NODE_LEFT_BRACE,
+    NODE_EOL,
     NODE_DATATYPE_INT,
     NODE_DATATYPE_DOUBLE,
     NODE_DATATYPE_STRING,
@@ -51,6 +68,17 @@ typedef enum NodeType {
     NODE_EPSILON,
     NODE_UNDERSCORE
 } NodeType;
+
+typedef enum ExpressionRule {
+    RULE_ID,
+    RULE_PARENTHESES,
+    RULE_ADD,
+    RULE_SUB,
+    RULE_MUL,
+    RULE_DIV,
+    RULE_COALESCING,
+    RULE_UNARY,
+} ExpressionRule;
 
 typedef struct t_n_mapping {
     token_type_t t_value;
@@ -63,9 +91,9 @@ typedef struct n_d_mapping {
 } Node_to_data;
 
 typedef struct tt_i_mapping {
-    token_type_t tt_value;
+    NodeType n_value;
     unsigned i_value;
-} TokenTypeToIndex;
+} NodeTypeToIndex;
 
 extern const Node_to_data node_to_data[];
 extern const Token_to_node token_to_node[];
