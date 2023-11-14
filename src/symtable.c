@@ -451,4 +451,8 @@ void free_param(function_parameter_t *param){
     free(param);
 }
 
+void first(parameter_list_t *list){
+    list->active = list->first;
+}
+
 

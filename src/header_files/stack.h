@@ -82,3 +82,6 @@ bool stack_is_full(Stack* stack);
  * @param stack The stack to free
 */
 void stack_free(Stack* stack);
+
+bool stack_is_empty(Stack* stack);
+

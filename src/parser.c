@@ -1,12 +1,12 @@
 #include "header_files/parser.h"
 #include "header_files/stack.h"
+#include "header_files/semantic.h"
 
 FILE *file;
 error_code_t error;
 bool inBlock = false;
 global_symtable *global_table = NULL;
 
-DynamicBuffer *buffer_copy = NULL;
 
 NodeType token_type_to_node(token_type_t t_type)
 {
@@ -51,6 +51,21 @@ data_type_t node_type_to_data(NodeType n_type)
         }
     }
     return -1;
+}
+
+bool node_type_nilable(NodeType nt){
+    switch (nt)
+    {
+    case NODE_DATATYPE_INT_NILABLE:
+    case NODE_DATATYPE_DOUBLE_NILABLE:
+    case NODE_DATATYPE_STRING_NILABLE:
+    case NODE_INT_NILABLE:
+    case NODE_DOUBLE_NILABLE:
+    case NODE_STRING_NILABLE:
+        return true;
+    default:
+        return false;
+    }
 }
 
 char tokenTypeToIndex(token_type_t *inputTokenType, token_type_t *stackTopTokenType) {
@@ -146,6 +161,38 @@ TreeNode *createNewNode(TreeNode *parent, NodeType type, bool isTerminal)
     return newNode;
 }
 
+void remove_terminal_child(TreeNode* node, int index){
+    if(node == NULL){
+        return;
+    }
+
+    if(index >= node->numChildren){
+        return;
+    }
+    TreeNode* child = node->children[index];
+    if(child == NULL){
+        return;
+    }
+
+    if(child->terminal){
+        if(child->label != NULL){
+            free(child->label);
+        }
+
+        free(child);
+        node->children[index] = NULL;
+
+        for(int i = index; i < node->numChildren - 1; i++){
+            node->children[i] = node->children[i + 1];
+        }
+
+        node->numChildren--;
+        node->children = realloc(node->children, sizeof(TreeNode*) * node->numChildren);
+    }
+
+}
+
+
 void dispose(TreeNode *parseTree)
 {
     if (parseTree == NULL)
@@ -198,23 +245,27 @@ int skipEmptyLines(token_t *token)
     }
     return 1 + numEols;
 }
-bool load_string(TreeNode** node){
+bool load_string(TreeNode** node, bool multi_line){
      // loading another token
     token_t token;
     if (!skipEmptyLines(&token))
     {
         return false;
     }
-
-                
-    // prev_token == double quote
+   
     // token == string (or double quote == empty string)
     // final_token == double quote or error
 
-    if (token.type == TOKEN_DOUBLE_QUOTE)
-    {
+    if(multi_line && token.type == TOKEN_TRIPLE_DOUBLE_QUOTE){
+        // empty multi line string
         (*node)->type = NODE_STRING;
+        return true;
+    }else if(!multi_line && token.type == TOKEN_DOUBLE_QUOTE){
+        // empty string
+        (*node)->type = NODE_STRING;
+        return true;
     }
+    
 
 
     token_t final_token;
@@ -222,12 +273,22 @@ bool load_string(TreeNode** node){
         return false;
     }
 
-    if (final_token.type != TOKEN_DOUBLE_QUOTE)
-    {
-        return false;
+    if(multi_line){
+        if(final_token.type != TOKEN_TRIPLE_DOUBLE_QUOTE){
+            return false;
+        }
+    }else {
+        if(final_token.type != TOKEN_DOUBLE_QUOTE){
+            return false;
+        }
     }
 
     (*node)->type = NODE_STRING;
+    if(move_buffer(&(*node)->label, token.value.string_value) != ERR_CODE_OK){
+        return false;
+    }
+
+
     return true;
 }
 
@@ -359,7 +420,12 @@ bool parseParameters(TreeNode *funcParams)
                 funcParamRight->type = NODE_NIL;
                 break;
             case TOKEN_DOUBLE_QUOTE:
-                if(!load_string(&funcParamRight)){
+                if(!load_string(&funcParamRight, false)){
+                    return false;
+                }
+                break;
+            case TOKEN_TRIPLE_DOUBLE_QUOTE:
+                if(!load_string(&funcParamRight, true)){
                     return false;
                 }
                 break;
@@ -396,7 +462,13 @@ bool parseParameters(TreeNode *funcParams)
         return true;
 
     case TOKEN_DOUBLE_QUOTE:
-        if(!load_string(&funcParamValue)){
+        if(!load_string(&funcParamValue, false)){
+            return false;
+        }
+        break;
+
+    case TOKEN_TRIPLE_DOUBLE_QUOTE:
+        if(!load_string(&funcParamValue, true)){
             return false;
         }
         break;
@@ -419,7 +491,7 @@ bool parseParameters(TreeNode *funcParams)
     return false;
 }
 
-bool parseFuncCall(TreeNode *node)
+bool parseFuncCall(TreeNode *node, DynamicBuffer* func_name)
 {
     node->type = NODE_FUNCTION_CALL;
     TreeNode *funcCallId = createNewNode(node, NODE_IDENTIFIER, true);
@@ -428,10 +500,10 @@ bool parseFuncCall(TreeNode *node)
         return false;
     }
 
-    if (move_buffer(&funcCallId->label, buffer_copy) != ERR_CODE_OK)
-    {
-        printf("xd\n");
-        return false;
+    if(func_name != NULL){
+        if(move_buffer(&funcCallId->label, func_name) != ERR_CODE_OK){
+            return false;
+        }
     }
 
     TreeNode *funcCallParams = createNewNode(node, NODE_PARAM_LIST, false);
@@ -485,7 +557,7 @@ bool parseAssign(TreeNode *assign)
         if (token.type == TOKEN_LEFT_PARENTHESIS && prevToken.type == TOKEN_IDENTIFIER)
         {
             
-            if (parseFuncCall(assignValue))
+            if (parseFuncCall(assignValue, prevToken.source_value))
             {
                 return true;
             }
@@ -540,7 +612,7 @@ bool parseCondition(TreeNode *neterminal, bool inParenthesis)
         if (token.type == TOKEN_IDENTIFIER)
         {
             
-            if (parseFuncCall(neterminal))
+            if (parseFuncCall(neterminal, token.source_value))
             {
                 token = get_token(file);
                 if (!skipEmptyLines(&token))
@@ -596,7 +668,6 @@ bool parseCondition(TreeNode *neterminal, bool inParenthesis)
 
 bool parseDeclaration(TreeNode *neterminal)
 {
-
     symtable_local_data_t *local_data;
     symtable_global_data_t *global_data;
 
@@ -748,8 +819,7 @@ bool parseDeclaration(TreeNode *neterminal)
         {
 
             free_token(token);
-
-            if (parseFuncCall(expression))
+            if (parseFuncCall(expression, b))
             {
 
                 return true;
@@ -1038,7 +1108,10 @@ bool parseFuncDeclaration(TreeNode *node)
     }
     parameter_list_init(param_list);
 
-    symtable_global_data_t *data = create_global_data(SYM_FUNC, DATA_NONE, false, true, NULL, param_list);
+    // defined - depending if the function has a body
+    // into value we store a bool if the function has been checked by semantic (initialized to false)
+    bool checked_by_semantic = false;
+    symtable_global_data_t *data = create_global_data(SYM_FUNC, DATA_NONE, false, false, &checked_by_semantic, param_list);
 
     char *key = NULL;
 
@@ -1140,6 +1213,8 @@ bool parseFuncDeclaration(TreeNode *node)
         data_type_t d_type = node_type_to_data(node_type);
         if (d_type == -1)
             return false;
+        
+        data->nilable = node_type_nilable(node_type);
         data->data_type = d_type;
 
         free_token(token);
@@ -1153,19 +1228,19 @@ bool parseFuncDeclaration(TreeNode *node)
         funcReturnValue->type = NODE_EPSILON;
     }
 
-    if (token.type != TOKEN_LEFT_BRACE)
+    bool l_brace = false;
+    if (token.type == TOKEN_LEFT_BRACE)
     {
-
-        return false;
+        data->defined = true;
+        l_brace = true;
     }
 
     TreeNode *funcBody = createNewNode(node, NODE_BODY, false);
 
     token = peek_token(file);
-    if (token.type != TOKEN_EOL)
+    if (token.type != TOKEN_EOL && token.type != TOKEN_EOF)
     {
-
-        free_token(token);
+       free_token(token);
         return false;
     }
     free_token(token);
@@ -1176,6 +1251,7 @@ bool parseFuncDeclaration(TreeNode *node)
         // malloc failed
         if (funcBody->local_symtable == NULL)
         {
+            
             return false;
         }
     }
@@ -1185,14 +1261,17 @@ bool parseFuncDeclaration(TreeNode *node)
     if (ret != ERR_CODE_ST_OK)
         return false;
 
-    inBlock = true;
-    if (parse(funcBody, true, voidFunction))
-    {
-        inBlock = false;
-        return true;
+    if(l_brace){
+        inBlock = true;
+        if (parse(funcBody, true, voidFunction))
+        {
+            inBlock = false;
+            return true;
+        }
     }
+    
 
-    return false;
+    return true;
 }
 
 bool parseReturn(TreeNode *node, bool voidFunction)
@@ -1232,7 +1311,7 @@ bool parseReturn(TreeNode *node, bool voidFunction)
     if (token.type == TOKEN_IDENTIFIER)
     {
         DynamicBuffer *buff = token.source_value;
-        free_token(token);
+       // free_token(token);
         if (!skipEmptyLines(&token))
         {
             return false;
@@ -1240,11 +1319,18 @@ bool parseReturn(TreeNode *node, bool voidFunction)
         if (token.type == TOKEN_LEFT_PARENTHESIS)
         {
             free_token(token);
+          
+            if(returnExpression->children[0]->type == NODE_EPSILON){
+                // need to delete the epsilon node
+                remove_terminal_child(returnExpression, 0);
+            }
             
-            if (!parseFuncCall(returnExpression))
+            if (!parseFuncCall(returnExpression, buff))
             {
                 return false;
             }
+
+           
             token = get_token(file);
 
             if (token.type == TOKEN_EOL)
@@ -1328,7 +1414,8 @@ bool parse(TreeNode *startNeterminal, bool inFunction, bool voidFunction)
             }
             return false;
         case TOKEN_IDENTIFIER:
-            buffer_copy = token.source_value;
+            ;
+            DynamicBuffer *buff_copy = token.source_value;
             if (!skipEmptyLines(&token))
             {
                 return false;
@@ -1340,10 +1427,15 @@ bool parse(TreeNode *startNeterminal, bool inFunction, bool voidFunction)
 
                 nextNeterminal->type = NODE_FUNCTION_CALL;
                 
-                if (!parseFuncCall(nextNeterminal))
+                if (!parseFuncCall(nextNeterminal, buff_copy))
                 {
                     return false;
                 }
+
+                error = semantic(nextNeterminal);
+                printf("semantic error: %d\n", error); // 0
+               
+                
 
                 token = get_token(file);
                 if (token.type != TOKEN_EOL && token.type != TOKEN_EOF)
@@ -1405,6 +1497,11 @@ bool parse(TreeNode *startNeterminal, bool inFunction, bool voidFunction)
             {
                 return false;
             }
+
+            error = semantic(nextNeterminal);
+            printf("semantic error: %d\n", error); 
+
+
             token = get_token(file);
             if (token.type != TOKEN_EOL && token.type != TOKEN_EOF)
             {
@@ -1417,6 +1514,10 @@ bool parse(TreeNode *startNeterminal, bool inFunction, bool voidFunction)
             {
                 return false;
             }
+
+            
+
+
             break;
         case TOKEN_UNKNOWN:
             error = ERR_LEX_ANALYSIS;
@@ -1522,40 +1623,32 @@ void printTree(TreeNode *root)
         printTree(root->children[i]);
     }
 }
-// int main(void)
-// {
+int main(void){
+    error = ERR_SYNTAX_ANALYSIS;
+    file = fopen("test.txt", "r");
+    if (file == NULL)
+    {
+        error = ERR_INTERNAL;
+        return error;
+    }
 
-// if (parse(startNeterminal, false, false))
-//{
-//   error = ERR_NONE;
-// }
+    TreeNode *startNeterminal = createNewNode(NULL, NODE_PROGRAM, false);
 
-//     error = ERR_SYNTAX_ANALYSIS;
-//     file = fopen("test.txt", "r");
-//     if (file == NULL)
-//     {
-//         error = ERR_INTERNAL;
-//         return error;
-//     }
+    if (parse(startNeterminal, false, false))
+    {
+        error = ERR_NONE;
+    }
 
-//     TreeNode *startNeterminal = createNewNode(NULL, NODE_PROGRAM, false);
+    print_global_table(global_table);
+    printTree(startNeterminal);
 
-//     if (parse(startNeterminal, false, false, false))
-//     {
-//         error = ERR_NONE;
-//     }
+    dispose(startNeterminal);
 
-//     print_global_table(global_table);
-//     printf("Tree:\n");
-//     printTree(startNeterminal);
+    if (fclose(file) == EOF)
+    {
+        error = ERR_INTERNAL;
+    }
 
-//     dispose(startNeterminal);
-
-//     if (fclose(file) == EOF)
-//     {
-//         error = ERR_INTERNAL;
-//     }
-
-//      printf("%d\n", error);
-//     return error;
-// }
+     printf("%d\n", error);
+    return error;
+}
