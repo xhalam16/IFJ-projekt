@@ -85,3 +85,8 @@ void stack_free(Stack* stack){
     free(stack->frames);
     free(stack);
 }
+
+bool stack_is_empty(Stack* stack){
+    return stack->top == -1;
+}
+

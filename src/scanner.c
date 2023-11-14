@@ -409,8 +409,12 @@ token_t get_token(FILE *source_file)
         c = get_char(source_file);
         if (isdigit(c))
         {
-            next_number_negative = true;
+          // next_number_negative = true;
             // ungetc(c, source_file);
+            token.type = TOKEN_OPERATOR_SUB;
+            buffer_append_string(raw_buffer, "-");
+            ungetc(c, source_file);
+            return token;
         }
         else if (c != '>')
         {
@@ -1171,7 +1175,7 @@ token_t peek_token(FILE *source_file)
 
 // int main(void){
 //     token_t token;
-//     FILE *file = fopen("../test2.txt", "r");
+//     FILE *file = fopen("t.txt", "r");
 //     if (file == NULL)
 //     {
 //         return 1;
@@ -1180,7 +1184,6 @@ token_t peek_token(FILE *source_file)
 //     while ((token = get_token(file)).type != TOKEN_EOF)
 //     {
 //         printf("%s\n", token_type_string_values[token.type]);
-//         free_token(token);
 //     }
 
 //     fclose(file);
