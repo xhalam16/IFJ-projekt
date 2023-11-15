@@ -66,7 +66,8 @@ NodeType expressionTokenTypeToNode(token_type_t inputTokenType)
         {TOKEN_LEFT_PARENTHESIS, NODE_LEFT_PARENTHESIS},
         {TOKEN_RIGHT_PARENTHESIS, NODE_RIGHT_PARENTHESIS},
         {TOKEN_OPERATOR_BELOW, NODE_OPERATOR_BELOW},
-        {TOKEN_OPERATOR_ABOVE, NODE_OPERATOR_ABOVE}};
+        {TOKEN_OPERATOR_ABOVE, NODE_OPERATOR_ABOVE},
+        {TOKEN_EOL, NODE_EOL}};
 
     NodeType inputNodeType = -1;
 
@@ -107,11 +108,11 @@ char nodeTypeToIndex(NodeType stackTopNodeType, NodeType inputNodeType)
         /*  *   */ {'>', '>', '>', '>', '<', '>', '<', '<', '>', '>'},
         /*  /   */ {'>', '>', '>', '>', '<', '>', '<', '<', '>', '>'},
         /*  (   */ {'<', '<', '<', '<', '<', '=', '<', '<', '<', ' '},
-        /*  )   */ {'>', '>', '>', '>', ' ', '>', ' ', '<', '>', '>'},
-        /*  id  */ {'>', '>', '>', '>', ' ', '>', ' ', '>', '<', '>'},
-        /*  !   */ {'>', '>', '>', '>', ' ', '>', ' ', '>', '>', '>'},
-        /*  ??  */ {'<', '<', '<', '<', '<', '>', '<', '<', '>', '>'},
-        /*  EOL */ {'<', '<', '<', '<', '<', ' ', '<', '<', ' ', ' '}};
+        /*  )   */ {'>', '>', '>', '>', ' ', '>', ' ', '>', '>', '>'},
+        /*  id  */ {'>', '>', '>', '>', ' ', '>', ' ', '>', '>', '>'},
+        /*  !   */ {'>', '>', '>', '>', ' ', '>', ' ', ' ', '>', '>'},
+        /*  ??  */ {'<', '<', '<', '<', '<', '>', '<', '<', '<', '>'},
+        /*  EOL */ {'<', '<', '<', '<', '<', ' ', '<', '<', '<', ' '}};
 
     const NodeTypeToIndex nodeTypeToIndex[] = {
         {NODE_OPERATOR_ADD, 0},
@@ -340,28 +341,28 @@ bool load_string(TreeNode **node, bool multi_line)
     return true;
 }
 
-NodeType topTerminal(Stack *stack)
+NodeType topTerminal(Stack *stack, int *topTerminalIndex)
 {
     NodeType stackTop = -1;
     for (int i = stack->top; i != -1; i--)
     {
         stackTop = *((NodeType *)stack->frames[i].data);
         if (stackTop != NODE_EXPRESSION &&
-            stackTop != NODE_LEFT_BRACE &&
-            stackTop != NODE_RIGHT_BRACE)
+            stackTop != NODE_OPERATOR_BELOW &&
+            stackTop != NODE_OPERATOR_ABOVE)
         {
-            break;
+            *topTerminalIndex = i;
+            return stackTop;
         }
     }
-    return stackTop;
+
+    return -1;
 }
 
-bool isRule(Stack *stack, NodeType stackTop)
+bool isRule(Stack *stack)
 {
-
-    NodeType stackValue = *((NodeType *)(stack_top(stack)->data));
-    printf("stackValue: %d\n", stackValue);
-    printf("stackTop2: %d\n", stackTop);
+    NodeType stackTop = *((NodeType *)(stack_top(stack)->data));
+    // printf("stackTop: %d\n", *((NodeType *)(stack_top(stack)->data)));
     switch (stackTop)
     {
     case NODE_OPERATOR_UNARY:
@@ -376,7 +377,7 @@ bool isRule(Stack *stack, NodeType stackTop)
         }
         break;
     case NODE_IDENTIFIER:
-        
+
         stackTop = *((NodeType *)(stack->frames[stack->top - 1].data));
         if (stackTop == NODE_OPERATOR_BELOW)
         {
@@ -395,7 +396,11 @@ bool isRule(Stack *stack, NodeType stackTop)
             stackTop = *((NodeType *)(stack->frames[stack->top - 2].data));
             if (stackTop == NODE_EXPRESSION)
             {
-                return true;
+                stackTop = *((NodeType *)(stack->frames[stack->top - 3].data));
+                if (stackTop == NODE_OPERATOR_BELOW)
+                {
+                    return true;
+                }
             }
             break;
         default:
@@ -409,7 +414,11 @@ bool isRule(Stack *stack, NodeType stackTop)
             stackTop = *((NodeType *)(stack->frames[stack->top - 2].data));
             if (stackTop == NODE_LEFT_PARENTHESIS)
             {
-                return true;
+                stackTop = *((NodeType *)(stack->frames[stack->top - 3].data));
+                if (stackTop == NODE_OPERATOR_BELOW)
+                {
+                    return true;
+                }
             }
         }
         break;
@@ -419,54 +428,114 @@ bool isRule(Stack *stack, NodeType stackTop)
     return false;
 }
 
-bool parseExpression(TreeNode *nodeExpression)
+bool pushBehindTerminal(Stack *stack, int topTerminalIndex)
 {
-    Stack *typesStack = stack_init(STACK_INIT_CAPACITY);
+    NodeType *tempPtr = malloc(sizeof(NodeType));
+    if (tempPtr == NULL)
+    {
+        return false;
+    }
 
-    NodeType input = NODE_EOL;
+    *tempPtr = NODE_OPERATOR_BELOW;
+
+    Stack_Frame tempFrame;
+    tempFrame.data = tempPtr;
+
+    stack_push(stack, stack_top(stack)->data);
+
+    for (int i = stack->top - 1; i > topTerminalIndex + 1; i--)
+    {
+        printf("xd\n");
+        stack->frames[i] = stack->frames[i - 1];
+    }
+
+    stack->frames[topTerminalIndex + 1] = tempFrame;
+    return true;
+}
+
+token_type_t checkForImmediateOperands(token_type_t tokenType, TreeNode *nodeExpression)
+{
+    switch (tokenType)
+    {
+    case TOKEN_INT:
+    case TOKEN_DOUBLE:
+    case TOKEN_NIL:
+        tokenType = TOKEN_IDENTIFIER;
+        break;
+    case TOKEN_DOUBLE_QUOTE:
+        if (!load_string(&nodeExpression, false))
+        {
+            return false;
+        }
+        tokenType = TOKEN_IDENTIFIER;
+        break;
+    case TOKEN_TRIPLE_DOUBLE_QUOTE:
+        if (!load_string(&nodeExpression, true))
+        {
+            return false;
+        }
+        tokenType = TOKEN_IDENTIFIER;
+        break;
+    default:
+        break;
+    }
+    return tokenType;
+}
+
+bool parseExpression(TreeNode *nodeExpression, token_t prevToken)
+{
+    NodeType endMarker = NODE_EOL;
+    NodeType *endMarkerPtr = &endMarker;
     Stack *stack = stack_init(STACK_INIT_CAPACITY);
-    stack_push(stack, &input);
-    
+    stack_push(stack, endMarkerPtr);
 
-    token_t token;
-    token = get_token(file);
+    token_t token = prevToken;
 
     token_type_t tokenType;
 
     NodeType stackTop;
     char tableValue;
 
+    int counter = 1;
+
     do
     {
+        printf("\nITERATION: %d\n\n", counter);
         tokenType = token.type;
+
+        printf("tokenType - parser: %d\n", tokenType);
+
+        if (tokenType == TOKEN_EOL)
+        {
+            token = peek_token(file);
+            while (token.type == TOKEN_EOL)
+            {
+                token = get_token(file);
+                token = peek_token(file);
+            }
+
+            tokenType = checkForImmediateOperands(token.type, nodeExpression);
+
+            if (expressionTokenTypeToNode(tokenType) != -1)
+            {
+                token = get_token(file);
+                tokenType = token.type;
+            } else {
+                printf("Error: tokenType == -1\n");
+                tokenType = TOKEN_EOL;
+                token.type = TOKEN_EOL;
+            }
+        }
+
         if (tokenType == TOKEN_EOF)
         {
             tokenType = TOKEN_EOL;
         }
 
-        switch (tokenType)
-        {
-        case TOKEN_INT:
-        case TOKEN_DOUBLE:
-        case TOKEN_NIL:
-            tokenType = TOKEN_IDENTIFIER;
-            break;
-        case TOKEN_DOUBLE_QUOTE:
-            if (!load_string(&nodeExpression, false))
-            {
-                tokenType = TOKEN_IDENTIFIER;
-            }
-        case TOKEN_TRIPLE_DOUBLE_QUOTE:
-            if (!load_string(&nodeExpression, true))
-            {
-                tokenType = TOKEN_IDENTIFIER;
-            }
-            break;
-        default:
-            break;
-        }
+        tokenType = checkForImmediateOperands(tokenType, nodeExpression);
 
-        stackTop = topTerminal(stack);
+        int topTerminalIndex;
+        stackTop = topTerminal(stack, &topTerminalIndex);
 
         if (stackTop == -1)
         {
@@ -474,56 +543,91 @@ bool parseExpression(TreeNode *nodeExpression)
             return false;
         }
 
-        input = expressionTokenTypeToNode(tokenType);
+        printf("topTerminalIndex: %d\n", topTerminalIndex);
 
+        if (stackTop == -1)
+        {
+            printf("Error: stackTop == -1\n");
+            return false;
+        }
+
+        NodeType *inputPtr = malloc(sizeof(NodeType));
+        if (inputPtr == NULL)
+        {
+            return false;
+        }
+        *inputPtr = expressionTokenTypeToNode(tokenType);
+
+        printf("input: %d\n", *inputPtr);
         printf("stackTop: %d\n", stackTop);
-        printf("input: %d\n", input);
 
-        tableValue = nodeTypeToIndex(stackTop, input);
+        for (int i = 0; i < stack->size; i++)
+        {
+            printf("stack[%d]: %d\n", i, *((NodeType *)(stack->frames[i].data)));
+        }
+
+        tableValue = nodeTypeToIndex(stackTop, *inputPtr);
 
         printf("tableValue: %c\n", tableValue);
 
         switch (tableValue)
         {
         case '=':
-            stack_push(stack, &input);
+            stack_push(stack, inputPtr);
             token = get_token(file);
             break;
-        case '<':
-            NodeType temp = NODE_OPERATOR_BELOW;
-            stack_push(stack, &temp);
-            stack_push(stack, &input);
+        case '<':;
+            if (!pushBehindTerminal(stack, topTerminalIndex))
+            {
+                return false;
+            }
+
+            stack_push(stack, inputPtr);
             token = get_token(file);
             break;
         case '>':
-            printf("stackTop: %d\n", stackTop);
-            printf("isRule\n");
-            printf("stackTop: %d\n", stackTop);
-            if (isRule(stack, stackTop))
+
+            if (isRule(stack))
             {
-                
+
                 do
                 {
                     stack_pop(stack);
                     stackTop = *((NodeType *)(stack_top(stack)->data));
                 } while (stackTop != NODE_OPERATOR_BELOW);
+
+                stack_pop(stack);
+
+                NodeType *stackTopPtr = malloc(sizeof(NodeType));
+                if (stackTopPtr == NULL)
+                {
+                    return false;
+                }
+
+                *stackTopPtr = NODE_EXPRESSION;
+                stack_push(stack, stackTopPtr);
             }
             else
             {
-                printf("stackTop: %d\n", stackTop);
+                printf("Error: !isRule\n");
                 return false;
             }
             break;
         default:
             return false;
         }
-
+        counter++;
+        printf("tokenType: %d\n", tokenType);
     } while (tokenType != TOKEN_EOL || *((NodeType *)(stack_top(stack)->data)) != NODE_EXPRESSION || stack->size != 2);
+
+    stack_free(stack);
+    printf("expression parsed\n");
     return true;
 }
 
 bool parseParameters(TreeNode *funcParams)
 {
+    
     TreeNode *funcParam = createNewNode(funcParams, NODE_FUNCTION_PARAM, false);
     if (funcParam == NULL)
     {
@@ -535,16 +639,15 @@ bool parseParameters(TreeNode *funcParams)
     {
         return false;
     }
-
+    
     if (token.type == TOKEN_RIGHT_PARENTHESIS)
     {
-        
+
         funcParam->type = NODE_EPSILON;
         funcParam->terminal = true;
-        
+
         return true;
     }
-
     
     TreeNode *funcParamValue = createNewNode(funcParam, NODE_PARAM_VALUE, false);
     if (funcParam == NULL)
@@ -567,10 +670,16 @@ bool parseParameters(TreeNode *funcParams)
             return false;
         }
 
-        if(token.type == TOKEN_LEFT_PARENTHESIS) {
+        if (token.type == TOKEN_LEFT_PARENTHESIS)
+        {
             funcParamValue->type = NODE_FUNCTION_CALL;
             funcParamValue->terminal = false;
-            if(!parseFuncCall(funcParamValue, prevToken.source_value)) {
+            if (!parseFuncCall(funcParamValue, prevToken.source_value))
+            {
+                return false;
+            } 
+            if (!skipEmptyLines(&token))
+            {
                 return false;
             }
         }
@@ -635,17 +744,20 @@ bool parseParameters(TreeNode *funcParams)
                 break;
             }
         }
-
+        
         if (token.type == TOKEN_COMMA)
         {
+            
             return parseParameters(funcParams);
         }
+        
         if (token.type == TOKEN_RIGHT_PARENTHESIS)
         {
+            
             return true;
         }
-
-        break;
+        
+        return false;
     case TOKEN_STRING:
         funcParamValue->type = NODE_STRING;
         break;
@@ -677,11 +789,12 @@ bool parseParameters(TreeNode *funcParams)
     default:
         return false;
     }
+    
     if (!skipEmptyLines(&token))
     {
         return false;
     }
-
+    
     if (token.type == TOKEN_COMMA)
     {
         return parseParameters(funcParams);
@@ -690,7 +803,7 @@ bool parseParameters(TreeNode *funcParams)
     {
         return true;
     }
-    
+
     return false;
 }
 
@@ -720,46 +833,50 @@ bool parseFuncCall(TreeNode *node, DynamicBuffer *func_name)
     {
         return true;
     }
-
+    
     return false;
 }
 
 bool parseAssign(TreeNode *assign)
 {
-    
+
     TreeNode *assignId = createNewNode(assign, NODE_IDENTIFIER, true);
     if (assignId == NULL)
     {
         return false;
     }
-    
+
     TreeNode *assignValue = createNewNode(assign, NODE_EXPRESSION, false);
     if (assignValue == NULL)
     {
         return false;
     }
 
-    
     token_t token;
-    int numEols;
-    
+    //int numEols;
+
     if (!skipEmptyLines(&token))
     {
         return false;
     }
-    
+
     token_t prevToken = token;
     switch (token.type)
     {
     case TOKEN_IDENTIFIER:
-    case TOKEN_STRING:
     case TOKEN_INT:
     case TOKEN_DOUBLE:
     case TOKEN_NIL:
+    case TOKEN_DOUBLE_QUOTE:
+    case TOKEN_TRIPLE_DOUBLE_QUOTE:
+    case TOKEN_LEFT_PARENTHESIS:
 
-        if (!(numEols = skipEmptyLines(&token)))
+        token = peek_token(file);
+        while (token.type == TOKEN_EOL)
         {
-            return false;
+
+            token = get_token(file);
+            token = peek_token(file);
         }
 
         if (token.type == TOKEN_LEFT_PARENTHESIS && prevToken.type == TOKEN_IDENTIFIER)
@@ -773,36 +890,13 @@ bool parseAssign(TreeNode *assign)
                 return false;
             }
         }
-        switch (token.type)
-        {
-        case TOKEN_OPERATOR_UNARY:
-            if (prevToken.type != TOKEN_IDENTIFIER)
-            {
-                return false;
-            }
-            // precedenční analýza
-        case TOKEN_OPERATOR_ADD:
-        case TOKEN_OPERATOR_SUB:
-        case TOKEN_OPERATOR_MUL:
-        case TOKEN_OPERATOR_DIV:
-            // precedenční analýza
-            break;
-        case TOKEN_EOF:
-            return true;
-        default:
-            return false;
-        }
+
+        return parseExpression(assignValue, prevToken);
     default:
         return false;
         break;
     }
-    
-    
-    /*
-    if(parseExpression(assignValue)) {
-        return true;
-    };
-    */
+
     return false;
 }
 
@@ -1020,30 +1114,37 @@ bool parseDeclaration(TreeNode *neterminal)
         return false;
     }
 
+    token_t prevToken = token;
     if (token.type == TOKEN_IDENTIFIER)
     {
+         
         DynamicBuffer *b = token.source_value;
-        if (!skipEmptyLines(&token))
+        token = peek_token(file);
+        while (token.type == TOKEN_EOL)
         {
-            free_token(token);
-            return false;
+            token = get_token(file);
+            token = peek_token(file);
         }
 
         if (token.type == TOKEN_LEFT_PARENTHESIS)
         {
 
             free_token(token);
+            token = get_token(file);
             if (parseFuncCall(expression, b))
             {
-
+                free_token(token);
                 return true;
+            } else {
+                
+                free_token(token);
+                return false;
             }
+            
         }
     }
-
-    // precedenční analýza
-
-    return true;
+    
+    return parseExpression(expression, prevToken);
 }
 
 bool parseIfStatement(TreeNode *node)
@@ -1284,6 +1385,7 @@ bool parseParameter(TreeNode *funcParamList, parameter_list_t *param_list)
     {
         return true;
     }
+
     return false;
 }
 
@@ -1311,6 +1413,7 @@ bool parseParamList(TreeNode *funcParamList, parameter_list_t *param_list)
 
 bool parseFuncDeclaration(TreeNode *node)
 {
+
     bool voidFunction = true;
     node->type = NODE_DECLARATION_FUNCTION;
     parameter_list_t *param_list = malloc(sizeof(parameter_list_t));
@@ -1522,13 +1625,16 @@ bool parseReturn(TreeNode *node, bool voidFunction)
         return false;
     }
 
+    token_t prevToken = token;
     if (token.type == TOKEN_IDENTIFIER)
     {
         DynamicBuffer *buff = token.source_value;
         // free_token(token);
-        if (!skipEmptyLines(&token))
+        token = peek_token(file);
+        while (token.type == TOKEN_EOL)
         {
-            return false;
+            token = get_token(file);
+            token = peek_token(file);
         }
         if (token.type == TOKEN_LEFT_PARENTHESIS)
         {
@@ -1557,23 +1663,17 @@ bool parseReturn(TreeNode *node, bool voidFunction)
         }
         returnExpressionValue->type = NODE_IDENTIFIER;
     }
-    else
-    {
-        NodeType n_type = token_type_to_node(token.type);
-        if (n_type == -1)
-            return false;
 
-        returnExpressionValue->type = n_type;
+    if (!parseExpression(returnExpression, prevToken))
+    {
+        return false;
     }
 
-    free_token(token);
-    // precedenční analýza
     return true;
 }
 
 bool parse(TreeNode *startNeterminal, bool inFunction, bool voidFunction)
 {
-
     if (global_table == NULL)
     {
         global_table = create_global_symtable(ST_GLOBAL_INIT_SIZE);
@@ -1627,7 +1727,7 @@ bool parse(TreeNode *startNeterminal, bool inFunction, bool voidFunction)
                 return true;
             }
             return false;
-        case TOKEN_IDENTIFIER:
+        case TOKEN_IDENTIFIER:;
             DynamicBuffer *buff_copy = token.source_value;
             if (!skipEmptyLines(&token))
             {
@@ -1662,13 +1762,16 @@ bool parse(TreeNode *startNeterminal, bool inFunction, bool voidFunction)
                 {
                     return false;
                 }
+                
+                /*
                 token = get_token(file);
                 if (token.type != TOKEN_EOL && token.type != TOKEN_EOF)
                 {
                     return false;
                 }
+                */
                 break;
-
+                
             default:
                 return false;
             }
@@ -1679,7 +1782,7 @@ bool parse(TreeNode *startNeterminal, bool inFunction, bool voidFunction)
 
             if (!parseIfStatement(nextNeterminal))
             {
-
+                printf("if statement error\n");
                 return false;
             }
 
@@ -1696,10 +1799,19 @@ bool parse(TreeNode *startNeterminal, bool inFunction, bool voidFunction)
             nextNeterminal->type = NODE_DECLARATION;
             if (!parseDeclaration(nextNeterminal))
             {
-
+                
                 return false;
             }
+            
+            free_token(token);
 
+            token = get_token(file);
+            if (token.type != TOKEN_EOL && token.type != TOKEN_EOF)
+            {
+                printf("%d\n", token.type);
+                printf("declaration error\n");
+                return false;
+            }
             free_token(token);
 
             break;
@@ -1778,58 +1890,57 @@ char *node_type_to_string(NodeType n)
 {
 
     char *translate[] = {
-    "NODE_PROGRAM",
-    "NODE_BODY",
-    "NODE_BODY_END",
-    "NODE_ASSIGN",
-    "NODE_DECLARATION",
-    "NODE_DECLARATION_FUNCTION",
-    "NODE_EXPRESSION",
-    "NODE_IF_STATEMENT",
-    "NODE_ELSE_STATEMENT",
-    "NODE_RETURN",
-    "NODE_KEYWORD_LET",
-    "NODE_KEYWORD_VAR",
-    "NODE_KEYWORD_RETURN",
-    "NODE_KEYWORD_FUNC",
-    "NODE_FUNCTION_CALL",
-    "NODE_FUNCTION_PARAM",
-    "NODE_PARAM_VALUE",
-    "NODE_PARAM_LIST",
-    "NODE_IDENTIFIER",
-    "NODE_INT",
-    "NODE_DOUBLE",
-    "NODE_STRING",
-    "NODE_NIL",
-    "NODE_INT_NILABLE",
-    "NODE_DOUBLE_NILABLE",
-    "NODE_STRING_NILABLE",
-    "NODE_OPERATOR_ADD",
-    "NODE_OPERATOR_SUB",
-    "NODE_OPERATOR_MUL",
-    "NODE_OPERATOR_DIV",
-    "NODE_OPERATOR_BELOW",
-    "NODE_OPERATOR_ABOVE",
-    "NODE_OPERATOR_BEQ",
-    "NODE_OPERATOR_AEQ",
-    "NODE_OPERATOR_EQUAL",
-    "NODE_OPERATOR_NEQ",
-    "NODE_OPERATOR_NIL_COALESCING",
-    "NODE_OPERATOR_UNARY",
-    "NODE_LEFT_PARENTHESIS",
-    "NODE_RIGHT_PARENTHESIS",
-    "NODE_RIGHT_BRACE",
-    "NODE_LEFT_BRACE",
-    "NODE_EOL",
-    "NODE_DATATYPE_INT",
-    "NODE_DATATYPE_DOUBLE",
-    "NODE_DATATYPE_STRING",
-    "NODE_DATATYPE_INT_NILABLE",
-    "NODE_DATATYPE_DOUBLE_NILABLE",
-    "NODE_DATATYPE_STRING_NILABLE",
-    "NODE_EPSILON",
-    "NODE_UNDERSCORE"
-    };
+        "NODE_PROGRAM",
+        "NODE_BODY",
+        "NODE_BODY_END",
+        "NODE_ASSIGN",
+        "NODE_DECLARATION",
+        "NODE_DECLARATION_FUNCTION",
+        "NODE_EXPRESSION",
+        "NODE_IF_STATEMENT",
+        "NODE_ELSE_STATEMENT",
+        "NODE_RETURN",
+        "NODE_KEYWORD_LET",
+        "NODE_KEYWORD_VAR",
+        "NODE_KEYWORD_RETURN",
+        "NODE_KEYWORD_FUNC",
+        "NODE_FUNCTION_CALL",
+        "NODE_FUNCTION_PARAM",
+        "NODE_PARAM_VALUE",
+        "NODE_PARAM_LIST",
+        "NODE_IDENTIFIER",
+        "NODE_INT",
+        "NODE_DOUBLE",
+        "NODE_STRING",
+        "NODE_NIL",
+        "NODE_INT_NILABLE",
+        "NODE_DOUBLE_NILABLE",
+        "NODE_STRING_NILABLE",
+        "NODE_OPERATOR_ADD",
+        "NODE_OPERATOR_SUB",
+        "NODE_OPERATOR_MUL",
+        "NODE_OPERATOR_DIV",
+        "NODE_OPERATOR_BELOW",
+        "NODE_OPERATOR_ABOVE",
+        "NODE_OPERATOR_BEQ",
+        "NODE_OPERATOR_AEQ",
+        "NODE_OPERATOR_EQUAL",
+        "NODE_OPERATOR_NEQ",
+        "NODE_OPERATOR_NIL_COALESCING",
+        "NODE_OPERATOR_UNARY",
+        "NODE_LEFT_PARENTHESIS",
+        "NODE_RIGHT_PARENTHESIS",
+        "NODE_RIGHT_BRACE",
+        "NODE_LEFT_BRACE",
+        "NODE_EOL",
+        "NODE_DATATYPE_INT",
+        "NODE_DATATYPE_DOUBLE",
+        "NODE_DATATYPE_STRING",
+        "NODE_DATATYPE_INT_NILABLE",
+        "NODE_DATATYPE_DOUBLE_NILABLE",
+        "NODE_DATATYPE_STRING_NILABLE",
+        "NODE_EPSILON",
+        "NODE_UNDERSCORE"};
     return translate[n];
 }
 
