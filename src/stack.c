@@ -56,6 +56,7 @@ int stack_push(Stack* stack, void* data){
     stack->top++;
     stack->size++;
     stack->frames[stack->top] = frame;
+    stack->size++;
 
     return STACK_SUCCESS;
 }
@@ -80,6 +81,7 @@ void stack_pop(Stack* stack){
     if(stack->top == -1){
         return;
     }
+    stack->size--;
     stack->top--;
     stack->size--;
 }
