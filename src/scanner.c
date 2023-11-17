@@ -1,9 +1,9 @@
 #include "header_files/scanner.h"
 #include "header_files/dynamic_buffer.h"
 
-bool in_string_global = false;
-bool in_block_comment_global = false;
-bool in_multi_line_string_global = false;
+static bool in_string_global = false;
+static bool in_block_comment_global = false;
+static bool in_multi_line_string_global = false;
 
 const keyword_token_type_t keywords_map[] = {
     {"func", TOKEN_KEYWORD_FUNC},

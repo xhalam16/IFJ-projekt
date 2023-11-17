@@ -3,7 +3,7 @@
 #include "header_files/semantic.h"
 
 
-Stack *stack_of_local_tables = NULL;
+// Stack *stack_of_local_tables = NULL;
 bool in_body_neterminal = false;
 
 bool is_neterminal(TreeNode *node){
@@ -35,11 +35,20 @@ bool has_return(TreeNode *node, TreeNode** return_node){
     return false;
 }
 
+size_t get_num_children(TreeNode *node){
+    size_t count = 0;
+    for(int i = 0; i < node->numChildren; i++){
+        if(node->children[i] != NULL && node->children[i]->type != NODE_EPSILON){
+            count++;
+        }
+    }
+    return count;
+}
 
 
 
 error_code_t semantic_func_call(TreeNode* node){
-    TreeNode *function_name = node->children[0];
+        TreeNode *function_name = node->children[0];
         TreeNode *param_list = node->children[1];
         char* f_name = function_name->label;
 
@@ -48,10 +57,10 @@ error_code_t semantic_func_call(TreeNode* node){
             return ERR_SEMANTIC_DEFINITION;
         }
         parameter_list_t *param_list_table = record->data->parameters;
-        size_t param_count = param_list_table->size;
+        size_t param_count = parameter_list_get_size(param_list_table);
 
 
-        if(param_list->numChildren != param_count){
+        if(get_num_children(param_list) != param_count){
             return ERR_SEMANTIC_FUNC;
         }
 
@@ -80,9 +89,34 @@ error_code_t semantic_func_call(TreeNode* node){
             data_type_t param_tree_type = node_type_to_data(passed_param->type);
             if(param_tree_type == -1){
                 // the data could not be converted straight away, check for identifier and look it up in symtable
+
+                if(passed_param->type == NODE_FUNCTION_CALL){
+                    // the parameter is a function call
+
+                    error_code_t err = semantic_func_call(passed_param);
+                    if(err == ERR_NONE){
+                        // the func call is valid, we need to check if the return type matches the param type
+
+                        symtable_record_global_t *func_record = symtable_search(global_table, passed_param->children[0]->label, GLOBAL_TABLE);
+                        if(func_record == NULL){
+                            first(param_list_table);
+                            return ERR_SEMANTIC_DEFINITION;
+                        }
+
+                        if(func_record->data->data_type != param_table_type){
+                            first(param_list_table);
+                            return ERR_SEMANTIC_FUNC;
+                        }
+
+                    }else{
+                        first(param_list_table);
+                        return err;
+                    }
+
+                }
+
             }
     
-            // todo - vyřešit nil
             if(param_tree_type == DATA_NIL){
                 // the passed param is nil
                 // thats ok if the param in the table has nilable set to true
@@ -91,6 +125,7 @@ error_code_t semantic_func_call(TreeNode* node){
                     return ERR_SEMANTIC_FUNC;
                 }
             }else{
+
                 if(param_table_type != param_tree_type){
                     first(param_list_table);
                     return ERR_SEMANTIC_FUNC;
@@ -115,8 +150,8 @@ error_code_t semantic_func_call(TreeNode* node){
 
 
 
-        
-        first(param_list_table);
+        if(param_list_table != NULL)
+           first(param_list_table);
         return ERR_NONE;
 }
 
@@ -127,7 +162,7 @@ error_code_t semantic_return(TreeNode* node, Stack* local_symbtables, data_type_
     // child 0 - return keyword
     // child 1 - expression
     // child 0 of expression - identifier or literal or epsilon (if empty) or function call
-
+    
     TreeNode* expression = node->children[1];
     TreeNode* ret_statement = expression->children[0];
 
@@ -141,8 +176,8 @@ error_code_t semantic_return(TreeNode* node, Stack* local_symbtables, data_type_
     if(ret_statement->type == NODE_IDENTIFIER){
         // we need to check if the identifier is in the local tables (that are on the stack) or in the global table
 
-        while(!stack_is_empty(local_symbtables)){
-            Stack_Frame* frame = stack_top(local_symbtables);
+        for(int i = 0; i < stack_size(local_symbtables); i++){
+            Stack_Frame* frame = stack_get(local_symbtables, i);
             local_symtable* table = (local_symtable*)frame->data;
 
             symtable_record_local_t *record = symtable_search(table, ret_statement->label, LOCAL_TABLE);
@@ -164,9 +199,8 @@ error_code_t semantic_return(TreeNode* node, Stack* local_symbtables, data_type_
 
                 return ERR_NONE;
             }
-
-            stack_pop(local_symbtables);
         }
+
         // we did not find it in the local tables, we need to check the global table
         symtable_record_global_t *record = symtable_search(global_table, ret_statement->label, GLOBAL_TABLE);
         if(record == NULL){
@@ -251,14 +285,123 @@ error_code_t semantic_func_declaration(TreeNode* node){
     // TODO
     // check if the return type of the function matches the return type of the return statement
 
-    return semantic_return(return_node, stack_of_local_tables, record->data->data_type);
+    if(return_node != NULL)
+        return semantic_return(return_node, stack_of_local_tables, record->data->data_type);
 
 
 
     return ERR_NONE;
 }
 
+symtable_record_local_t* check_stack(Stack* local_tables, char* identifier){
+    for(int i = 0; i < stack_size(local_tables); i++){
+        Stack_Frame* frame = stack_get(local_tables, i);
+        local_symtable* table = (local_symtable*)frame->data;
+
+        symtable_record_local_t *record = symtable_search(table, identifier, LOCAL_TABLE);
+
+        if(record != NULL){
+            // we found the identifier in the local table
+            return record;
+        }
+    }
+
+ 
+    return NULL;
+    
+}
+
 error_code_t semantic_assign(TreeNode* node, Stack* local_tables){
+
+    // assign : always 2 children
+    // L-child: identifier or declaration
+    // R-child: expression or function call
+    TreeNode* left_child = node->children[0];
+    TreeNode* right_child = node->children[1];
+    data_type_t type_of_var = DATA_NONE;
+    bool variable_nilable = false;
+
+
+
+    if(left_child->type == NODE_DECLARATION){
+        // todo call semantic_declaration
+    } else if(left_child->type == NODE_IDENTIFIER){
+        // we need to check if the identifier exists in the local tables or in the global table
+        // we need to check if the identifier is not read-only
+        // we need to check if the identifier type matches the expression type
+
+        symtable_record_local_t *record = check_stack(local_tables, left_child->label);
+        if(record == NULL){
+            // we did not find the identifier in the local tables, we need to check the global table
+            symtable_record_global_t *record_global = symtable_search(global_table, left_child->label, GLOBAL_TABLE);
+            if(record_global == NULL){
+                // we did not find the identifier in the global table
+                return ERR_SEMANTIC_NOT_DEFINED;
+            }
+
+            if(record_global->data->symbol_type == SYM_CONSTANT){
+                return ERR_SEMANTIC_OTHERS;
+            }
+
+            type_of_var = record_global->data->data_type;
+            variable_nilable = record_global->data->nilable;
+
+        }else{
+            // we found the identifier in the local tables
+            // we need to check if the identifier is not read-only
+            if(record->data->symbol_type == SYM_CONSTANT){
+                return ERR_SEMANTIC_OTHERS;
+            }
+            type_of_var = record->data->data_type;
+            variable_nilable = record->data->nilable;
+        }
+
+    }else{
+        // we have an error
+        return ERR_INTERNAL;
+    }
+
+    if(right_child->type == NODE_FUNCTION_CALL){
+        // we need to check if the function is in the global table
+        // we need to check if the function is already defined
+        // we need to check if the function return type matches the function call return type
+        // we need to check if the function call parameters match the function parameters
+        error_code_t er = semantic_func_call(right_child);
+        if(er != ERR_NONE){
+            return er;
+        }
+
+        // need to check the return type of the function call
+        // we know the record exists, because we checked it in semantic_func_call
+       symtable_record_global_t *fun_record = symtable_search(global_table, right_child->children[0]->label, GLOBAL_TABLE);
+
+
+
+        // fun_record is a void function
+        if(fun_record->data->data_type == DATA_NONE){
+            return ERR_SEMANTIC_TYPE_COMPATIBILITY;
+        }
+
+        // todo: resolve typing, check if the function call return type matches the variable type
+        // Int -> Int - valid
+        // Int -> Int? - valid
+        // Int? -> Int - invalid
+        // Int? -> Int? - valid
+        // if the function return type is nilable, the variable type must be nilable as well
+
+        if(fun_record->data->nilable && !variable_nilable){
+            return ERR_SEMANTIC_TYPE_COMPATIBILITY;
+        }
+
+        if(fun_record->data->data_type != type_of_var){
+            return ERR_SEMANTIC_TYPE_COMPATIBILITY;
+        }
+
+
+    }else if(right_child->type == NODE_EXPRESSION){
+        // todo semantic expression and resolve typing
+    }
+
 
     return ERR_NONE;
 }
@@ -273,7 +416,7 @@ error_code_t semantic(TreeNode *node){
     if(type == NODE_BODY_END && in_body_neterminal){
         // pop table from the stack
         in_body_neterminal = false;
-        stack_pop(stack_of_local_tables);
+        //stack_pop(stack_of_local_tables);
 
     }
     if(type == NODE_FUNCTION_CALL){
@@ -288,6 +431,8 @@ error_code_t semantic(TreeNode *node){
     }
     else if(type == NODE_DECLARATION_FUNCTION){
         return semantic_func_declaration(node);
+    }else if(type == NODE_ASSIGN){
+        return semantic_assign(node, stack_of_local_tables);
     }
 
 
