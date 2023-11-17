@@ -7,12 +7,18 @@
 #include <stdbool.h>
 #include "scanner.h"
 #include "symtable.h"
+#include "stack.h"
+
+
+static error_code_t error;
+static bool inBlock;
+static local_symtable *local_table;
+
+
 
 extern FILE *file;
-extern error_code_t error;
-extern bool inBlock;
-
 extern global_symtable *global_table;
+extern Stack* stack_of_local_tables;
 
 
 typedef enum NodeType {

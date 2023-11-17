@@ -85,3 +85,7 @@ void stack_free(Stack* stack);
 
 bool stack_is_empty(Stack* stack);
 
+Stack_Frame* stack_get(Stack* stack, int index);
+
+int stack_size(Stack* stack);
+

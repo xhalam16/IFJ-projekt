@@ -455,4 +455,12 @@ void first(parameter_list_t *list){
     list->active = list->first;
 }
 
+size_t parameter_list_get_size(parameter_list_t *list){
+    if(list == NULL){
+        return 0;
+    }
+
+    return list->size;
+}
+
 

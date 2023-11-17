@@ -9,9 +9,9 @@
 #include "error.h"
 #include <math.h>
 
-extern bool in_string_global;
-extern bool in_block_comment_global;
-extern bool in_multi_line_string_global;
+static bool in_string_global;
+static bool in_block_comment_global;
+static bool in_multi_line_string_global;
 
 typedef struct keyword_type
 {

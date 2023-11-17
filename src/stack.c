@@ -9,6 +9,11 @@ Stack* stack_init(int capacity){
     stack->capacity = capacity;
     stack->top = -1;
     stack->frames = malloc(sizeof(Stack_Frame) * capacity);
+    if(stack->frames == NULL){
+        free(stack);
+        return NULL;
+    }
+
     return stack;
 }
 
@@ -49,6 +54,7 @@ int stack_push(Stack* stack, void* data){
     frame.data = data;
 
     stack->top++;
+    stack->size++;
     stack->frames[stack->top] = frame;
 
     return STACK_SUCCESS;
@@ -75,6 +81,7 @@ void stack_pop(Stack* stack){
         return;
     }
     stack->top--;
+    stack->size--;
 }
 
 void stack_free(Stack* stack){
@@ -89,4 +96,26 @@ void stack_free(Stack* stack){
 bool stack_is_empty(Stack* stack){
     return stack->top == -1;
 }
+
+Stack_Frame* stack_get(Stack* stack, int index){
+    if(stack == NULL){
+        return NULL;
+    }
+
+    if(index > stack->top){
+        return NULL;
+    }
+
+    return &(stack->frames[index]);
+}
+
+
+int stack_size(Stack* stack){
+    if(stack == NULL){
+        return 0;
+    }
+
+    return stack->size;
+}
+
 
