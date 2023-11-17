@@ -9,3 +9,4 @@ composer.lock
 *.ilk
 *.map
 *.exp
+*.txt
