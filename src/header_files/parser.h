@@ -24,9 +24,10 @@ typedef enum NodeType {
     NODE_DECLARATION_FUNCTION,
     NODE_EXPRESSION,
     NODE_IF_STATEMENT,
-    NODE_ELSE_STATEMENT,
+    NODE_WHILE,
     NODE_RETURN,
     NODE_KEYWORD_LET,
+    NODE_GUARD_LET,
     NODE_KEYWORD_VAR,
     NODE_KEYWORD_RETURN,
     NODE_KEYWORD_FUNC,
@@ -69,7 +70,7 @@ typedef enum NodeType {
     NODE_UNDERSCORE
 } NodeType;
 
-typedef enum ExpressionRule {
+typedef enum RuleType {
     RULE_ID,
     RULE_PARENTHESES,
     RULE_ADD,
@@ -78,7 +79,7 @@ typedef enum ExpressionRule {
     RULE_DIV,
     RULE_COALESCING,
     RULE_UNARY,
-} ExpressionRule;
+} RuleType;
 
 typedef struct t_n_mapping {
     token_type_t t_value;
@@ -105,6 +106,7 @@ typedef struct TreeNode {
     unsigned numChildren;
     char *label;
     local_symtable *local_symtable;
+    int id;
 } TreeNode;
 
 void dispose(TreeNode *parseTree);
