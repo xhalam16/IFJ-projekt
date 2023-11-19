@@ -108,7 +108,7 @@ bool node_type_nilable(NodeType nt)
 
 char nodeTypeToIndex(NodeType stackTopNodeType, NodeType inputNodeType)
 {
-    // Tabulka pro pravdivostní výrazy
+    // Precedenční tabulka
 
     const char regularPrecedenceTable[][9] = {
         /*            2    1    (    )    id   0    4    END  3   */
