@@ -126,5 +126,5 @@ bool parse(TreeNode *startNeterminal, bool inFunction, bool voidFunction);
 // for debug
 void print_global_table(global_symtable *table);
 
-void printTree(TreeNode *node);
+//void printTree(TreeNode *node);
 

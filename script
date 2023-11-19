@@ -1,0 +1,474 @@
+#!/bin/bash
+test_count=0
+fail_count=0
+
+generate_test_summary(){
+    echo "###############################################" >> result.txt
+    echo "Test Summary:" >> result.txt
+    echo "Total tests: $test_count" >> result.txt
+    echo "Failed tests: $fail_count" >> result.txt
+    echo "Passed percentage: $((100-100*fail_count/test_count))%" >> result.txt
+    echo "###############################################" >> result.txt
+}
+
+run_test() {
+    test_count=$((test_count+1))
+    input_content="$1"
+    expected_error_code=$2
+    test_name="$3"
+
+    # Clear the contents of test.txt
+    > test.txt
+
+    echo "$input_content" > test.txt
+
+
+
+    ./parser > o.txt
+    actual_error_code=$?
+    echo actual_error_code: $actual_error_code
+    if [ "$actual_error_code" -eq "$expected_error_code" ]; then
+        echo "Test $3 PASSED!" >> result.txt
+    else
+        echo "Test $3 FAILED! Expected error code: $expected_error_code, Actual error code: $actual_error_code" >> result.txt
+        fail_count=$((fail_count+1))
+    fi
+}
+
+# Run tests
+> result.txt
+run_test 'func foo() -> Int{
+    var x : String = "abcd"
+    var y : String = "s"
+    return x + y
+}' 4 "test1"
+
+run_test 'func foo() -> Int{
+    var x : String = "abcd"
+    var y : Int = 1
+    return x + y
+}' 7
+
+run_test 'func foo() -> Int{
+    var x : String = "abcd"
+    var y : String? = "s"
+    return x + y
+}' 7
+
+run_test 'func foo() -> Int{
+    var x : String = "abcd"
+    var y : String? = "s"
+    return x + y!
+}' 4
+
+run_test 'func foo() -> Int{
+    var x : Int = 3
+    var y : Int = 1
+    return x + y
+}' 0
+
+run_test 'func foo() -> Int{
+    var x : Int = 3
+    var y : Double = 4.4
+    return x + y
+}' 7
+
+
+run_test 'func foo() -> Int{
+    var x : Int = 3
+    return x + 4.4
+}' 7
+
+run_test 'func foo() -> Int{
+    var x : Int = 3
+    return x + 4
+}' 0
+
+run_test 'func foo() -> Int{
+    var x : Double = 3.3
+    return x + 4
+}' 4
+
+run_test 'func foo() -> Int{
+    return 3.4 + 4.4
+}' 4
+
+run_test 'func foo() -> Int{
+    return 3.4 + 4
+}' 4
+
+run_test 'func foo() -> Int{
+    return 3 + 4.4
+}' 4
+
+run_test 'func foo() -> Int{
+    return 3 + 4
+}' 0
+
+run_test 'func foo() -> Int{
+    return "3" + "4"
+}' 4
+
+run_test 'func foo() -> Int{
+    return "3" + 4
+}' 7
+
+run_test 'func foo() -> Int{
+    return 3 + "4"
+}' 7
+
+run_test 'func foo() -> Int{
+    return 3 + "4" + 5
+}' 7
+
+run_test 'func foo() -> Int{
+    return 3 + "4" + "5"
+}' 7
+
+run_test 'func foo() -> Int{
+    return 3.4 + "4"
+}' 7
+
+run_test 'func foo() -> Int{
+    return 3.4 + "4" + 5
+}' 7
+
+run_test 'func foo() -> Int{
+    return 3.4 + "4" + "5"
+}' 7
+
+run_test 'func foo() -> String{
+    return "3" + "4" + "5"
+}' 0
+
+run_test 'func foo() -> Int{
+    return "3" + "4" - "5"
+}' 7
+
+run_test 'func foo() -> Int{
+    return "3" - "4" - "5"
+}' 7
+
+run_test 'func foo() -> Int{
+    var x : String = "abcd"
+    var y : String = "s"
+    return x - y
+}' 7
+
+run_test 'func foo() -> Int{
+    var x : String = "abcd"
+    var y : Int = 1
+    return x - y
+}' 7
+
+run_test 'func foo() -> Int{
+    var x : String = "abcd"
+    var y : String? = "s"
+    return x - y
+}' 7
+
+run_test 'func foo() -> Int{
+    var x : String? = "abcd"
+    var y : String? = "s"
+    return x! - y!
+}' 7
+
+run_test 'func foo() -> String{
+    var x : String? = "abcd"
+    var y : String? = "s"
+    return x! + y!
+}' 0
+
+run_test 'func foo() -> Int{
+    var x : String? = "abcd"
+    var y : String? = "s"
+    return x! + y
+}' 7
+
+run_test 'func foo() -> Int?{
+    return nil
+}' 0 "nil return nilable"
+
+run_test 'func foo() -> Int{
+    return nil
+}' 4 "nil return non-nilable"
+
+run_test 'func foo() -> Int?{
+    return nil + 3
+}' 7 "nil plus int"
+
+run_test 'func foo() -> Int?{
+    return nil + "3"
+}' 7 "nil plus string"
+
+run_test 'func foo() -> Int?{
+    return nil + 3.3
+}' 7 "nil plus double"
+
+run_test 'func foo() -> Int?{
+    return nil + nil
+}' 7 "nil plus nil"
+
+run_test 'func foo() -> Int?{
+    return 3 - nil
+}' 7 "int minus nil"
+
+run_test 'func foo() -> Int?{
+    return "3" - nil
+}' 7 "string minus nil"
+
+run_test 'func foo() -> Int?{
+    return 3.3 - nil
+}' 7 "double minus nil"
+
+run_test 'func foo() -> Int?{
+    var x : Int? = 3
+    return x + nil
+}' 7 "x variable nilable plus nil"
+
+run_test 'func foo() -> Int?{
+    var x : Int? = 3
+    return x - nil
+}' 7 "x variable nilable minus nil"
+
+run_test 'func foo() -> Int?{
+    var x : Int? = 3
+    return nil + x
+}' 7 "nil plus x variable nilable"
+
+run_test 'func foo() -> Int?{
+    var x : Int = 3
+    return nil - x
+}' 7 "nil minus x variable"
+
+
+run_test 'func foo() -> Int?{
+    return 3
+}' 0 "int return"
+
+run_test 'func foo() -> Int?{
+    return "3"
+}' 4 "string return"
+
+run_test 'func foo() -> Int?{
+    return 3.3
+}' 4 "double return"
+
+run_test 'func foo() -> Int?{
+    return 3 + 4
+}' 0 "int return"
+
+run_test 'func foo() -> Int{
+    return 3 + 4
+}' 0 "int return non-nilable"
+
+run_test 'func foo() -> Int{
+    return (nil + nil)
+}' 7 "nil plus nil parentheses"
+
+run_test 'func foo() -> Int{
+    return (nil + nil) * 3
+}' 7 "nil plus nil parentheses times int"
+
+run_test 'func foo() -> Int{
+    return (nil + nil) * 3.3
+}' 7 "nil plus nil parentheses times double"
+
+run_test 'func foo() -> Int{
+    return (nil + nil) * "3"
+}' 7 "nil plus nil parentheses times string"
+
+run_test 'func foo() -> Int{
+    return (nil + nil) / 3
+}' 7 "nil plus nil parentheses divide int"
+
+run_test 'func foo() -> Int?{
+    return (nil)
+}' 0 "nil in parentheses"
+
+
+run_test 'func foo() -> Int{
+    var x : Int? = 3
+    return x
+}' 4 "int? return"
+
+run_test 'func foo() -> Int{
+    var x : Int? = 3
+    return x!
+}' 0 "int? return unwrapped"
+
+run_test 'func foo() -> Int{
+    var x : Int? = 3
+    return x! + 3
+}' 0 "int? return unwrapped plus int"
+
+
+run_test 'func foo() -> Int{
+    var x : Int? = 3
+    return x! + 3.3
+}' 7 "int? return unwrapped plus double"
+
+
+run_test 'func foo() -> Int{
+    var x : Int? = 3
+    return x! + "3"
+}' 7 "int? return unwrapped plus string"
+
+run_test 'func foo() -> Int{
+    var x : Int? = 3
+    return x! + x!
+}' 0 "int? return unwrapped plus int?"
+
+run_test 'func foo() -> Double{
+    var x : Double? = 3.6
+    var y : Double? = 3.3
+    return x! + y!
+}' 0 "double? return unwrapped plus double?"
+
+run_test 'func foo() -> Double{
+    var x : Double? = 3.6
+    var y : Double? = 3.3
+    return x! + y! + 3.3
+}' 0 "double? return unwrapped plus double? plus double"
+
+run_test 'func foo() -> String{
+    var x : String? = "3.6"
+    var y : String? = "3.3"
+    return x! + y!
+}' 0 "string? return unwrapped plus double?"
+
+run_test 'func foo() -> String{
+    var x : String? = "3.6"
+    var y : String? = "3.3"
+    return x! + y! + "3"
+}' 0 "double? return unwrapped plus double? plus string"
+
+run_test 'func foo() -> String{
+    var x : String? = "3.6"
+    var y : String? = "3.3"
+    return x! + y
+}' 7 "double? return unwrapped plus double? not unwrapped"
+
+run_test 'func foo() -> Int{
+    var x : Int? = 3
+    var y : Int? = 3
+    return x! + y
+}' 7 "int? return unwrapped plus int? not unwrapped"
+
+run_test 'func foo() -> Double{
+    var x : Double? = 3.6
+    var y : Double? = 3.3
+    return x! + y
+}' 7 "double? return unwrapped plus double?  not unwrapped"
+
+run_test 'func foo() -> String?{
+    var x : Int? = nil
+    return x + "3"
+}' 7 "variable with nil value in expression"
+
+run_test 'func foo() -> Double?{
+    var x : Double? = nil
+    return x + 3.3
+}' 7 "variable with nil value in expression"
+
+run_test 'func foo() -> String?{
+    var x : String? = nil
+    return "3" + x
+}' 7 "variable with nil value in expression"
+
+
+run_test 'func foo() -> String?{
+    var x : String? = nil
+    return x
+}' 0 "variable with nil alone String? return"
+
+run_test 'func foo() -> Int?{
+    var x : Int? = nil
+    var y : Double = 3.3
+    return x
+}' 0 "variable with nil alone Int? return"
+
+run_test 'func foo() -> Double{
+    return 3.3 / 4.4
+}' 0 "division double return"
+
+
+run_test 'func foo() -> Double{
+    return 3.3 / 4
+}' 0 "division double return"
+
+run_test 'func foo() -> Double{
+    return 3 / 4.4
+}' 0 "division double return"
+
+run_test 'func foo() -> Int{
+    return 3 / 4
+}' 0 "division Int return"
+
+run_test 'func foo() -> Int{
+    return 3 / 4.4
+}' 4 "division Int return"
+
+run_test 'func foo() -> Int{
+    return 3.3 / 4
+}' 4 "division Int return"
+
+
+
+
+run_test 'func foo() -> Int{
+    return nil ?? 3
+}' 0 "nil coallescing int return"
+
+run_test 'func foo() -> Int{
+    return nil ?? 3.3
+}' 4 "nil coallescing int return"
+
+run_test 'func foo() -> Int{
+    return nil ?? "3"
+}' 4 "nil coallescing int return"
+
+run_test 'func foo() -> Int{
+    let x : Int? = nil
+    return x ?? 3
+}' 0 "nil coallescing int return"
+
+run_test 'func foo() -> Int{
+    let x : Int? = nil
+    return x ?? (3 + 3)
+}' 0 "nil coallescing int return"
+
+run_test 'func foo() -> Int{
+    let x : Int? = nil
+    return x ?? (3 + 3.3)
+}' 4 "nil coallescing int return"
+
+run_test 'func foo() -> Int{
+    let x : Int? = nil
+    return x + 3 ?? (3)
+}' 7 "nil coallescing int return"
+
+
+run_test 'func foo() -> Int{
+    let x : Int? = nil
+    return x ?? nil
+}' 7 "x (nil) coallescing nil"
+
+run_test 'func foo() -> Int{
+    let x : Int? = nil
+    return nil ?? x
+}' 9 "nil coallescing x (nil)"
+
+run_test 'func foo() -> Int{
+    let x : Int? = nil
+    return x ?? x
+}' 9 "x (nil) coallescing x (nil)"
+
+run_test 'func foo() -> Int{
+    let x : Int? = nil
+    return nil ?? nil
+}' 7 "nil coallescing nil"
+
+
+
+generate_test_summary

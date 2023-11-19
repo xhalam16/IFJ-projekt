@@ -5,6 +5,10 @@
 
 // Stack *stack_of_local_tables = NULL;
 bool in_body_neterminal = false;
+bool set_by_variable = false;
+bool next_identifier_unwrapped = false;
+bool scan_for_coal = false;
+bool coal_found = false;
 
 bool is_neterminal(TreeNode *node){
     return !node->terminal;
@@ -13,6 +17,8 @@ bool is_neterminal(TreeNode *node){
 bool has_return(TreeNode *node, TreeNode** return_node){
     // this functions accepts a node that is a body
     // it checks if the body has a return statement
+
+    // TODO detect multiple return statements
 
     if(node == NULL){
         return false;
@@ -45,7 +51,262 @@ size_t get_num_children(TreeNode *node){
     return count;
 }
 
+bool is_binary_arithmetic(NodeType type){
+    return type == NODE_OPERATOR_ADD || type == NODE_OPERATOR_SUB || type == NODE_OPERATOR_MUL || type == NODE_OPERATOR_DIV || type == NODE_OPERATOR_NIL_COALESCING;
+}
 
+bool is_immediate_operand(NodeType type){
+    return type == NODE_INT || type == NODE_DOUBLE || type == NODE_STRING || type == NODE_NIL;
+}
+
+symtable_record_local_t* check_stack(Stack* local_tables, char* identifier){
+    for(int i = 0; i < stack_size(local_tables); i++){
+        Stack_Frame* frame = stack_get(local_tables, i);
+        local_symtable* table = (local_symtable*)frame->data;
+
+        symtable_record_local_t *record = symtable_search(table, identifier, LOCAL_TABLE);
+
+        if(record != NULL){
+            // we found the identifier in the local table
+            return record;
+        }
+    }
+
+ 
+    return NULL;
+    
+}
+
+// this function assumes that the node is an immediate operand
+bool is_datatype_compatible(data_type_t type1, data_type_t type2, bool coal_found){
+
+    if(type2 == DATA_NIL && coal_found){
+        // nil cannot be on the right side of coallescing operator
+        return false;
+    }
+    if(type1 == DATA_NIL){
+        return coal_found;
+    }
+
+
+    if(type1 == type2){
+        return true;
+    }
+
+    if(type1 == DATA_INT && type2 == DATA_DOUBLE){
+        return true;
+    }
+
+    if(type1 == DATA_DOUBLE && type2 == DATA_INT){
+        return true;
+    }
+
+    return false;
+}
+
+
+
+
+error_code_t semantic_relation_expression(TreeNode* node, bool *result_data_type, Stack* local_tables){
+    return ERR_NONE;
+}
+
+error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_type, Stack* local_tables){
+    // data_type will be set to the type of the expression
+    // this function checks if the arithmetic expression is valid
+
+    // NODE_EXPRESSION is node
+    // child 0 - expression (operand)
+    // child 1 - operator (binary or unary) (only unary - NODE_OPERATOR_UNARY (exclamation mark) is supported)
+    // child 2 - expression (operand)
+    // ... (more operands and operators)
+
+    // we need to check if the operands are valid
+    // for example, we cannot add string to int
+    // int (+-*) int = int, double (+-*) double = double
+    // double (+-*) int_LITERAL = double (int_LITERAL implicitly converted to double)
+    // x ... Int, Double literal (+-*/) x = error, other way around is ok
+    // / - division, for int - celociselne deleni, for double - normal division
+    static bool first_run = true;
+
+    if(first_run){
+        if(node->numChildren == 1 && node->children[0]->type == NODE_NIL){
+            *data_type = DATA_NIL;
+            return ERR_NONE;
+        }
+
+        if(node->numChildren == 1){
+            // if the expression contains only one operand
+            // its good for checking immediate nil and variables with value nil
+            TreeNode* child = node->children[0];
+            if(child->type == NODE_NIL){
+                *data_type = DATA_NIL;
+                return ERR_NONE;
+            }
+        }
+        if(node->numChildren >= 2 && node->children[1]->type == NODE_OPERATOR_UNARY){
+            next_identifier_unwrapped = true;
+        }
+            
+        first_run = false;
+    }
+
+    for(int i = 0; i < node->numChildren; i++){
+        TreeNode* child = node->children[i];
+        printf("child id: %d\n", child->id);
+        if(child->type == NODE_EXPRESSION){
+            if(child->numChildren >= 2 && child->children[1]->type == NODE_OPERATOR_UNARY){
+                next_identifier_unwrapped = true;
+            }
+            
+            error_code_t er = semantic_arithmetic_expression(child, data_type, local_tables);
+            if(er != ERR_NONE){
+                return er;
+            }
+        }
+        else{
+            if(is_immediate_operand(child->type)){
+
+                if(*data_type != DATA_NONE){
+                    data_type_t child_type = node_type_to_data(child->type);
+                    if(!is_datatype_compatible(*data_type, child_type, coal_found)){
+                        return ERR_SEMANTIC_TYPE_COMPATIBILITY;
+                    }
+
+                    if((*data_type == DATA_DOUBLE && child_type == DATA_INT)){
+                       continue;
+                    }else if(*data_type == DATA_INT && child_type == DATA_DOUBLE && set_by_variable){
+                        return ERR_SEMANTIC_TYPE_COMPATIBILITY;
+                    }
+                }
+                
+                set_by_variable = false;
+                *data_type = node_type_to_data(child->type);
+
+                return ERR_NONE;
+
+            }else if(child->type == NODE_IDENTIFIER){
+            
+                symtable_record_local_t* record = check_stack(local_tables, child->label);
+
+                data_type_t var_data_type = DATA_NONE;
+                bool var_nilable = false;
+                data_type_t *is_nil = NULL;
+                if(record == NULL){
+                    symtable_record_global_t* glob_record = symtable_search(global_table, child->label, GLOBAL_TABLE);
+
+                    if(glob_record == NULL){
+                        return ERR_SEMANTIC_NOT_DEFINED;
+                    }
+
+                    if(!glob_record->data->defined){
+                        return ERR_SEMANTIC_NOT_DEFINED;
+                    }
+
+                    if(coal_found){
+                        glob_record->data->nilable = false;
+                    }
+
+                    var_data_type = glob_record->data->data_type;
+                    var_nilable = glob_record->data->nilable;
+                    is_nil = glob_record->data->value;
+
+                    
+
+                }else{
+                    if(!record->data->defined){
+                        return ERR_SEMANTIC_NOT_DEFINED;
+                    }
+
+                    if(coal_found){
+                        record->data->nilable = false;
+                    }
+
+                    var_data_type = record->data->data_type;
+                    var_nilable = record->data->nilable;
+                    is_nil = record->data->value;
+                }
+
+                
+                if(is_nil != NULL && *is_nil == DATA_NIL){
+                    // variable has value nil
+                    if(!var_nilable){
+                        // todo idk what error to return
+                        return ERR_SEMANTIC_OTHERS;
+                    }
+
+                    if(!next_identifier_unwrapped && !coal_found)
+                        var_data_type = DATA_NIL;
+                    
+
+                    next_identifier_unwrapped = false;
+                }
+
+
+                if(var_nilable){
+                    if(!next_identifier_unwrapped){
+                        scan_for_coal = true;
+                    }
+                    next_identifier_unwrapped = false;
+                }
+                
+
+                if(*data_type != DATA_NONE){
+                    if(!is_datatype_compatible(*data_type, var_data_type, coal_found)){
+                        return ERR_SEMANTIC_TYPE_COMPATIBILITY;
+                    }
+
+                    if((*data_type == DATA_DOUBLE && var_data_type == DATA_INT)){
+                        // this covers either 3.2 - x, where x is Int
+                       return ERR_SEMANTIC_TYPE_COMPATIBILITY;
+                    }
+                    
+                    if(*data_type != var_data_type){
+                        return ERR_SEMANTIC_TYPE_COMPATIBILITY;
+                    }
+
+                }
+                *data_type = var_data_type;
+                set_by_variable = true;
+
+
+
+                return ERR_NONE;
+
+            }else if(is_binary_arithmetic(child->type)){
+                // TODO: nil ?? nil -> error 7
+                // TODO: x (nil) coallescing nil -> error 7 (currently throws 4)
+                if(scan_for_coal && child->type != NODE_OPERATOR_NIL_COALESCING){
+                    return ERR_SEMANTIC_TYPE_COMPATIBILITY;
+                }else{
+                    scan_for_coal = false;
+
+                }
+
+                if(*data_type == DATA_STRING && child->type != NODE_OPERATOR_ADD){
+                    return ERR_SEMANTIC_TYPE_COMPATIBILITY;
+                }
+                
+                if(*data_type == DATA_NIL && child->type != NODE_OPERATOR_NIL_COALESCING){
+                    return ERR_SEMANTIC_TYPE_COMPATIBILITY;
+                }
+
+                coal_found = child->type == NODE_OPERATOR_NIL_COALESCING;
+
+            }
+
+        }
+
+        
+
+    }
+
+    if(scan_for_coal){
+        return ERR_SEMANTIC_TYPE_COMPATIBILITY;
+    }
+
+    return ERR_NONE;
+}
 
 error_code_t semantic_func_call(TreeNode* node){
         TreeNode *function_name = node->children[0];
@@ -155,77 +416,66 @@ error_code_t semantic_func_call(TreeNode* node){
         return ERR_NONE;
 }
 
-error_code_t semantic_return(TreeNode* node, Stack* local_symbtables, data_type_t function_return_type){
+error_code_t semantic_return(TreeNode* node, Stack* local_symbtables, data_type_t function_return_type, bool func_return_nilable){
     // this function checks if the return statement is valid
     // and if the return type matches the function return type
     // Tree:
     // child 0 - return keyword
-    // child 1 - expression
-    // child 0 of expression - identifier or literal or epsilon (if empty) or function call
+    // child 1 - expression or function call
     
-    TreeNode* expression = node->children[1];
-    TreeNode* ret_statement = expression->children[0];
+    TreeNode* ret_statement = node->children[1];
 
     // if the expression is empty, we need to check if the function return type is void
-    if(ret_statement->type == NODE_EPSILON){
-        if(function_return_type != DATA_NONE){
-            return ERR_SEMANTIC_RETURN;
-        }
-    }
     
-    if(ret_statement->type == NODE_IDENTIFIER){
-        // we need to check if the identifier is in the local tables (that are on the stack) or in the global table
-
-        for(int i = 0; i < stack_size(local_symbtables); i++){
-            Stack_Frame* frame = stack_get(local_symbtables, i);
-            local_symtable* table = (local_symtable*)frame->data;
-
-            symtable_record_local_t *record = symtable_search(table, ret_statement->label, LOCAL_TABLE);
-
-            if(record != NULL){
-                // we found the identifier in the local table
-                // we need to check if the identifier is initialized
-                if(!record->data->defined){
-                    return ERR_SEMANTIC_NOT_DEFINED;
-                }
-                // we need to check if the identifier is a variable
-                if(record->data->symbol_type != SYM_VAR){
-                    return ERR_SEMANTIC_FUNC;
-                }
-                // we need to check if the identifier type matches the function return type
-                if(record->data->data_type != function_return_type){
-                    return ERR_SEMANTIC_FUNC;
-                }
-
-                return ERR_NONE;
-            }
-        }
-
-        // we did not find it in the local tables, we need to check the global table
-        symtable_record_global_t *record = symtable_search(global_table, ret_statement->label, GLOBAL_TABLE);
-        if(record == NULL){
-            // we did not find the identifier in the global table
-            return ERR_SEMANTIC_DEFINITION;
-        }
-
-        if(record->data->data_type != function_return_type){
-            return ERR_SEMANTIC_FUNC;
-        }
-    }
-
     if(ret_statement->type == NODE_FUNCTION_CALL){
         // we need to check if the function is in the global table
         // we need to check if the function is already defined
         // we need to check if the function return type matches the function call return type
         // we need to check if the function call parameters match the function parameters
         return semantic_func_call(ret_statement);
+    }else if(ret_statement->type == NODE_EXPRESSION){
+        // todo semantic expression and resolve typing
+        if(ret_statement->children[0]->type == NODE_EPSILON){
+            // the expression is empty
+            if(function_return_type != DATA_NONE){
+                return ERR_SEMANTIC_RETURN;
+            }
+        }
+        if(function_return_type == DATA_NONE && ret_statement->children[0]->type != NODE_EPSILON){
+            return ERR_SEMANTIC_RETURN;
+        }
+
+        
+
+        // todo resolve typing and expression semantic
+        data_type_t type = DATA_NONE;
+        error_code_t e = semantic_arithmetic_expression(ret_statement, &type, local_symbtables);
+        if(e != ERR_NONE){
+            
+            return e;
+        }
+
+        printf("result type: %d\n", type);
+        if(type == DATA_NIL){
+            if(!func_return_nilable){
+                return ERR_SEMANTIC_FUNC;
+            }
+
+            return ERR_NONE;
+        }
+
+        if(type != function_return_type){
+            return ERR_SEMANTIC_FUNC;
+        }
+    }else{
+        // we have an error
+        return ERR_INTERNAL;
     }
-
-
 
     return ERR_NONE;
 
 }
+
 
 
 error_code_t semantic_func_declaration(TreeNode* node){
@@ -250,15 +500,6 @@ error_code_t semantic_func_declaration(TreeNode* node){
     if(record != NULL){
         // if we found function that is already in the global table, we need to check if it's already checked by semantic
         if(record->data->symbol_type == SYM_FUNC){
-            bool * checked_by_sem = (bool*)record->data->value;
-            if(*checked_by_sem){
-                // if the function is already checked by semantic, it's already defined, meaning this is a redefinition => error
-                return ERR_SEMANTIC_DEFINITION;
-            }else{
-                // else we mark the function as checked by semantic
-                bool checked = true;
-                record->data->value = &checked;
-            }
             if(!record->data->defined){
                 // the function is not defined (has no body)
                 // semantic error
@@ -279,37 +520,20 @@ error_code_t semantic_func_declaration(TreeNode* node){
     // the body has no return statement and the return type is not void - semantic error
     TreeNode* return_node = NULL;
     if(!has_return(body, &return_node) && record->data->data_type != DATA_NONE){
-        return ERR_SEMANTIC_RETURN;
+        return ERR_SEMANTIC_FUNC;
     }
 
     // TODO
     // check if the return type of the function matches the return type of the return statement
 
     if(return_node != NULL)
-        return semantic_return(return_node, stack_of_local_tables, record->data->data_type);
+        return semantic_return(return_node, stack_of_local_tables, record->data->data_type, record->data->nilable);
 
 
 
     return ERR_NONE;
 }
 
-symtable_record_local_t* check_stack(Stack* local_tables, char* identifier){
-    for(int i = 0; i < stack_size(local_tables); i++){
-        Stack_Frame* frame = stack_get(local_tables, i);
-        local_symtable* table = (local_symtable*)frame->data;
-
-        symtable_record_local_t *record = symtable_search(table, identifier, LOCAL_TABLE);
-
-        if(record != NULL){
-            // we found the identifier in the local table
-            return record;
-        }
-    }
-
- 
-    return NULL;
-    
-}
 
 error_code_t semantic_assign(TreeNode* node, Stack* local_tables){
 
