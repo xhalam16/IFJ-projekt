@@ -469,6 +469,7 @@ run_test 'func foo() -> Int{
     return nil ?? nil
 }' 7 "nil coallescing nil"
 
+# udělej mi nějaké testy na ify a while a fory a funkce a všechno co jde
 
 run_test 'func foo() -> Int{
     return 3
@@ -507,9 +508,84 @@ run_test 'func foo() -> Double{
 }' 0 "int return"
 
 
+run_test 'func foo() -> Int{
+    var x : Int = 3
+    var y : Int = 4
+    if x > y {
+        return 3
+    }
+    return 4
+}' 0 "if statement"
 
+run_test 'func foo() -> Int{
+    var x : Int = 3
+    var y : Int = 4
+    if x > y {
+        return 3
+    } else {
+        return 4
+    }
+}' 0 "if else statement"
 
+run_test 'func foo() -> Int{
+    var x : Int = 3
+    var y : Int = 4
+    if x > y {
+        return 3
+    } else {
+        return 4
+    }
+    return 5
+}' 0 "if else statement"
 
+run_test 'func foo() -> Int{
+    var x : Int = 3
+    var y : Int = 4
+    if x > y {
+        return 3
+    } else {
+        return 4
+    }
+    return
+}' 4 "return in if else statement"
 
+run_test 'foo(x, y)' 3 "function call"
+
+run_test 'let message = "Hello, Swift!"
+print(message)' 3 "print"
+
+run_test 'let number = 42
+if number / 2 == 0 {
+    print("Even number")
+} else {
+    print("Odd number")
+}' 3 "if else print"
+
+run_test 'func greet(name: String) -> String {
+    return "Hello!"
+}
+
+let greeting = greet(name: "John")
+greet(greeting)' 2 "function call"
+
+run_test 'var optionalValue: String? = "Hello, Optional!"
+
+if let value  {
+    print(value)
+} else {
+    print("Value is nil")
+}' 3 "if let"
+
+run_test 'func square(_ x: Int) -> Int {
+    return x * x
+}
+
+let squaredSum = square(3) + square(4)' 0 "function call + function call"
+
+run_test 'let message = "Chybný řetězec' 2 "wrong string"
+
+run_test 'let sum = (5 + 3' 2 "wrong parentheses"
+
+run_test 'let result = "5" + 3' 7 "string + int"
 
 generate_test_summary

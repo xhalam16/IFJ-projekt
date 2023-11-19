@@ -165,7 +165,6 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
 
     for(int i = 0; i < node->numChildren; i++){
         TreeNode* child = node->children[i];
-        printf("child id: %d\n", child->id);
         if(child->type == NODE_EXPRESSION){
             if(child->numChildren >= 2 && child->children[1]->type == NODE_OPERATOR_UNARY){
                 next_identifier_unwrapped = true;
@@ -208,10 +207,12 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
                     symtable_record_global_t* glob_record = symtable_search(global_table, child->label, GLOBAL_TABLE);
 
                     if(glob_record == NULL){
+                        printf("IDENTIFIER NOT FOUND 1\n");
                         return ERR_SEMANTIC_NOT_DEFINED;
                     }
 
                     if(!glob_record->data->defined){
+                        printf("IDENTIFIER NOT FOUND 2\n");
                         return ERR_SEMANTIC_NOT_DEFINED;
                     }
 
@@ -227,6 +228,7 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
 
                 }else{
                     if(!record->data->defined){
+                        printf("IDENTIFIER NOT FOUND 3\n");
                         return ERR_SEMANTIC_NOT_DEFINED;
                     }
 
@@ -435,14 +437,15 @@ error_code_t semantic_return(TreeNode* node, Stack* local_symbtables, data_type_
     // this function checks if the return statement is valid
     // and if the return type matches the function return type
     // Tree:
-    // child 0 - return keyword
-    // child 1 - expression or function call
+    // child 0 - expression or function call
     
-    TreeNode* ret_statement = node->children[1];
+    TreeNode* ret_statement = node->children[0];
+    printf("return statement type: %d\n", ret_statement->type);
 
     // if the expression is empty, we need to check if the function return type is void
     
     if(ret_statement->type == NODE_FUNCTION_CALL){
+         
         // we need to check if the function is in the global table
         // we need to check if the function is already defined
         // we need to check if the function return type matches the function call return type
@@ -492,9 +495,12 @@ error_code_t semantic_return(TreeNode* node, Stack* local_symbtables, data_type_
 
 
     }else{
+       
         // we have an error
         return ERR_INTERNAL;
     }
+
+    
 
     return ERR_NONE;
 
@@ -512,6 +518,7 @@ error_code_t semantic_func_declaration(TreeNode* node){
     // child 2 - param_list
     // child 3 - return type
     // child 4 - body
+    
     TreeNode *function_name = node->children[1];
     TreeNode *func_return_type = node->children[3];
     TreeNode *body = node->children[4];
@@ -540,7 +547,7 @@ error_code_t semantic_func_declaration(TreeNode* node){
         return ERR_INTERNAL;
     }
 
-
+    
     // the body has no return statement and the return type is not void - semantic error
     // TreeNode* return_node = NULL;
     // if(!has_return(body, &return_node) && record->data->data_type != DATA_NONE){
@@ -562,8 +569,6 @@ error_code_t semantic_func_declaration(TreeNode* node){
     }
 
     free(returns);
-
-
     return ERR_NONE;
 }
 
@@ -593,6 +598,7 @@ error_code_t semantic_assign(TreeNode* node, Stack* local_tables){
             symtable_record_global_t *record_global = symtable_search(global_table, left_child->label, GLOBAL_TABLE);
             if(record_global == NULL){
                 // we did not find the identifier in the global table
+                printf("IDENTIFIER NOT FOUND 4\n");
                 return ERR_SEMANTIC_NOT_DEFINED;
             }
 
@@ -669,13 +675,14 @@ error_code_t semantic(TreeNode *node){
         return ERR_INTERNAL;
     }
     NodeType type = node->type;
-
+    
     if(type == NODE_BODY_END && in_body_neterminal){
         // pop table from the stack
         in_body_neterminal = false;
         //stack_pop(stack_of_local_tables);
 
     }
+    
     if(type == NODE_FUNCTION_CALL){
         return semantic_func_call(node);
     } else if(type == NODE_BODY){
@@ -692,7 +699,7 @@ error_code_t semantic(TreeNode *node){
         return semantic_assign(node, stack_of_local_tables);
     }
 
-
+    
 
     return ERR_NONE;
 
