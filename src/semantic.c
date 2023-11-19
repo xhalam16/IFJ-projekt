@@ -121,6 +121,7 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
     // child 2 - expression (operand)
     // ... (more operands and operators)
 
+
     // we need to check if the operands are valid
     // for example, we cannot add string to int
     // int (+-*) int = int, double (+-*) double = double

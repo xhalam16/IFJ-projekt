@@ -1332,7 +1332,6 @@ bool parseDeclaration(TreeNode *neterminal, bool constant)
             return true;
         }
     }
-
     // store identifier into symtable
 
     if (token.type != TOKEN_OPERATOR_ASSIGN)

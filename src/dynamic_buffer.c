@@ -97,7 +97,6 @@ int move_buffer(char** dest, DynamicBuffer* src){
     }
 
 
-
     strcpy(*dest, src->buffer);
     buffer_clear(src);
     return ERR_CODE_OK;

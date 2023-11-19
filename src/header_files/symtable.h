@@ -36,7 +36,6 @@ typedef enum symbol_type {
     SYM_NONE
 } symbol_type_t;
 
-
 /**
  * @brief Enum representing type of data
 */

@@ -76,7 +76,6 @@ void stack_pop(Stack* stack){
     if(stack == NULL){
         return;
     }
-
     if(stack->top == -1){
         return;
     }

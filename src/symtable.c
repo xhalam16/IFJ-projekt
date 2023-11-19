@@ -1,7 +1,6 @@
 #include "header_files/symtable.h"
 
 
-
 //http://www.cse.yorku.ca/~oz/hash.html - varianta sdbm
 size_t hash_function(const char *str)
 {
