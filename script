@@ -500,6 +500,34 @@ run_test 'func foo() -> Double{
     return 3 + 3
 }' 0 "int return"
 
+run_test 'func foo() -> Double{
+    var x : Int = 3
+    var y : Int = 4
+    if x > y {
+        return 3
+    } else {
+        return 4
+    }
+
+    return 8
+    return 9
+}' 0 "4 returns all valid"
+
+run_test 'func foo() -> Double{
+    var x : Int = 3
+    var y : Int = 4
+    if x > y {
+        return "string"
+    } else {
+        return 4
+    }
+
+    return 8
+    return 9
+}' 4 "4 returns one invalid"
+
+
+
 
 run_test 'func foo() -> Double{
     return 3 + 3
