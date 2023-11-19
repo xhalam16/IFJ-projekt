@@ -73,8 +73,7 @@ typedef enum NodeType {
     NODE_DATATYPE_DOUBLE_NILABLE,
     NODE_DATATYPE_STRING_NILABLE,
     NODE_EPSILON,
-    NODE_UNDERSCORE,
-    NODE_SHIFTER
+    NODE_UNDERSCORE
 } NodeType;
 
 typedef enum RuleType {
@@ -86,12 +85,6 @@ typedef enum RuleType {
     RULE_DIV,
     RULE_COALESCING,
     RULE_UNARY,
-    RULE_BELOW,
-    RULE_ABOVE,
-    RULE_BEQ,
-    RULE_AEQ,
-    RULE_EQUAL,
-    RULE_NEQ,
 } RuleType;
 
 typedef struct t_n_mapping {
