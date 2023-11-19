@@ -18,13 +18,10 @@ bool is_neterminal(TreeNode *node){
 int return_count(TreeNode *node){
     static int count = 0;
     for(int i = 0; i < node->numChildren; i++){
-        if(node->children[i]->type == NODE_BODY){
-            return return_count(node->children[i]);
-        }
-
         if(node->children[i]->type == NODE_RETURN){
             count++;
         }
+        return_count(node->children[i]);
     }
     return count;
 }
@@ -45,9 +42,7 @@ void get_all_returns(TreeNode *node, TreeNode** returns){
     }
 
     for(int i = 0; i < node->numChildren; i++){
-        if(node->type == NODE_BODY){
-            get_all_returns(node->children[i], returns);
-        }
+        get_all_returns(node->children[i], returns);
     }
     
 }
