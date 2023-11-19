@@ -9,37 +9,49 @@ bool set_by_variable = false;
 bool next_identifier_unwrapped = false;
 bool scan_for_coal = false;
 bool coal_found = false;
+static bool expression_nilable = false;
 
 bool is_neterminal(TreeNode *node){
     return !node->terminal;
 }
 
-bool has_return(TreeNode *node, TreeNode** return_node){
-    // this functions accepts a node that is a body
-    // it checks if the body has a return statement
+int return_count(TreeNode *node){
+    static int count = 0;
+    for(int i = 0; i < node->numChildren; i++){
+        if(node->children[i]->type == NODE_BODY){
+            return return_count(node->children[i]);
+        }
 
-    // TODO detect multiple return statements
+        if(node->children[i]->type == NODE_RETURN){
+            count++;
+        }
+    }
+    return count;
+}
+
+void get_all_returns(TreeNode *node, TreeNode** returns){
+    // function assumes that the returns array is initialized
+    static int index = 0;
+    if(returns == NULL){
+        return;
+    }
 
     if(node == NULL){
-        return false;
+        return;
     }
 
     if(node->type == NODE_RETURN){
-        *return_node = node;
-        return true;
+        returns[index++] = node;
     }
 
     for(int i = 0; i < node->numChildren; i++){
-        if(has_return(node->children[i], return_node)){
-            return true;
+        if(node->type == NODE_BODY){
+            get_all_returns(node->children[i], returns);
         }
     }
-
-
-
-
-    return false;
+    
 }
+
 
 size_t get_num_children(TreeNode *node){
     size_t count = 0;
@@ -247,9 +259,12 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
 
                 if(var_nilable){
                     if(!next_identifier_unwrapped){
+                        expression_nilable = true;
                         scan_for_coal = true;
                     }
                     next_identifier_unwrapped = false;
+                    expression_nilable = false;
+
                 }
                 
 
@@ -454,11 +469,9 @@ error_code_t semantic_return(TreeNode* node, Stack* local_symbtables, data_type_
         data_type_t type = DATA_NONE;
         error_code_t e = semantic_arithmetic_expression(ret_statement, &type, local_symbtables);
         if(e != ERR_NONE){
-            
             return e;
         }
 
-        printf("result type: %d\n", type);
         if(type == DATA_NIL){
             if(!func_return_nilable){
                 return ERR_SEMANTIC_FUNC;
@@ -467,9 +480,20 @@ error_code_t semantic_return(TreeNode* node, Stack* local_symbtables, data_type_
             return ERR_NONE;
         }
 
+        if(function_return_type == DATA_DOUBLE && type == DATA_INT && !set_by_variable){
+            return ERR_NONE;
+        }
+
         if(type != function_return_type){
             return ERR_SEMANTIC_FUNC;
         }
+
+        if(expression_nilable && !func_return_nilable){
+            return ERR_SEMANTIC_FUNC;
+        }
+
+
+
     }else{
        
         // we have an error
@@ -525,19 +549,26 @@ error_code_t semantic_func_declaration(TreeNode* node){
 
     
     // the body has no return statement and the return type is not void - semantic error
-    TreeNode* return_node = NULL;
-    if(!has_return(body, &return_node) && record->data->data_type != DATA_NONE){
-        return ERR_SEMANTIC_FUNC;
+    // TreeNode* return_node = NULL;
+    // if(!has_return(body, &return_node) && record->data->data_type != DATA_NONE){
+    //     return ERR_SEMANTIC_FUNC;
+    // }
+    int ret_count = return_count(body);
+    TreeNode** returns = malloc(sizeof(TreeNode*) * ret_count);
+    get_all_returns(body, returns);
+
+    for(int i = 0; i < ret_count; i++){
+        TreeNode* return_node = returns[i];
+        if(return_node != NULL){
+            error_code_t er = semantic_return(return_node, stack_of_local_tables, record->data->data_type, record->data->nilable);
+            if(er != ERR_NONE){
+                free(returns);
+                return er;
+            }
+        }
     }
 
-    // TODO
-    // check if the return type of the function matches the return type of the return statement
-    
-    if(return_node != NULL)
-        return semantic_return(return_node, stack_of_local_tables, record->data->data_type, record->data->nilable);
-
-    
-
+    free(returns);
     return ERR_NONE;
 }
 

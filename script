@@ -472,6 +472,43 @@ run_test 'func foo() -> Int{
 # udělej mi nějaké testy na ify a while a fory a funkce a všechno co jde
 
 run_test 'func foo() -> Int{
+    return 3
+}' 0 "int return"
+
+run_test 'func foo() -> Int{
+    return 3 + 3
+    return 8
+    return "abcd"
+}' 4 "int return"
+
+run_test 'func foo() -> Int{
+    return 3 + 3
+    return 8
+    return 3.3
+}' 4 "int return"
+
+run_test 'func foo() -> Int{
+    return 3 + 3
+    return 8
+    return 3
+}' 0 "int return"
+
+
+run_test 'func foo() -> Double{
+    return 3 + 3
+    return 8
+    return 3 + 3
+}' 0 "int return"
+
+
+run_test 'func foo() -> Double{
+    return 3 + 3
+    return 8
+    return 3.3 + 3.3
+}' 0 "int return"
+
+
+run_test 'func foo() -> Int{
     var x : Int = 3
     var y : Int = 4
     if x > y {
