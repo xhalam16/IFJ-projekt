@@ -469,6 +469,39 @@ run_test 'func foo() -> Int{
     return nil ?? nil
 }' 7 "nil coallescing nil"
 
+run_test 'func foo() -> Int?{
+    let x : Int = 3
+    return x + 3
+}' 0 "int expression int? return"
+
+run_test 'func foo() -> Int?{
+    let x : Int = 3
+    return x + 3.3
+}' 7 "int expression int? return"
+
+run_test 'func foo() -> Int?{
+    let x : Int = 3
+    return x + "3"
+}' 7 "int expression int? return"
+
+run_test 'func foo() -> Int?{
+    let x : Int = 3
+    return x + nil
+}' 7 "int expression int? return"
+
+
+run_test 'func foo() -> Int?{
+    let x : Int = 3
+    return x - 3
+}' 0 "int expression int? return"
+
+run_test 'func foo() -> Int?{
+    let x : Int? = 3
+    let y : Int? = 4
+    return x - y
+}' 7 "int expression int? return"
+
+
 
 
 generate_test_summary

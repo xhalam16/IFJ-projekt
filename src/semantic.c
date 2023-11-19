@@ -55,6 +55,21 @@ bool is_binary_arithmetic(NodeType type){
     return type == NODE_OPERATOR_ADD || type == NODE_OPERATOR_SUB || type == NODE_OPERATOR_MUL || type == NODE_OPERATOR_DIV || type == NODE_OPERATOR_NIL_COALESCING;
 }
 
+bool is_binary_relation(NodeType type){
+   switch (type)
+   {
+    case NODE_OPERATOR_ABOVE:
+    case NODE_OPERATOR_AEQ:
+    case NODE_OPERATOR_BELOW:
+    case NODE_OPERATOR_BEQ:
+    case NODE_OPERATOR_EQUAL:
+    case NODE_OPERATOR_NEQ:
+        return true;
+    default:
+        return false;
+   }
+}
+
 bool is_immediate_operand(NodeType type){
     return type == NODE_INT || type == NODE_DOUBLE || type == NODE_STRING || type == NODE_NIL;
 }
@@ -104,12 +119,21 @@ bool is_datatype_compatible(data_type_t type1, data_type_t type2, bool coal_foun
     return false;
 }
 
-
-
-
-error_code_t semantic_relation_expression(TreeNode* node, bool *result_data_type, Stack* local_tables){
-    return ERR_NONE;
+bool types_compatible_relation(data_type_t type1, data_type_t type2, bool type1_immediate, bool type2_immediate){
+    if (type1_immediate && type2_immediate) {
+    // if both sides are immediate, double and int are compatible
+        return (type1 == DATA_INT && type2 == DATA_DOUBLE) || (type1 == DATA_DOUBLE && type2 == DATA_INT) || (type1 == type2);
+    } else if (type1_immediate || type2_immediate) {
+    // Either type1 or type2 is immediate
+        return (type1_immediate == DATA_INT && (type2 == DATA_INT || type2 == DATA_DOUBLE)) ||
+            (type2_immediate == DATA_INT && (type1 == DATA_INT || type1 == DATA_DOUBLE));
+    } else {
+        // Neither type1 nor type2 is immediate
+        return type1 == type2;
+    }
 }
+
+
 
 error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_type, Stack* local_tables){
     // data_type will be set to the type of the expression
@@ -153,7 +177,6 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
 
     for(int i = 0; i < node->numChildren; i++){
         TreeNode* child = node->children[i];
-        printf("child id: %d\n", child->id);
         if(child->type == NODE_EXPRESSION){
             if(child->numChildren >= 2 && child->children[1]->type == NODE_OPERATOR_UNARY){
                 next_identifier_unwrapped = true;
@@ -307,6 +330,94 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
 
     return ERR_NONE;
 }
+
+
+bool expression_nilable(TreeNode* expression){
+
+    if(expression->type == NODE_NIL){
+        return true;
+    }
+
+    if(expression->type == NODE_IDENTIFIER){
+        symtable_record_local_t* record = check_stack(stack_of_local_tables, expression->label);
+        if(record == NULL){
+            symtable_record_global_t* glob_record = symtable_search(global_table, expression->label, GLOBAL_TABLE);
+            if(glob_record == NULL){
+                return false;
+            }
+
+            return glob_record->data->nilable;
+        }else{
+            return record->data->nilable;
+        }
+    }
+
+    if(expression->type == NODE_EXPRESSION){
+        if(expression->numChildren == 1){
+            return expression_nilable(expression->children[0]);
+        }
+    }
+
+    return false;
+}
+
+
+error_code_t semantic_relation_expression(TreeNode* node, bool *result, Stack* local_tables){
+
+    TreeNode* l_expression = node->children[0];
+    TreeNode* r_expression = node->children[2];
+    TreeNode* operator = node->children[1];
+
+    data_type_t l_type = DATA_NONE;
+    data_type_t r_type = DATA_NONE;
+
+    error_code_t er = semantic_arithmetic_expression(l_expression, &l_type, local_tables);
+    if(er != ERR_NONE){
+        return er;
+    }
+
+    er = semantic_arithmetic_expression(r_expression, &r_type, local_tables);
+    if(er != ERR_NONE){
+        return er;
+    }
+
+    bool r_expression_nilable = expression_nilable(r_expression);
+    bool l_expression_nilable = expression_nilable(l_expression);
+
+    // relation operators except == and != cannot have nilable operands
+    // 
+
+    switch(operator->type){
+        case NODE_OPERATOR_ABOVE:
+        case NODE_OPERATOR_AEQ:
+        case NODE_OPERATOR_BELOW:
+        case NODE_OPERATOR_BEQ:
+            if(r_expression_nilable || l_expression_nilable){
+                return ERR_SEMANTIC_TYPE_COMPATIBILITY;
+            }
+
+
+            break;
+        
+
+        case NODE_OPERATOR_EQUAL:
+        case NODE_OPERATOR_NEQ:
+            if(l_type != r_type){
+                return ERR_SEMANTIC_TYPE_COMPATIBILITY;
+            }
+
+            break;
+        default:
+            return ERR_INTERNAL;
+    }
+
+
+
+
+    return ERR_NONE;
+}
+
+
 
 error_code_t semantic_func_call(TreeNode* node){
         TreeNode *function_name = node->children[0];
