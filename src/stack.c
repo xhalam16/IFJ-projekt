@@ -76,13 +76,13 @@ void stack_pop(Stack* stack){
     if(stack == NULL){
         return;
     }
-
     if(stack->top == -1){
         return;
     }
     stack->size--;
     stack->top--;
 }
+
 
 void stack_free(Stack* stack){
     if(stack == NULL){

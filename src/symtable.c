@@ -1,7 +1,6 @@
 #include "header_files/symtable.h"
 
 
-
 //http://www.cse.yorku.ca/~oz/hash.html - varianta sdbm
 size_t hash_function(const char *str)
 {
@@ -11,6 +10,7 @@ size_t hash_function(const char *str)
         h = 65599 * h + *p;
     return h;
 }
+
 
 global_symtable* create_global_symtable(const size_t capacity){
     global_symtable *table = malloc(sizeof(global_symtable));
