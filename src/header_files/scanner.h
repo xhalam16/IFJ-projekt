@@ -10,6 +10,7 @@
 #include <math.h>
 
 
+
 static bool in_string_global;
 static bool in_block_comment_global;
 static bool in_multi_line_string_global;

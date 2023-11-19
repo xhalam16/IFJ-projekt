@@ -11,6 +11,7 @@ size_t hash_function(const char *str)
     return h;
 }
 
+
 global_symtable* create_global_symtable(const size_t capacity){
     global_symtable *table = malloc(sizeof(global_symtable));
     if(table == NULL){

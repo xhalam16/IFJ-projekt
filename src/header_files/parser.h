@@ -21,7 +21,6 @@ extern global_symtable *global_table;
 extern Stack* stack_of_local_tables;
 
 
-
 typedef enum NodeType {
     NODE_PROGRAM,
     NODE_BODY,

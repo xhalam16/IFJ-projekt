@@ -89,4 +89,3 @@ Stack_Frame* stack_get(Stack* stack, int index);
 
 int stack_size(Stack* stack);
 
-

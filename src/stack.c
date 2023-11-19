@@ -83,6 +83,7 @@ void stack_pop(Stack* stack){
     stack->top--;
 }
 
+
 void stack_free(Stack* stack){
     if(stack == NULL){
         return;
