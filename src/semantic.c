@@ -9,37 +9,44 @@ bool set_by_variable = false;
 bool next_identifier_unwrapped = false;
 bool scan_for_coal = false;
 bool coal_found = false;
+static bool expression_nilable_bool = false;
 
 bool is_neterminal(TreeNode *node){
     return !node->terminal;
 }
 
-bool has_return(TreeNode *node, TreeNode** return_node){
-    // this functions accepts a node that is a body
-    // it checks if the body has a return statement
+int return_count(TreeNode *node){
+    static int count = 0;
+    for(int i = 0; i < node->numChildren; i++){
+        if(node->children[i]->type == NODE_RETURN){
+            count++;
+        }
+        return_count(node->children[i]);
+    }
+    return count;
+}
 
-    // TODO detect multiple return statements
+void get_all_returns(TreeNode *node, TreeNode** returns){
+    // function assumes that the returns array is initialized
+    static int index = 0;
+    if(returns == NULL){
+        return;
+    }
 
     if(node == NULL){
-        return false;
+        return;
     }
 
     if(node->type == NODE_RETURN){
-        *return_node = node;
-        return true;
+        returns[index++] = node;
     }
 
     for(int i = 0; i < node->numChildren; i++){
-        if(has_return(node->children[i], return_node)){
-            return true;
-        }
+        get_all_returns(node->children[i], returns);
     }
-
-
-
-
-    return false;
+    
 }
+
 
 size_t get_num_children(TreeNode *node){
     size_t count = 0;
@@ -219,10 +226,12 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
                     symtable_record_global_t* glob_record = symtable_search(global_table, child->label, GLOBAL_TABLE);
 
                     if(glob_record == NULL){
+                        printf("IDENTIFIER NOT FOUND 1\n");
                         return ERR_SEMANTIC_NOT_DEFINED;
                     }
 
                     if(!glob_record->data->defined){
+                        printf("IDENTIFIER NOT FOUND 2\n");
                         return ERR_SEMANTIC_NOT_DEFINED;
                     }
 
@@ -238,6 +247,7 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
 
                 }else{
                     if(!record->data->defined){
+                        printf("IDENTIFIER NOT FOUND 3\n");
                         return ERR_SEMANTIC_NOT_DEFINED;
                     }
 
@@ -268,9 +278,12 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
 
                 if(var_nilable){
                     if(!next_identifier_unwrapped){
+                        expression_nilable_bool = true;
                         scan_for_coal = true;
                     }
                     next_identifier_unwrapped = false;
+                    expression_nilable_bool = false;
+
                 }
                 
 
@@ -531,14 +544,15 @@ error_code_t semantic_return(TreeNode* node, Stack* local_symbtables, data_type_
     // this function checks if the return statement is valid
     // and if the return type matches the function return type
     // Tree:
-    // child 0 - return keyword
-    // child 1 - expression or function call
+    // child 0 - expression or function call
     
-    TreeNode* ret_statement = node->children[1];
+    TreeNode* ret_statement = node->children[0];
+    printf("return statement type: %d\n", ret_statement->type);
 
     // if the expression is empty, we need to check if the function return type is void
     
     if(ret_statement->type == NODE_FUNCTION_CALL){
+         
         // we need to check if the function is in the global table
         // we need to check if the function is already defined
         // we need to check if the function return type matches the function call return type
@@ -562,11 +576,9 @@ error_code_t semantic_return(TreeNode* node, Stack* local_symbtables, data_type_
         data_type_t type = DATA_NONE;
         error_code_t e = semantic_arithmetic_expression(ret_statement, &type, local_symbtables);
         if(e != ERR_NONE){
-            
             return e;
         }
 
-        printf("result type: %d\n", type);
         if(type == DATA_NIL){
             if(!func_return_nilable){
                 return ERR_SEMANTIC_FUNC;
@@ -575,13 +587,27 @@ error_code_t semantic_return(TreeNode* node, Stack* local_symbtables, data_type_
             return ERR_NONE;
         }
 
+        if(function_return_type == DATA_DOUBLE && type == DATA_INT && !set_by_variable){
+            return ERR_NONE;
+        }
+
         if(type != function_return_type){
             return ERR_SEMANTIC_FUNC;
         }
+
+        if(expression_nilable_bool && !func_return_nilable){
+            return ERR_SEMANTIC_FUNC;
+        }
+
+
+
     }else{
+       
         // we have an error
         return ERR_INTERNAL;
     }
+
+    
 
     return ERR_NONE;
 
@@ -599,6 +625,7 @@ error_code_t semantic_func_declaration(TreeNode* node){
     // child 2 - param_list
     // child 3 - return type
     // child 4 - body
+    
     TreeNode *function_name = node->children[1];
     TreeNode *func_return_type = node->children[3];
     TreeNode *body = node->children[4];
@@ -627,21 +654,28 @@ error_code_t semantic_func_declaration(TreeNode* node){
         return ERR_INTERNAL;
     }
 
-
+    
     // the body has no return statement and the return type is not void - semantic error
-    TreeNode* return_node = NULL;
-    if(!has_return(body, &return_node) && record->data->data_type != DATA_NONE){
-        return ERR_SEMANTIC_FUNC;
+    // TreeNode* return_node = NULL;
+    // if(!has_return(body, &return_node) && record->data->data_type != DATA_NONE){
+    //     return ERR_SEMANTIC_FUNC;
+    // }
+    int ret_count = return_count(body);
+    TreeNode** returns = malloc(sizeof(TreeNode*) * ret_count);
+    get_all_returns(body, returns);
+
+    for(int i = 0; i < ret_count; i++){
+        TreeNode* return_node = returns[i];
+        if(return_node != NULL){
+            error_code_t er = semantic_return(return_node, stack_of_local_tables, record->data->data_type, record->data->nilable);
+            if(er != ERR_NONE){
+                free(returns);
+                return er;
+            }
+        }
     }
 
-    // TODO
-    // check if the return type of the function matches the return type of the return statement
-
-    if(return_node != NULL)
-        return semantic_return(return_node, stack_of_local_tables, record->data->data_type, record->data->nilable);
-
-
-
+    free(returns);
     return ERR_NONE;
 }
 
@@ -671,6 +705,7 @@ error_code_t semantic_assign(TreeNode* node, Stack* local_tables){
             symtable_record_global_t *record_global = symtable_search(global_table, left_child->label, GLOBAL_TABLE);
             if(record_global == NULL){
                 // we did not find the identifier in the global table
+                printf("IDENTIFIER NOT FOUND 4\n");
                 return ERR_SEMANTIC_NOT_DEFINED;
             }
 
@@ -747,13 +782,14 @@ error_code_t semantic(TreeNode *node){
         return ERR_INTERNAL;
     }
     NodeType type = node->type;
-
+    
     if(type == NODE_BODY_END && in_body_neterminal){
         // pop table from the stack
         in_body_neterminal = false;
         //stack_pop(stack_of_local_tables);
 
     }
+    
     if(type == NODE_FUNCTION_CALL){
         return semantic_func_call(node);
     } else if(type == NODE_BODY){
@@ -770,7 +806,7 @@ error_code_t semantic(TreeNode *node){
         return semantic_assign(node, stack_of_local_tables);
     }
 
-
+    
 
     return ERR_NONE;
 

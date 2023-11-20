@@ -11,10 +11,10 @@
 
 
 static error_code_t error;
-static bool inBlock;
+static unsigned inBlock;
+static bool inFunction;
 static local_symtable *local_table;
-
-
+static unsigned inBlockCounter;
 
 extern FILE *file;
 extern global_symtable *global_table;
@@ -119,7 +119,6 @@ typedef struct TreeNode {
     unsigned numChildren;
     char *label;
     local_symtable *local_symtable;
-    int id;
 } TreeNode;
 
 void dispose(TreeNode *parseTree);
@@ -128,7 +127,7 @@ TreeNode *createNewNode(TreeNode *parent, NodeType type, bool terminal);
 
 data_type_t node_type_to_data(NodeType n_type);
 
-bool parse(TreeNode *startNeterminal, bool inFunction, bool voidFunction);
+bool parse(TreeNode *startNeterminal);
 
 // for debug
 void print_global_table(global_symtable *table);
