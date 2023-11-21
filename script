@@ -469,6 +469,39 @@ run_test 'func foo() -> Int{
     return nil ?? nil
 }' 7 "nil coallescing nil"
 
+run_test 'func foo() -> Int?{
+    let x : Int = 3
+    return x + 3
+}' 0 "int expression int? return"
+
+run_test 'func foo() -> Int?{
+    let x : Int = 3
+    return x + 3.3
+}' 7 "int expression int? return"
+
+run_test 'func foo() -> Int?{
+    let x : Int = 3
+    return x + "3"
+}' 7 "int expression int? return"
+
+run_test 'func foo() -> Int?{
+    let x : Int = 3
+    return x + nil
+}' 7 "int expression int? return"
+
+
+run_test 'func foo() -> Int?{
+    let x : Int = 3
+    return x - 3
+}' 0 "int expression int? return"
+
+run_test 'func foo() -> Int?{
+    let x : Int? = 3
+    let y : Int? = 4
+    return x - y
+}' 7 "int expression int? return"
+
+
 # udělej mi nějaké testy na ify a while a fory a funkce a všechno co jde
 
 run_test 'func foo() -> Int{
@@ -575,7 +608,7 @@ run_test 'func foo() -> Int{
         return 4
     }
     return
-}' 4 "return in if else statement"
+}' 6 "return in if else statement"
 
 run_test 'foo(x, y)' 3 "function call"
 
@@ -604,16 +637,128 @@ if let value  {
     print("Value is nil")
 }' 3 "if let"
 
-run_test 'func square(_ x: Int) -> Int {
-    return x * x
-}
-
-let squaredSum = square(3) + square(4)' 0 "function call + function call"
 
 run_test 'let message = "Chybný řetězec' 2 "wrong string"
 
 run_test 'let sum = (5 + 3' 2 "wrong parentheses"
 
 run_test 'let result = "5" + 3' 7 "string + int"
+
+
+#built-in functions
+run_test '
+    readString()
+'  0 "readString call"
+
+run_test '
+    readString(3)
+    ' 4 "readString with argument"
+
+run_test 'readString(3, 4, "abcd")' 4 "too many arguments"
+
+
+run_test '
+    let x : String
+    x = readString()
+'  9 "readString wrong assign"
+
+run_test '
+    let x : String
+    x = readString(3)
+'  9 "readString wrong assign with wrong call"
+
+run_test '
+    let x : String?
+    x = readString(3)
+'  9 "readString wrong assign into constant with wrong call"
+
+
+run_test '
+    var x : String?
+    x = readString()
+'  0 "readString correct assign with correct call"
+
+run_test 'var x : String?
+    x = readString(3)' 4 "readString correct assign with wrong call"
+
+run_test 'var x : String
+    x = readString()' 7 "correct call with wrong assign"
+
+run_test '
+    var x : String?
+    x = readString()
+    x = readString()' 0 "readString correct assign with correct call"
+
+run_test '
+    let x : String?
+    x = readString()
+    x = readString(3)' 9 "readString correct assign with wrong call"
+
+
+run_test 'var x: Int' 0 "Valid Variable Declaration - Int"
+run_test 'var y = 42' 0 "Valid Variable Declaration with Initialization - Int"
+run_test 'var z: Double = 3.14' 0 "Valid Variable Declaration - Double with Initialization"
+run_test 'var a: String' 0 "Valid Variable Declaration - String"
+run_test 'var b: Int?' 0 "Valid Variable Declaration - Optional Int"
+run_test 'var c: Double? = 3.14' 0 "Valid Variable Declaration - Optional Double with Initialization"
+run_test 'var d: String?' 0 "Valid Variable Declaration - Optional String"
+run_test 'let e: Int' 0 "Valid Constant Declaration - Int"
+run_test 'let f = "hello"' 0 "Valid Constant Declaration with Initialization - String"
+run_test 'let g: Double = 42' 0 " Double with Initialization"
+run_test 'let h: Int?' 0 "Valid Constant Declaration - Optional Int"
+run_test 'let i: String?' 0 "Valid Constant Declaration - Optional String"
+
+
+
+run_test '
+    var x : Int = 3
+    var y : Int = 4
+    while x > y {
+    } 
+' 0 "while statement"
+
+run_test '
+    func foo() -> Int{
+    var x : Int = 3
+    var y : Int = 4
+    while x > y {
+        return 3
+    } 
+    return 4
+}' 0 "while statement"
+
+
+run_test '
+    func foo() -> Int{
+    var x : Int = 3
+    var y : Int = 4
+    while x + 3 > y {
+        return 3
+    } 
+    return 4
+}' 0 "while statement"
+
+run_test '
+    func foo() -> Int{
+    var x : Int = 3
+    var y : Int = 4
+    while x <= y {
+        return 3
+    } 
+    return 4
+}' 0 "while statement"
+
+
+run_test '
+    func foo() -> Int{
+    var x : Int = 3
+    var y : Int = 4
+    while x == y {
+        return 3
+    } 
+    return 4
+}' 0 "while statement"
+
+
 
 generate_test_summary

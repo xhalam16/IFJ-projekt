@@ -13,6 +13,210 @@ static local_symtable *local_table = NULL;
 
 Stack *stack_of_local_tables = NULL;
 
+
+bool fill_global_builtin_functions(global_symtable *table){
+    symtable_global_data_t* readInt = create_global_data(SYM_FUNC, DATA_INT, true, false, NULL, NULL); // readInt
+    symtable_global_data_t* readDouble = create_global_data(SYM_FUNC, DATA_DOUBLE, true, false, NULL, NULL); // readDouble
+    symtable_global_data_t* readString = create_global_data(SYM_FUNC, DATA_STRING, true, false, NULL, NULL); // readString
+
+    
+    // int2double
+    // param: 1 - _ term : Int
+    // return: Double
+    parameter_list_t *int2double_params = malloc(sizeof(parameter_list_t));
+    function_parameter_t* param = malloc(sizeof(function_parameter_t));
+    if(int2double_params == NULL || param == NULL){
+        error = ERR_INTERNAL;
+        return false;
+    }
+
+
+    parameter_list_init(int2double_params);
+    init_param(param);
+    param->data_type = DATA_INT;
+    param->name = "term";
+
+    parameter_list_insert(int2double_params, param);
+    symtable_global_data_t* int2double = create_global_data(SYM_FUNC, DATA_DOUBLE, false, false, NULL, int2double_params); // int2double
+
+    // double2int
+    // param: 1 - _ term : Double
+    // return: Int
+
+    parameter_list_t *double2int_params = malloc(sizeof(parameter_list_t));
+    function_parameter_t *param2 = malloc(sizeof(function_parameter_t));
+    if(double2int_params == NULL || param2 == NULL){
+        error = ERR_INTERNAL;
+        return false;
+    }
+
+
+    parameter_list_init(double2int_params);
+    init_param(param2);
+    param2->data_type = DATA_DOUBLE;
+    param2->name = "term";
+    parameter_list_insert(double2int_params, param2);
+    symtable_global_data_t* double2int = create_global_data(SYM_FUNC, DATA_INT, false, false, NULL, double2int_params); // double2int
+
+    // length
+    // param: 1 - _ s : String
+    // return: Int
+    parameter_list_t *length_params = malloc(sizeof(parameter_list_t));
+    function_parameter_t *param3 = malloc(sizeof(function_parameter_t));
+
+    if(length_params == NULL || param3 == NULL){
+        error = ERR_INTERNAL;
+        return false;
+    }
+
+    parameter_list_init(length_params);
+    init_param(param3);
+    param3->data_type = DATA_STRING;
+    param3->name = "s";
+    parameter_list_insert(length_params, param3);
+    symtable_global_data_t* length = create_global_data(SYM_FUNC, DATA_INT, false, false, NULL, length_params); // length
+
+    // substring
+    // param: 1 - of s : String
+    // param: 2 - startingAt i : Int
+    // param: 3 - endingBefore j : Int
+    // return: String?
+
+    parameter_list_t *substring_params = malloc(sizeof(parameter_list_t));
+    function_parameter_t *param4 = malloc(sizeof(function_parameter_t));
+    function_parameter_t *param5 = malloc(sizeof(function_parameter_t));
+    function_parameter_t *param6 = malloc(sizeof(function_parameter_t));
+
+    if(substring_params == NULL || param4 == NULL || param5 == NULL || param6 == NULL){
+        error = ERR_INTERNAL;
+        return false;
+    }
+
+    parameter_list_init(substring_params);
+
+    init_param(param4);
+    param4->data_type = DATA_STRING;
+    param4->label = "of";
+    param4->name = "s";
+    parameter_list_insert(substring_params, param4);
+
+    init_param(param5);
+    param5->data_type = DATA_INT;
+    param5->label = "startingAt";
+    param5->name = "i";
+    parameter_list_insert(substring_params, param5);
+
+    init_param(param6);
+    param6->data_type = DATA_INT;
+    param6->label = "endingBefore";
+    param6->name = "j";
+    parameter_list_insert(substring_params, param6);
+
+
+    
+
+
+    symtable_global_data_t* substring = create_global_data(SYM_FUNC, DATA_STRING, true, false, NULL, substring_params); // substring
+
+
+    // ord
+    // param: 1 - _ c : String
+    // returns Int
+
+    parameter_list_t *ord_params = malloc(sizeof(parameter_list_t));
+    function_parameter_t *param7 = malloc(sizeof(function_parameter_t));
+
+    if(ord_params == NULL || param7 == NULL){
+        error = ERR_INTERNAL;
+        return false;
+    }
+
+    parameter_list_init(ord_params);
+    init_param(param7);
+    param7->data_type = DATA_STRING;
+    param7->name = "s";
+    parameter_list_insert(ord_params, param7);
+    symtable_global_data_t* ord = create_global_data(SYM_FUNC, DATA_INT, false, false, NULL, ord_params); // ord
+
+    // chr
+    // param: 1 - _ i : Int
+    // returns String
+
+    parameter_list_t *chr_params = malloc(sizeof(parameter_list_t));
+    function_parameter_t *param8 = malloc(sizeof(function_parameter_t));
+
+    if(chr_params == NULL || param8 == NULL){
+        error = ERR_INTERNAL;
+        return false;
+    }
+
+    parameter_list_init(chr_params);
+    init_param(param8);
+    param8->data_type = DATA_INT;
+    param8->name = "i";
+    parameter_list_insert(chr_params, param8);
+    symtable_global_data_t* chr = create_global_data(SYM_FUNC, DATA_STRING, false, false, NULL, chr_params); // chr
+
+
+
+    // todo: write inifinite number of parameters
+    parameter_list_t *inputs_params = malloc(sizeof(parameter_list_t));
+
+    if(inputs_params == NULL){
+        error = ERR_INTERNAL;
+        return false;
+    }
+
+    parameter_list_init(inputs_params);
+    inputs_params->size = SIZE_MAX; // this signals that the function can have infinite number of parameters
+    symtable_global_data_t* write = create_global_data(SYM_FUNC, DATA_NONE, false, false, NULL, inputs_params); // write
+
+    symtable_global_data_t* inputs_arr[] = {
+        readInt,
+        readDouble,
+        readString,
+        int2double,
+        double2int,
+        length,
+        substring,
+        ord,
+        chr,
+        write
+    };
+
+    char* keys_built_in[] = {
+        "readInt",
+        "readDouble",
+        "readString",
+        "int2double",
+        "double2int",
+        "length",
+        "substring",
+        "ord",
+        "chr",
+        "write"
+    };
+
+    for (int i = 0; i < sizeof(inputs_arr) / sizeof(inputs_arr[0]); i++)
+    {
+        if(inputs_arr[i] == NULL){
+            return false;
+        }
+
+        if (symtable_insert(table, keys_built_in[i], inputs_arr[i], GLOBAL_TABLE) != ERR_CODE_ST_OK)
+        {
+
+            return false;
+        }
+    }
+
+
+    return true;
+
+}
+
+
+
 NodeType token_type_to_node(token_type_t t_type)
 {
     const Token_to_node token_to_node[] = {
@@ -1235,10 +1439,14 @@ bool parseDeclaration(TreeNode *neterminal, bool constant)
 
         if (token.type != TOKEN_OPERATOR_ASSIGN && (token.type == TOKEN_EOL || (token.type == TOKEN_EOF && !inBlock)))
         {
-            if (createNewNode(neterminal, NODE_IDENTIFIER, true) == NULL)
+            TreeNode* ident = createNewNode(neterminal, NODE_IDENTIFIER, true);
+            if (ident == NULL)
             {
+                error = ERR_INTERNAL;
                 return false;
             }
+
+            ident->label = key;
 
             if (createNewNode(neterminal, nodeType, true) == NULL)
             {
@@ -1253,7 +1461,7 @@ bool parseDeclaration(TreeNode *neterminal, bool constant)
                     return false;
                 }
 
-                if (symtable_insert(local_table, key, local_data, LOCAL_TABLE) != ERR_CODE_OK)
+                if (symtable_insert(local_table, key, local_data, LOCAL_TABLE) != ERR_CODE_ST_OK)
                 {
                     error = ERR_INTERNAL;
                     return false;
@@ -1267,7 +1475,7 @@ bool parseDeclaration(TreeNode *neterminal, bool constant)
                     return false;
                 }
 
-                if (symtable_insert(global_table, key, global_data, GLOBAL_TABLE) != ERR_CODE_OK)
+                if (symtable_insert(global_table, key, global_data, GLOBAL_TABLE) != ERR_CODE_ST_OK)
                 {
                     error = ERR_INTERNAL;
                     return false;
@@ -1356,7 +1564,7 @@ bool parseDeclaration(TreeNode *neterminal, bool constant)
             return false;
         }
 
-        if (symtable_insert(local_table, key, local_data, LOCAL_TABLE) != ERR_CODE_OK)
+        if (symtable_insert(local_table, key, local_data, LOCAL_TABLE) != ERR_CODE_ST_OK)
         {
             error = ERR_INTERNAL;
             return false;
@@ -1370,7 +1578,7 @@ bool parseDeclaration(TreeNode *neterminal, bool constant)
             return false;
         }
 
-        if (symtable_insert(global_table, key, global_data, GLOBAL_TABLE) != ERR_CODE_OK)
+        if (symtable_insert(global_table, key, global_data, GLOBAL_TABLE) != ERR_CODE_ST_OK)
         {
             error = ERR_INTERNAL;
             return false;
@@ -1450,7 +1658,14 @@ bool parseIfStatement(TreeNode *node, bool isWhile)
             return false;
         }
 
-        if (createNewNode(ifCond, NODE_IDENTIFIER, true) == NULL)
+
+        TreeNode* id = createNewNode(ifCond, NODE_IDENTIFIER, true);
+        if (id == NULL)
+        {
+            return false;
+        }
+
+        if (move_buffer(&id->label, token.source_value) != ERR_CODE_OK)
         {
             return false;
         }
@@ -1960,11 +2175,15 @@ bool parse(TreeNode *startNeterminal)
         {
             return false;
         }
-    }
-    else
-    {
-        // local_symtable *local_table = create_local_symtable(ST_LOCAL_INIT_SIZE);
-    }
+
+        if(!fill_global_builtin_functions(global_table)){
+            error = ERR_INTERNAL;
+            return false;
+        }
+
+    }   
+    
+    
 
     token_t token;
     if (!skipEmptyLines(&token))
@@ -2082,6 +2301,14 @@ bool parse(TreeNode *startNeterminal)
                 return false;
             }
 
+            semantic_result = semantic(nextNeterminal);
+            printf("semantic result if: %d\n", semantic_result);
+            if (semantic_result != ERR_NONE)
+            {
+                error = semantic_result;
+                return false;
+            }
+
             break;
         case TOKEN_KEYWORD_WHILE:
             nextNeterminal->type = NODE_WHILE;
@@ -2089,6 +2316,14 @@ bool parse(TreeNode *startNeterminal)
             if (!parseIfStatement(nextNeterminal, true))
             {
                 printf("while error\n");
+                return false;
+            }
+
+            semantic_result = semantic(nextNeterminal);
+            printf("semantic result while: %d\n", semantic_result);
+            if (semantic_result != ERR_NONE)
+            {
+                error = semantic_result;
                 return false;
             }
 
@@ -2106,6 +2341,14 @@ bool parse(TreeNode *startNeterminal)
             if (!parseDeclaration(nextNeterminal, constant))
             {
 
+                return false;
+            }
+
+            semantic_result = semantic(nextNeterminal);
+            printf("semantic result declaration: %d\n", semantic_result);
+            if (semantic_result != ERR_NONE)
+            {
+                error = semantic_result;
                 return false;
             }
 
@@ -2186,17 +2429,25 @@ void print_global_table(global_symtable *table)
         symtable_record_global_t *item = table->records[i];
         if (item != NULL)
         {
-            printf("data type: %d, symbol type %d, nilable: %d, defined %d, key %s\n", item->data->data_type, item->data->symbol_type, item->data->nilable, item->data->defined, item->key);
+            printf("Record: ");
+            printf("data type: %d, symbol type %d, nilable: %d, defined %d, key %s, value %p\n", item->data->data_type, item->data->symbol_type, item->data->nilable, item->data->defined, item->key, item->data->value);
             printf("Parameters:\n");
             parameter_list_t *list = item->data->parameters;
             if (list == NULL)
                 continue;
-            for (int i = 0; i < list->size; i++)
+
+            if(list->size == SIZE_MAX)
+                continue;
+
+            first(list);
+            for (int i = 0; i < parameter_list_get_size(list); i++)
             {
-                function_parameter_t *param = list->active;
+                function_parameter_t *param = parameter_list_get_active(list);
                 printf("label: %s, name: %s, data type: %d, nilable: %d\n", param->label, param->name, param->data_type, param->nilable);
+
                 parameter_list_next(list);
             }
+            printf("\n");
         }
     }
 }
@@ -2210,7 +2461,7 @@ void print_local_table(local_symtable *table)
         symtable_record_local_t *item = table->records[i];
         if (item != NULL)
         {
-            printf("data type: %d, symbol type %d, nilable: %d, defined %d, key %s\n", item->data->data_type, item->data->symbol_type, item->data->nilable, item->data->defined, item->key);
+            printf("data type: %d, symbol type %d, nilable: %d, defined %d, key %s, value %p\n", item->data->data_type, item->data->symbol_type, item->data->nilable, item->data->defined, item->key, item->data->value);
         }
     }
 }
