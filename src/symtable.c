@@ -395,21 +395,24 @@ bool parameter_list_active(parameter_list_t *list){
     return list->active != NULL;
 }
 
-void parameter_list_insert(parameter_list_t *list, function_parameter_t *parameter){
-    if(parameter_list_empty(list)){
-        list->first = parameter;
-        list->active = parameter;
-    }else{
-        list->active->next = parameter;
-    }
-    list->size++;
-}
+
 
 void parameter_list_next(parameter_list_t *list){
     if(!parameter_list_active(list)){
         return;
     }
     list->active = list->active->next;
+}
+
+void parameter_list_insert(parameter_list_t *list, function_parameter_t *parameter){
+    if(parameter_list_empty(list)){
+        list->first = parameter;
+        list->active = parameter;
+    }else{
+        list->active->next = parameter;
+        parameter_list_next(list);
+    }
+    list->size++;
 }
 
 function_parameter_t *parameter_list_get_active(parameter_list_t *list){
@@ -440,6 +443,7 @@ void init_param(function_parameter_t *param){
     param->name = NULL;
     param->data_type = DATA_NONE;
     param->label = NULL;
+    param->nilable = false;
 }
 
 void free_param(function_parameter_t *param){

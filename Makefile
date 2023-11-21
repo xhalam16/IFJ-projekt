@@ -6,7 +6,7 @@ DIRSOURCE=src
 DIRH=$(DIRSOURCE)/header_files
 
 
-parser: scanner.o dynamic_buffer.o parser.o symtable.o semantic.o stack.o
+parser: scanner.o dynamic_buffer.o parser.o symtable.o semantic.o stack.o code_gen.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDLIBS)
 
 scanner.o: $(DIRSOURCE)/scanner.c $(DIRH)/scanner.h dynamic_buffer.o
@@ -25,6 +25,9 @@ semantic.o: $(DIRSOURCE)/semantic.c
 	$(CC) $(CFLAGS) -c $<
 
 stack.o: $(DIRSOURCE)/stack.c $(DIRH)/stack.h
+	$(CC) $(CFLAGS) -c $<
+
+code_gen.o: $(DIRSOURCE)/code_gen.c $(DIRH)/code_gen.h
 	$(CC) $(CFLAGS) -c $<
 
 #implicit rule
