@@ -421,7 +421,7 @@ error_code_t semantic_func_call(TreeNode* node){
             
         }
 
-
+        generateFuncCall(param_list);
 
         if(param_list_table != NULL)
            first(param_list_table);

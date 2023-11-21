@@ -616,4 +616,10 @@ run_test 'let sum = (5 + 3' 2 "wrong parentheses"
 
 run_test 'let result = "5" + 3' 7 "string + int"
 
+run_test 'func square(_ x: Int) -> Int {
+    return x * x
+}
+
+square(1)' 0 "function call"
+
 generate_test_summary
