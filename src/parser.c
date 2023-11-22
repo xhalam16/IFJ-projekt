@@ -1158,7 +1158,7 @@ bool parseParameters(TreeNode *funcParams)
         return false;
     }
     token_t prevToken = token;
-    // token_t next = peek_token(file);
+    token_t next = peek_token(file);
 
     switch (token.type)
     {
@@ -1208,7 +1208,7 @@ bool parseParameters(TreeNode *funcParams)
                 return false;
             }
 
-            // token_t next = peek_token(file);
+            token_t next = peek_token(file);
 
             switch (token.type)
             {
@@ -1242,28 +1242,30 @@ bool parseParameters(TreeNode *funcParams)
                 break;
             }
 
-            /*
-            if (next.type == TOKEN_STRING)
-            {
-                funcParam->token_value = next.value;
-            }
+            // if (next.type == TOKEN_STRING)
+            // {
+            //     DynamicBuffer *buffer = malloc(sizeof(DynamicBuffer));
+            //     init_buffer(buffer, 2);
+            //     //strcpy(funcParam->label, next.value.string_value->buffer); 
+            // }
 
-            if (next.type == TOKEN_DOUBLE || next.type == TOKEN_TRIPLE_DOUBLE_QUOTE)
-            {
-                DynamicBuffer *buffer = malloc(sizeof(DynamicBuffer));
-                init_buffer(buffer, 2);
-                buffer->buffer[0] = ' ';
-                buffer->buffer[1] = '\0';
-                funcParam->token_value.string_value = buffer;
-            }
+            // if (next.type == TOKEN_DOUBLE_QUOTE || next.type == TOKEN_TRIPLE_DOUBLE_QUOTE)
+            // {
+            //     DynamicBuffer *buffer = malloc(sizeof(DynamicBuffer));
+            //     init_buffer(buffer, 2);
 
-            if (token.type == TOKEN_INT || token.type == TOKEN_DOUBLE)
-            {
-                funcParam->token_value = token.value;
-            }
+            //     // buffer->buffer[0] = ' ';
+            //     // buffer->buffer[1] = '\0';
+            //     funcParam->token_value.string_value = buffer;
+            //     //strcpy(funcParam->label, next.value.string_value->buffer); 
+            // }
+
+            // if (token.type == TOKEN_INT || token.type == TOKEN_DOUBLE)
+            // {
+            //     funcParam->token_value = token.value;
+            // }
 
             free_token(next);
-            */
 
             if (!skipEmptyLines(&token))
             {
@@ -1282,9 +1284,6 @@ bool parseParameters(TreeNode *funcParams)
         }
 
         return false;
-    case TOKEN_STRING:
-        funcParamValue->type = NODE_STRING;
-        break;
     case TOKEN_INT:
         funcParamValue->type = NODE_INT;
         break;
@@ -1314,29 +1313,29 @@ bool parseParameters(TreeNode *funcParams)
         return false;
     }
 
-    /*
-    if (next.type == TOKEN_STRING)
-    {
-        funcParam->token_value = next.value;
-    }
+    
+    // if (next.type == TOKEN_STRING)
+    // {
+    //     strcpy(funcParam->label, next.value.string_value->buffer);
+    // }
 
-    if (next.type == TOKEN_DOUBLE || next.type == TOKEN_TRIPLE_DOUBLE_QUOTE)
-    {
-        DynamicBuffer *buffer = malloc(sizeof(DynamicBuffer));
-        init_buffer(buffer, 2);
-        buffer->buffer[0] = ' ';
-        buffer->buffer[1] = '\0';
-        funcParam->token_value.string_value = buffer;
-    }
+    // if (next.type == TOKEN_DOUBLE_QUOTE || next.type == TOKEN_TRIPLE_DOUBLE_QUOTE)
+    // {
+    //     DynamicBuffer *buffer = malloc(sizeof(DynamicBuffer));
+    //     init_buffer(buffer, 2);
+    //     buffer->buffer[0] = ' ';
+    //     buffer->buffer[1] = '\0';
+    //     funcParam->token_value.string_value = buffer;
+    // }
 
-    if (token.type == TOKEN_INT || token.type == TOKEN_DOUBLE)
-    {
-        funcParam->token_value = token.value;
-    }
+    // if (token.type == TOKEN_INT || token.type == TOKEN_DOUBLE)
+    // {
+    //     funcParam->token_value = token.value;
+    // }
 
     free_token(next);
 
-    */
+    
     if (!skipEmptyLines(&token))
     {
         return false;
@@ -2318,7 +2317,6 @@ bool parse(TreeNode *startNeterminal)
         case TOKEN_RIGHT_BRACE:
             if (inBlock)
             {
-
                 nextNeterminal->type = NODE_BODY_END;
                 nextNeterminal->terminal = true;
 
@@ -2346,7 +2344,6 @@ bool parse(TreeNode *startNeterminal)
             return false;
 
         case TOKEN_IDENTIFIER:;
-
             DynamicBuffer *buff_copy = token.source_value;
             if (!skipEmptyLines(&token))
             {
@@ -2366,7 +2363,6 @@ bool parse(TreeNode *startNeterminal)
                 if (semantic_result != ERR_NONE)
                 {
                     error = semantic_result;
-                    printf("xd\n");
                     return false;
                 }
 
@@ -2376,6 +2372,8 @@ bool parse(TreeNode *startNeterminal)
                 {
                     return false;
                 }
+
+                generateFuncCall(nextNeterminal);
 
                 break;
 
@@ -2475,7 +2473,6 @@ bool parse(TreeNode *startNeterminal)
 
             if (inBlock || !parseFuncDeclaration(nextNeterminal))
             {
-
                 return false;
             }
             nextNeterminal->type = NODE_DECLARATION_FUNCTION;
@@ -2486,7 +2483,6 @@ bool parse(TreeNode *startNeterminal)
             if (semantic_result != ERR_NONE)
             {
                 error = semantic_result;
-                printf("xd\n");
                 return false;
             }
 

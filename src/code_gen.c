@@ -30,16 +30,16 @@ void generateFuncCall(TreeNode *node)
 
     fprintf(f, "CREATEFRAME\n");
 
-    if (node->children[0]->type != NODE_EPSILON)
+    if (node->children[1]->children[0]->type != NODE_EPSILON)
     {
-        for (unsigned i = 0; i < node->numChildren; i++)
+        for (unsigned i = 0; i < node->children[1]->numChildren; i++)
         {
             fprintf(f, "DEFVAR TF@%%%d\n", i);
-            fprintf(f, "MOVE TF@%%%d %sn", i, node->children[i]->label);
+            fprintf(f, "MOVE TF@%%%d %s\n", i, "int@10");
         }
     }
 
-    fprintf(f, "CALL %s\n", node->children[1]->label);
+    fprintf(f, "CALL %s\n", node->children[0]->label);
 }
 
 void generateCommand(TreeNode *node) {
@@ -138,7 +138,7 @@ void generateIf(TreeNode *node, bool local, bool ifElse)
     // vyhodnocení výrazu
 
     fprintf(f, "JUMPIFNEQ $if$%d %s@res%d bool@true\n", labelId, frame, labelId);
-    labelId++;
+    
 
     for (unsigned i = 0; i < node->numChildren; i++)
     {
@@ -146,6 +146,8 @@ void generateIf(TreeNode *node, bool local, bool ifElse)
     }
     
     fprintf(f, "LABEL $if$%d\n", labelId);
+
+    labelId++;
 }
 
 void generateWhile(TreeNode *node, bool local) {
@@ -154,6 +156,8 @@ void generateWhile(TreeNode *node, bool local) {
     char *frame = local ? "LF" : "GF";
 
     fprintf(f, "DEFVAR %s@%%res%d\n", frame, labelId);
+
+    
 }
 
 void generateLabel(char *label)
