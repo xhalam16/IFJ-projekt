@@ -765,6 +765,17 @@ run_test '
     return 4
 }' 0 "while statement"
 
+run_test 'while sdsdsdsdsdsds {
+
+}' 7 "while statement wrong"
+
+run_test '
+    let y = 6
+    while y {
+
+    }
+' 7 "while statement wrong"
+
 
 #scope tests
 run_test '
