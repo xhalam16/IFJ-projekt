@@ -1,5 +1,6 @@
 #include "header_files/parser.h"
 #include "header_files/stack.h"
+#include "header_files/code_gen.h"
 #include "header_files/semantic.h"
 
 
@@ -442,9 +443,6 @@ error_code_t semantic_relation_expression(TreeNode* node, bool *result, Stack* l
             return ERR_INTERNAL;
     }
 
-
-
-
     return ERR_NONE;
 }
 
@@ -608,9 +606,7 @@ error_code_t semantic_func_call(TreeNode* node, Stack* local_tables){
                 }
             }
         }
-
     
-
         parameter_list_next(record->data->parameters);
         
     }
@@ -619,6 +615,7 @@ error_code_t semantic_func_call(TreeNode* node, Stack* local_tables){
 
     first(param_list_table);
     return ERR_NONE;
+
 }
 
 error_code_t semantic_return(TreeNode* node, Stack* local_symbtables, data_type_t function_return_type, bool func_return_nilable){
@@ -710,6 +707,8 @@ error_code_t semantic_func_declaration(TreeNode* node){
     TreeNode *function_name = node->children[1];
     TreeNode *func_return_type = node->children[3];
     TreeNode *body = node->children[4];
+
+    bool local = false;
 
     char* f_name = function_name->label;
     // the table should already be in the global table, but with defined set to false
