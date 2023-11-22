@@ -862,7 +862,17 @@ if let x{
 }' 4 "wrong param type"
 
 
+run_test 'func foo(_ param : Int, _ param2 : String, _ param3 : Double) -> Int{
+    
+    return 5
+}
+foo(10, "String", 1.247)
+if (2 > 10) {
+    foo(10, "String", 1.247)
+}' 0 "correct function call"
 
 
+run_test 'let x = 3
+while x {}'
 
 generate_test_summary

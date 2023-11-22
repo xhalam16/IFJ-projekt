@@ -35,7 +35,20 @@ void generateFuncCall(TreeNode *node)
         for (unsigned i = 0; i < node->children[1]->numChildren; i++)
         {
             fprintf(f, "DEFVAR TF@%%%d\n", i);
-            fprintf(f, "MOVE TF@%%%d %s\n", i, "int@10");
+            switch(node->children[1]->children[i]->children[0]->type) {
+                case NODE_INT:
+                    fprintf(f, "MOVE TF@%%%d int@%d\n", i, node->children[1]->children[i]->token_value.int_value);
+                    break;
+                case NODE_DOUBLE:
+                    fprintf(f, "MOVE TF@%%%d float@%a\n", i, node->children[1]->children[i]->token_value.double_value);
+                    break;
+                case NODE_STRING:
+                    fprintf(f, "MOVE TF@%%%d string@%s\n", i, node->children[1]->children[i]->token_value.string_value->buffer);
+                    break;
+                default:
+                    break;
+            }
+            
         }
     }
 
@@ -69,6 +82,7 @@ void generateFuncDeclaration(TreeNode *node)
 {
     setGlobalVars();
 
+    fprintf(f, "JUMP $end$%s\n", node->children[1]->label);
     fprintf(f, "LABEL %s\n", node->children[1]->label);
     fprintf(f, "PUSHFRAME\n");
 
@@ -94,6 +108,7 @@ void generateFuncDeclaration(TreeNode *node)
 
     fprintf(f, "POPFRAME\n");
     fprintf(f, "RETURN\n");
+    fprintf(f, "LABEL $end$%s\n", node->children[1]->label);
 }
 
 void generateReturn(TreeNode *node)
@@ -166,4 +181,3 @@ void generateLabel(char *label)
 
     fprintf(f, "LABEL %s\n", label);
 }
-
