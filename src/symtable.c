@@ -456,6 +456,10 @@ void free_param(function_parameter_t *param){
 }
 
 void first(parameter_list_t *list){
+    if(list == NULL){
+        return;
+    }
+
     list->active = list->first;
 }
 

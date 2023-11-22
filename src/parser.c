@@ -1146,6 +1146,7 @@ bool parseParameters(TreeNode *funcParams)
         return true;
     }
 
+
     TreeNode *funcParamValue = createNewNode(funcParam, NODE_PARAM_VALUE, false);
     if (funcParam == NULL)
     {
@@ -1185,6 +1186,7 @@ bool parseParameters(TreeNode *funcParams)
 
         if (token.type == TOKEN_COLON)
         {
+            
 
             if (move_buffer(&funcParam->label, token.source_value) != ERR_CODE_OK)
             {
@@ -1271,6 +1273,7 @@ bool parseParameters(TreeNode *funcParams)
             }
         }
 
+        
         if (token.type == TOKEN_COMMA)
         {
             return parseParameters(funcParams);
@@ -1314,41 +1317,22 @@ bool parseParameters(TreeNode *funcParams)
         return false;
     }
 
-    /*
-    if (next.type == TOKEN_STRING)
-    {
-        funcParam->token_value = next.value;
-    }
+    // if (!skipEmptyLines(&token))
+    // {
+    //     return false;
+    // }
+    token_t next_token = get_token(file);
 
-    if (next.type == TOKEN_DOUBLE || next.type == TOKEN_TRIPLE_DOUBLE_QUOTE)
-    {
-        DynamicBuffer *buffer = malloc(sizeof(DynamicBuffer));
-        init_buffer(buffer, 2);
-        buffer->buffer[0] = ' ';
-        buffer->buffer[1] = '\0';
-        funcParam->token_value.string_value = buffer;
-    }
-
-    if (token.type == TOKEN_INT || token.type == TOKEN_DOUBLE)
-    {
-        funcParam->token_value = token.value;
-    }
-
-    free_token(next);
-
-    */
-    if (!skipEmptyLines(&token))
-    {
-        return false;
-    }
-
-    if (token.type == TOKEN_COMMA)
+    printf("token.type: %d\n", next_token.type);
+    if (next_token.type == TOKEN_COMMA)
     {
         return parseParameters(funcParams);
     }
 
-    if (token.type == TOKEN_RIGHT_PARENTHESIS)
+
+    if (next_token.type == TOKEN_RIGHT_PARENTHESIS)
     {
+        printf("right parenthesis\n");
         return true;
     }
 
@@ -1809,6 +1793,7 @@ bool parseIfStatement(TreeNode *node, bool isWhile)
     }
 
     inBlock++;
+    local_table = NULL;
     if (!parse(body))
     {
         printf("Error: parse body\n");
@@ -1942,16 +1927,16 @@ bool parseParameter(TreeNode *funcParamList, parameter_list_t *param_list)
         return false;
     }
 
-    if (!skipEmptyLines(&token))
-    {
-        return false;
-    }
-
     // vložení názvu parametru do tabulky symbolů
     if (move_buffer(&param->name, token.source_value) != ERR_CODE_OK)
     {
         return false;
     }
+    if (!skipEmptyLines(&token))
+    {
+        return false;
+    }
+
 
     if (token.type != TOKEN_COLON)
     {
@@ -2004,6 +1989,31 @@ bool parseParameter(TreeNode *funcParamList, parameter_list_t *param_list)
     }
 
     return false;
+}
+
+
+
+error_code_t fill_local_params(local_symtable* local_sym_table, parameter_list_t* param_list){
+    if(local_sym_table == NULL || param_list == NULL){
+        return ERR_INTERNAL;
+    }
+
+    first(param_list);
+    while(parameter_list_active(param_list)){
+        function_parameter_t* param = parameter_list_get_active(param_list);
+        symtable_local_data_t* data = create_local_data(SYM_VAR, param->data_type, param->nilable, true, NULL);
+        if(data == NULL){
+            return ERR_INTERNAL;
+        }
+
+        if(symtable_insert(local_sym_table, param->name, data, LOCAL_TABLE) != ERR_CODE_ST_OK){
+            return ERR_INTERNAL;
+        }
+
+        parameter_list_next(param_list);
+    }
+
+    return ERR_NONE;
 }
 
 bool parseParamList(TreeNode *funcParamList, parameter_list_t *param_list)
@@ -2199,8 +2209,36 @@ bool parseFuncDeclaration(TreeNode *node)
     if (l_brace)
     {
         TreeNode *funcBody = createNewNode(node, NODE_BODY, false);
+        bool push = false;
         inBlock++;
         inFunction = true;
+        if(local_table == NULL){
+            local_table = create_local_symtable(ST_LOCAL_INIT_SIZE);
+
+            if(local_table == NULL){
+                error = ERR_INTERNAL;
+                return false;
+            }
+            push = true;
+
+        }
+    
+
+        error_code_t e = fill_local_params(local_table, param_list);
+        if(e != ERR_NONE){
+            error = e;
+            return false;
+        }
+
+
+        if(push){
+            if(stack_push(stack_of_local_tables, local_table) != STACK_SUCCESS){
+                error = ERR_INTERNAL;
+                return false;
+            }
+        }
+        
+
         if (!parse(funcBody))
         {
             return false;
@@ -2318,28 +2356,16 @@ bool parse(TreeNode *startNeterminal)
         case TOKEN_RIGHT_BRACE:
             if (inBlock)
             {
+                
 
                 nextNeterminal->type = NODE_BODY_END;
                 nextNeterminal->terminal = true;
+                
+                if(!inFunction){
+                    stack_pop(stack_of_local_tables); // pop local table (since we are leaving the block) (unless we are in a function, then its popped in parseFuncDeclaration)
+                    local_table = NULL; // set local table to NULL (since we are leaving the block)
+                }
 
-                // if (startNeterminal->numChildren == 1)
-                // {
-                //     nextNeterminal->type = NODE_BODY_END;
-                //     nextNeterminal->terminal = true;
-                // }
-                // else
-                // {
-                //     if (createNewNode(nextNeterminal, NODE_BODY_END, true) == NULL)
-                //     {
-                //         return false;
-                //     }
-                //     // free(nextNeterminal);
-                //     // startNeterminal->numChildren--;
-                //     // startNeterminal->children[startNeterminal->numChildren] = NULL;
-                // }
-                // stack_pop(stack_of_local_tables); // pop local table (since we are leaving the block)
-
-                local_table = NULL; // set local table to NULL (since we are leaving the block)
                 return true;
             }
 
@@ -2366,7 +2392,6 @@ bool parse(TreeNode *startNeterminal)
                 if (semantic_result != ERR_NONE)
                 {
                     error = semantic_result;
-                    printf("xd\n");
                     return false;
                 }
 
@@ -2479,6 +2504,7 @@ bool parse(TreeNode *startNeterminal)
                 return false;
             }
             nextNeterminal->type = NODE_DECLARATION_FUNCTION;
+            
 
             semantic_result = semantic(nextNeterminal);
 
@@ -2489,6 +2515,9 @@ bool parse(TreeNode *startNeterminal)
                 printf("xd\n");
                 return false;
             }
+
+            stack_pop(stack_of_local_tables); // pop local table (since we are leaving the function)
+            local_table = NULL; // set local table to NULL (since we are leaving the function)
 
             token = get_token(file);
 
@@ -2556,7 +2585,7 @@ void print_global_table(global_symtable *table)
             if (list == NULL)
                 continue;
 
-            if (list->size == SIZE_MAX)
+            if(list->size == SIZE_MAX)
                 continue;
 
             first(list);
