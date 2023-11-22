@@ -886,4 +886,19 @@ if (2 > 10) {
 run_test 'let x = 3
 while x {}' 7 "while statement"
 
+run_test 'func y(lol x : Int, XD s : Int) -> Int{
+    return x
+    if x > 3 {
+        var xd : Int = s
+    } else {
+        y(lol : s, XD : 36478)
+    }
+
+    while 1 / 8 < 1 {
+        return s
+    }
+}
+var x = 10
+y(lol : x, XD : 10)' 0 "function call"
+
 generate_test_summary
