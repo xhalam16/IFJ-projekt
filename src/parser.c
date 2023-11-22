@@ -1,5 +1,6 @@
 #include "header_files/parser.h"
 #include "header_files/semantic.h"
+#include "header_files/code_gen.h"
 
 bool parseFuncCall(TreeNode *node, DynamicBuffer *func_name);
 
@@ -13,23 +14,22 @@ static local_symtable *local_table = NULL;
 
 Stack *stack_of_local_tables = NULL;
 
+bool fill_global_builtin_functions(global_symtable *table)
+{
+    symtable_global_data_t *readInt = create_global_data(SYM_FUNC, DATA_INT, true, false, NULL, NULL);       // readInt
+    symtable_global_data_t *readDouble = create_global_data(SYM_FUNC, DATA_DOUBLE, true, false, NULL, NULL); // readDouble
+    symtable_global_data_t *readString = create_global_data(SYM_FUNC, DATA_STRING, true, false, NULL, NULL); // readString
 
-bool fill_global_builtin_functions(global_symtable *table){
-    symtable_global_data_t* readInt = create_global_data(SYM_FUNC, DATA_INT, true, false, NULL, NULL); // readInt
-    symtable_global_data_t* readDouble = create_global_data(SYM_FUNC, DATA_DOUBLE, true, false, NULL, NULL); // readDouble
-    symtable_global_data_t* readString = create_global_data(SYM_FUNC, DATA_STRING, true, false, NULL, NULL); // readString
-
-    
     // int2double
     // param: 1 - _ term : Int
     // return: Double
     parameter_list_t *int2double_params = malloc(sizeof(parameter_list_t));
-    function_parameter_t* param = malloc(sizeof(function_parameter_t));
-    if(int2double_params == NULL || param == NULL){
+    function_parameter_t *param = malloc(sizeof(function_parameter_t));
+    if (int2double_params == NULL || param == NULL)
+    {
         error = ERR_INTERNAL;
         return false;
     }
-
 
     parameter_list_init(int2double_params);
     init_param(param);
@@ -37,7 +37,7 @@ bool fill_global_builtin_functions(global_symtable *table){
     param->name = "term";
 
     parameter_list_insert(int2double_params, param);
-    symtable_global_data_t* int2double = create_global_data(SYM_FUNC, DATA_DOUBLE, false, false, NULL, int2double_params); // int2double
+    symtable_global_data_t *int2double = create_global_data(SYM_FUNC, DATA_DOUBLE, false, false, NULL, int2double_params); // int2double
 
     // double2int
     // param: 1 - _ term : Double
@@ -45,18 +45,18 @@ bool fill_global_builtin_functions(global_symtable *table){
 
     parameter_list_t *double2int_params = malloc(sizeof(parameter_list_t));
     function_parameter_t *param2 = malloc(sizeof(function_parameter_t));
-    if(double2int_params == NULL || param2 == NULL){
+    if (double2int_params == NULL || param2 == NULL)
+    {
         error = ERR_INTERNAL;
         return false;
     }
-
 
     parameter_list_init(double2int_params);
     init_param(param2);
     param2->data_type = DATA_DOUBLE;
     param2->name = "term";
     parameter_list_insert(double2int_params, param2);
-    symtable_global_data_t* double2int = create_global_data(SYM_FUNC, DATA_INT, false, false, NULL, double2int_params); // double2int
+    symtable_global_data_t *double2int = create_global_data(SYM_FUNC, DATA_INT, false, false, NULL, double2int_params); // double2int
 
     // length
     // param: 1 - _ s : String
@@ -64,7 +64,8 @@ bool fill_global_builtin_functions(global_symtable *table){
     parameter_list_t *length_params = malloc(sizeof(parameter_list_t));
     function_parameter_t *param3 = malloc(sizeof(function_parameter_t));
 
-    if(length_params == NULL || param3 == NULL){
+    if (length_params == NULL || param3 == NULL)
+    {
         error = ERR_INTERNAL;
         return false;
     }
@@ -74,7 +75,7 @@ bool fill_global_builtin_functions(global_symtable *table){
     param3->data_type = DATA_STRING;
     param3->name = "s";
     parameter_list_insert(length_params, param3);
-    symtable_global_data_t* length = create_global_data(SYM_FUNC, DATA_INT, false, false, NULL, length_params); // length
+    symtable_global_data_t *length = create_global_data(SYM_FUNC, DATA_INT, false, false, NULL, length_params); // length
 
     // substring
     // param: 1 - of s : String
@@ -87,7 +88,8 @@ bool fill_global_builtin_functions(global_symtable *table){
     function_parameter_t *param5 = malloc(sizeof(function_parameter_t));
     function_parameter_t *param6 = malloc(sizeof(function_parameter_t));
 
-    if(substring_params == NULL || param4 == NULL || param5 == NULL || param6 == NULL){
+    if (substring_params == NULL || param4 == NULL || param5 == NULL || param6 == NULL)
+    {
         error = ERR_INTERNAL;
         return false;
     }
@@ -112,12 +114,7 @@ bool fill_global_builtin_functions(global_symtable *table){
     param6->name = "j";
     parameter_list_insert(substring_params, param6);
 
-
-    
-
-
-    symtable_global_data_t* substring = create_global_data(SYM_FUNC, DATA_STRING, true, false, NULL, substring_params); // substring
-
+    symtable_global_data_t *substring = create_global_data(SYM_FUNC, DATA_STRING, true, false, NULL, substring_params); // substring
 
     // ord
     // param: 1 - _ c : String
@@ -126,7 +123,8 @@ bool fill_global_builtin_functions(global_symtable *table){
     parameter_list_t *ord_params = malloc(sizeof(parameter_list_t));
     function_parameter_t *param7 = malloc(sizeof(function_parameter_t));
 
-    if(ord_params == NULL || param7 == NULL){
+    if (ord_params == NULL || param7 == NULL)
+    {
         error = ERR_INTERNAL;
         return false;
     }
@@ -136,7 +134,7 @@ bool fill_global_builtin_functions(global_symtable *table){
     param7->data_type = DATA_STRING;
     param7->name = "s";
     parameter_list_insert(ord_params, param7);
-    symtable_global_data_t* ord = create_global_data(SYM_FUNC, DATA_INT, false, false, NULL, ord_params); // ord
+    symtable_global_data_t *ord = create_global_data(SYM_FUNC, DATA_INT, false, false, NULL, ord_params); // ord
 
     // chr
     // param: 1 - _ i : Int
@@ -145,7 +143,8 @@ bool fill_global_builtin_functions(global_symtable *table){
     parameter_list_t *chr_params = malloc(sizeof(parameter_list_t));
     function_parameter_t *param8 = malloc(sizeof(function_parameter_t));
 
-    if(chr_params == NULL || param8 == NULL){
+    if (chr_params == NULL || param8 == NULL)
+    {
         error = ERR_INTERNAL;
         return false;
     }
@@ -155,23 +154,22 @@ bool fill_global_builtin_functions(global_symtable *table){
     param8->data_type = DATA_INT;
     param8->name = "i";
     parameter_list_insert(chr_params, param8);
-    symtable_global_data_t* chr = create_global_data(SYM_FUNC, DATA_STRING, false, false, NULL, chr_params); // chr
-
-
+    symtable_global_data_t *chr = create_global_data(SYM_FUNC, DATA_STRING, false, false, NULL, chr_params); // chr
 
     // todo: write inifinite number of parameters
     parameter_list_t *inputs_params = malloc(sizeof(parameter_list_t));
 
-    if(inputs_params == NULL){
+    if (inputs_params == NULL)
+    {
         error = ERR_INTERNAL;
         return false;
     }
 
     parameter_list_init(inputs_params);
-    inputs_params->size = SIZE_MAX; // this signals that the function can have infinite number of parameters
-    symtable_global_data_t* write = create_global_data(SYM_FUNC, DATA_NONE, false, false, NULL, inputs_params); // write
+    inputs_params->size = SIZE_MAX;                                                                             // this signals that the function can have infinite number of parameters
+    symtable_global_data_t *write = create_global_data(SYM_FUNC, DATA_NONE, false, false, NULL, inputs_params); // write
 
-    symtable_global_data_t* inputs_arr[] = {
+    symtable_global_data_t *inputs_arr[] = {
         readInt,
         readDouble,
         readString,
@@ -181,10 +179,9 @@ bool fill_global_builtin_functions(global_symtable *table){
         substring,
         ord,
         chr,
-        write
-    };
+        write};
 
-    char* keys_built_in[] = {
+    char *keys_built_in[] = {
         "readInt",
         "readDouble",
         "readString",
@@ -194,12 +191,12 @@ bool fill_global_builtin_functions(global_symtable *table){
         "substring",
         "ord",
         "chr",
-        "write"
-    };
+        "write"};
 
     for (int i = 0; i < sizeof(inputs_arr) / sizeof(inputs_arr[0]); i++)
     {
-        if(inputs_arr[i] == NULL){
+        if (inputs_arr[i] == NULL)
+        {
             return false;
         }
 
@@ -210,12 +207,8 @@ bool fill_global_builtin_functions(global_symtable *table){
         }
     }
 
-
     return true;
-
 }
-
-
 
 NodeType token_type_to_node(token_type_t t_type)
 {
@@ -732,6 +725,7 @@ token_type_t checkForImmediateOperands(token_type_t tokenType, TreeNode *nodeExp
         break;
     case TOKEN_DOUBLE_QUOTE:
         token = get_token(file);
+        // printf("TOKEN TYPE: %d\n", token.type);
         if (token.type != TOKEN_STRING)
         {
             return -1;
@@ -773,11 +767,17 @@ TreeNode *buildTree(Stack *treeStack, TreeNode *nodeExpression, Stack *idTypeSta
     switch (*stackTop)
     {
     case RULE_ID:;
-        NodeType *idType = malloc(sizeof(NodeType));
-        *idType = *((NodeType *)(stack_top(idTypeStack)->data));
-        TreeNode *id = createNewNode(nodeExpression, *idType, true);
+        NodeType idType = *((NodeType *)(stack_top(idTypeStack)->data));
+        TreeNode *id = createNewNode(nodeExpression, idType, true);
 
-        if (*idType == NODE_IDENTIFIER)
+        /*
+        if (idType >= NODE_INT && idType <= NODE_STRING)
+        {
+            id->token_value = *((token_value_t *)(stack_top()->data));
+            stack_pop();
+        }
+        */
+        if (idType == NODE_IDENTIFIER)
         {
             Stack_Frame *frame = stack_top(identifier_stack);
             DynamicBuffer *id_buffer = frame->data;
@@ -794,9 +794,10 @@ TreeNode *buildTree(Stack *treeStack, TreeNode *nodeExpression, Stack *idTypeSta
         {
             return NULL;
         }
+        free(stack_top(treeStack)->data);
+        free(stack_top(idTypeStack)->data);
         stack_pop(treeStack);
         stack_pop(idTypeStack);
-        free(idType);
         break;
     case RULE_ADD:
     case RULE_SUB:
@@ -859,6 +860,7 @@ TreeNode *buildTree(Stack *treeStack, TreeNode *nodeExpression, Stack *idTypeSta
         {
             return NULL;
         }
+        free(stack_top(treeStack)->data);
         stack_pop(treeStack);
         buildTree(treeStack, expressionRight, idTypeStack, identifier_stack);
         buildTree(treeStack, expressionLeft, idTypeStack, identifier_stack);
@@ -879,6 +881,7 @@ TreeNode *buildTree(Stack *treeStack, TreeNode *nodeExpression, Stack *idTypeSta
         {
             return NULL;
         }
+        free(stack_top(treeStack)->data);
         stack_pop(treeStack);
         buildTree(treeStack, expression, idTypeStack, identifier_stack);
         break;
@@ -893,6 +896,7 @@ TreeNode *buildTree(Stack *treeStack, TreeNode *nodeExpression, Stack *idTypeSta
         {
             return NULL;
         }
+        free(stack_top(treeStack)->data);
         stack_pop(treeStack);
         buildTree(treeStack, expressionUnary, idTypeStack, identifier_stack);
         break;
@@ -905,12 +909,17 @@ TreeNode *buildTree(Stack *treeStack, TreeNode *nodeExpression, Stack *idTypeSta
 
 bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition)
 {
-    NodeType endMarker = NODE_EOL;
-    NodeType *endMarkerPtr = &endMarker;
+    NodeType *endMarkerPtr = malloc(sizeof(NodeType));
+    if (endMarkerPtr == NULL)
+    {
+        return false;
+    }
+    *endMarkerPtr = NODE_EOL;
     Stack *treeStack = stack_init(STACK_INIT_CAPACITY);
     Stack *stack = stack_init(STACK_INIT_CAPACITY);
     Stack *idTypeStack = stack_init(STACK_INIT_CAPACITY);
     Stack *identifier_labels_stack = stack_init(STACK_INIT_CAPACITY);
+    // Stack * = stack_init(STACK_INIT_CAPACITY);
     stack_push(stack, endMarkerPtr);
 
     token_t token = prevToken;
@@ -919,10 +928,9 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
     NodeType stackTop;
     char tableValue;
 
-    int counter = 1;
-
     do
     {
+
         tokenType = token.type;
         /*
         if (tokenType == TOKEN_EOL)
@@ -968,10 +976,44 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
 
         if (tokenType == TOKEN_IDENTIFIER)
         {
-
             stack_push(identifier_labels_stack, token.source_value);
         }
 
+        /*
+        token_t next = peek_token(file);
+        printf("NEXT TYPE: %d\n", next.type);
+        if (next.type == TOKEN_STRING)
+        {
+            token_value_t *tokenValuePtr = malloc(sizeof(token_value_t));
+            tokenValuePtr->string_value = next.value.string_value;
+            stack_push(, tokenValuePtr);
+        }
+
+        if (next.type == TOKEN_DOUBLE_QUOTE || next.type == TOKEN_TRIPLE_DOUBLE_QUOTE)
+        {
+            token_value_t *tokenValuePtr = malloc(sizeof(token_value_t));
+            DynamicBuffer *buffer = malloc(sizeof(DynamicBuffer));
+            init_buffer(buffer, 2);
+            buffer->buffer[0] = ' ';
+            buffer->buffer[1] = '\0';
+            tokenValuePtr->string_value = buffer;
+            stack_push(, tokenValuePtr);
+        }
+
+        if (tokenType == TOKEN_INT)
+        {
+            token_value_t *tokenValuePtr = malloc(sizeof(token_value_t));
+            tokenValuePtr->int_value = token.value.int_value;
+            stack_push(, tokenValuePtr);
+        }
+
+        if (tokenType == TOKEN_DOUBLE)
+        {
+            token_value_t *tokenValuePtr = malloc(sizeof(token_value_t));
+            tokenValuePtr->double_value = token.value.double_value;
+            stack_push(, tokenValuePtr);
+        }
+        */
         tokenType = checkForImmediateOperands(tokenType, nodeExpression, idTypeStack, true);
 
         int topTerminalIndex;
@@ -998,6 +1040,8 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
 
         tableValue = nodeTypeToIndex(stackTop, *inputPtr);
 
+        // printf("INPUT: %d, STACKTOP: %d, TOKEN TYPE: %d\n", *inputPtr, stackTop, tokenType);
+
         switch (tableValue)
         {
         case '=':
@@ -1015,16 +1059,18 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
             token = get_token(file);
             break;
         case '>':
-
+            free(inputPtr);
             if (isRule(stack, treeStack))
             {
 
                 do
                 {
+                    free(stack_top(stack)->data);
                     stack_pop(stack);
                     stackTop = *((NodeType *)(stack_top(stack)->data));
                 } while (stackTop != NODE_SHIFTER);
 
+                free(stack_top(stack)->data);
                 stack_pop(stack);
 
                 NodeType *stackTopPtr = malloc(sizeof(NodeType));
@@ -1038,22 +1084,41 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
             }
             else
             {
+                free(inputPtr);
+                stack_empty(stack);
+                stack_empty(treeStack);
+                stack_empty(idTypeStack);
+                stack_free(treeStack);
+                stack_free(idTypeStack);
+                stack_free(identifier_labels_stack);
                 printf("Error: !isRule\n");
                 return false;
             }
             break;
         default:
+
+            free(inputPtr);
+            stack_empty(stack);
+            stack_empty(treeStack);
+            stack_empty(idTypeStack);
+            stack_free(treeStack);
+            stack_free(idTypeStack);
+            stack_free(identifier_labels_stack);
             return false;
         }
-        counter++;
 
     } while (tokenType != TOKEN_EOL || *((NodeType *)(stack_top(stack)->data)) != NODE_EXPRESSION || stack->size != 2);
 
+    stack_empty(stack);
     stack_free(stack);
     buildTree(treeStack, nodeExpression, idTypeStack, identifier_labels_stack);
+    stack_empty(treeStack);
+    stack_empty(idTypeStack);
     stack_free(treeStack);
     stack_free(idTypeStack);
     stack_free(identifier_labels_stack);
+    // stack_free();
+
     return true;
 }
 
@@ -1093,6 +1158,7 @@ bool parseParameters(TreeNode *funcParams)
         return false;
     }
     token_t prevToken = token;
+    // token_t next = peek_token(file);
 
     switch (token.type)
     {
@@ -1142,6 +1208,8 @@ bool parseParameters(TreeNode *funcParams)
                 return false;
             }
 
+            // token_t next = peek_token(file);
+
             switch (token.type)
             {
             case TOKEN_IDENTIFIER:
@@ -1173,6 +1241,30 @@ bool parseParameters(TreeNode *funcParams)
                 return false;
                 break;
             }
+
+            /*
+            if (next.type == TOKEN_STRING)
+            {
+                funcParam->token_value = next.value;
+            }
+
+            if (next.type == TOKEN_DOUBLE || next.type == TOKEN_TRIPLE_DOUBLE_QUOTE)
+            {
+                DynamicBuffer *buffer = malloc(sizeof(DynamicBuffer));
+                init_buffer(buffer, 2);
+                buffer->buffer[0] = ' ';
+                buffer->buffer[1] = '\0';
+                funcParam->token_value.string_value = buffer;
+            }
+
+            if (token.type == TOKEN_INT || token.type == TOKEN_DOUBLE)
+            {
+                funcParam->token_value = token.value;
+            }
+
+            free_token(next);
+            */
+
             if (!skipEmptyLines(&token))
             {
                 return false;
@@ -1222,6 +1314,29 @@ bool parseParameters(TreeNode *funcParams)
         return false;
     }
 
+    /*
+    if (next.type == TOKEN_STRING)
+    {
+        funcParam->token_value = next.value;
+    }
+
+    if (next.type == TOKEN_DOUBLE || next.type == TOKEN_TRIPLE_DOUBLE_QUOTE)
+    {
+        DynamicBuffer *buffer = malloc(sizeof(DynamicBuffer));
+        init_buffer(buffer, 2);
+        buffer->buffer[0] = ' ';
+        buffer->buffer[1] = '\0';
+        funcParam->token_value.string_value = buffer;
+    }
+
+    if (token.type == TOKEN_INT || token.type == TOKEN_DOUBLE)
+    {
+        funcParam->token_value = token.value;
+    }
+
+    free_token(next);
+
+    */
     if (!skipEmptyLines(&token))
     {
         return false;
@@ -1439,7 +1554,7 @@ bool parseDeclaration(TreeNode *neterminal, bool constant)
 
         if (token.type != TOKEN_OPERATOR_ASSIGN && (token.type == TOKEN_EOL || (token.type == TOKEN_EOF && !inBlock)))
         {
-            TreeNode* ident = createNewNode(neterminal, NODE_IDENTIFIER, true);
+            TreeNode *ident = createNewNode(neterminal, NODE_IDENTIFIER, true);
             if (ident == NULL)
             {
                 error = ERR_INTERNAL;
@@ -1658,8 +1773,7 @@ bool parseIfStatement(TreeNode *node, bool isWhile)
             return false;
         }
 
-
-        TreeNode* id = createNewNode(ifCond, NODE_IDENTIFIER, true);
+        TreeNode *id = createNewNode(ifCond, NODE_IDENTIFIER, true);
         if (id == NULL)
         {
             return false;
@@ -1959,6 +2073,7 @@ bool parseFuncDeclaration(TreeNode *node)
     {
         return false;
     }
+
     // vložení názvu funkce do tabulky symbolů
 
     if (move_buffer(&key, bf) != ERR_CODE_OK)
@@ -2176,14 +2291,12 @@ bool parse(TreeNode *startNeterminal)
             return false;
         }
 
-        if(!fill_global_builtin_functions(global_table)){
+        if (!fill_global_builtin_functions(global_table))
+        {
             error = ERR_INTERNAL;
             return false;
         }
-
-    }   
-    
-    
+    }
 
     token_t token;
     if (!skipEmptyLines(&token))
@@ -2225,9 +2338,11 @@ bool parse(TreeNode *startNeterminal)
                 //     // startNeterminal->children[startNeterminal->numChildren] = NULL;
                 // }
                 // stack_pop(stack_of_local_tables); // pop local table (since we are leaving the block)
+
                 local_table = NULL; // set local table to NULL (since we are leaving the block)
                 return true;
             }
+
             return false;
 
         case TOKEN_IDENTIFIER:;
@@ -2279,11 +2394,13 @@ bool parse(TreeNode *startNeterminal)
                     return false;
                 }
 
-                token = get_token(file);
-                if (token.type != TOKEN_EOL && token.type != TOKEN_EOF)
-                {
-                    return false;
-                }
+                // token = get_token(file);
+                // if (token.type != TOKEN_EOL && token.type != TOKEN_EOF)
+                // {
+                //     return false;
+                // }
+
+                printf("ASSIGN PARSED\n");
 
                 break;
 
@@ -2379,6 +2496,9 @@ bool parse(TreeNode *startNeterminal)
             {
                 return false;
             }
+
+            generateFuncDeclaration(nextNeterminal);
+
             break;
         case TOKEN_KEYWORD_RETURN:
             free_token(token);
@@ -2436,7 +2556,7 @@ void print_global_table(global_symtable *table)
             if (list == NULL)
                 continue;
 
-            if(list->size == SIZE_MAX)
+            if (list->size == SIZE_MAX)
                 continue;
 
             first(list);
