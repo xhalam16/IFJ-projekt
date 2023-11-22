@@ -386,11 +386,16 @@ error_code_t semantic_relation_expression(TreeNode* node, bool *result, Stack* l
     if(node->children[0]->type == NODE_LEFT_PARENTHESIS){
         expression = node->children[1];
     }
+    
 
 
     TreeNode* l_expression = expression->children[0];
     TreeNode* r_expression = expression->children[2];
     TreeNode* operator = expression->children[1];
+
+    if(l_expression == NULL || r_expression == NULL || operator == NULL){
+        return ERR_SEMANTIC_TYPE_COMPATIBILITY;
+    }
 
     data_type_t l_type = DATA_NONE;
     data_type_t r_type = DATA_NONE;
