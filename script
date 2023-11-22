@@ -576,7 +576,7 @@ run_test 'func foo() -> Int{
         return 3
     }
     return 4
-}' 0 "if statement"
+}' 2 "if statement"
 
 run_test 'func foo() -> Int{
     var x : Int = 3
@@ -873,7 +873,32 @@ if let x{
 }' 4 "wrong param type"
 
 
+run_test 'func foo(_ param : Int, _ param2 : String, _ param3 : Double) -> Int{
+    
+    return 5
+}
+foo(10, "String", 1.247)
+if (2 > 10) {
+    foo(10, "String", 1.247)
+}' 2 "wrong if statement"
 
 
+run_test 'let x = 3
+while x {}' 7 "while statement"
+
+run_test 'func y(lol x : Int, XD s : Int) -> Int{
+    return x
+    if x > 3 {
+        var xd : Int = s
+    } else {
+        y(lol : s, XD : 36478)
+    }
+
+    while 1 / 8 < 1 {
+        return s
+    }
+}
+var x = 10
+y(lol : x, XD : 10)' 0 "function call"
 
 generate_test_summary

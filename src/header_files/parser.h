@@ -9,7 +9,6 @@
 #include "symtable.h"
 #include "stack.h"
 
-
 static error_code_t error;
 static unsigned inBlock;
 static bool inFunction;
@@ -18,66 +17,69 @@ static unsigned inBlockCounter;
 
 extern FILE *file;
 extern global_symtable *global_table;
-extern Stack* stack_of_local_tables;
+extern Stack *stack_of_local_tables;
 
+#define NODE_CHILDREN_ARRAY_CAPACITY 8 // minimální počet, po kterých se bude realokovat pole dětí uzlu
 
-typedef enum NodeType {
-    NODE_PROGRAM,
-    NODE_BODY,
-    NODE_BODY_END,
-    NODE_ASSIGN,
-    NODE_DECLARATION,
-    NODE_DECLARATION_FUNCTION,
-    NODE_EXPRESSION,
-    NODE_IF_STATEMENT,
-    NODE_WHILE,
-    NODE_RETURN,
-    NODE_KEYWORD_LET,
-    NODE_GUARD_LET,
-    NODE_KEYWORD_VAR,
-    NODE_KEYWORD_RETURN,
-    NODE_KEYWORD_FUNC,
-    NODE_FUNCTION_CALL,
-    NODE_FUNCTION_PARAM,
-    NODE_PARAM_VALUE,
-    NODE_PARAM_LIST,
-    NODE_IDENTIFIER,
-    NODE_INT,
-    NODE_DOUBLE,
-    NODE_STRING,
-    NODE_NIL,
-    NODE_INT_NILABLE,
-    NODE_DOUBLE_NILABLE,
-    NODE_STRING_NILABLE,
-    NODE_OPERATOR_ADD,
-    NODE_OPERATOR_SUB,
-    NODE_OPERATOR_MUL,
-    NODE_OPERATOR_DIV,
-    NODE_OPERATOR_BELOW,
-    NODE_OPERATOR_ABOVE,
-    NODE_OPERATOR_BEQ,
-    NODE_OPERATOR_AEQ,
-    NODE_OPERATOR_EQUAL,
-    NODE_OPERATOR_NEQ,
-    NODE_OPERATOR_NIL_COALESCING,
-    NODE_OPERATOR_UNARY,
-    NODE_LEFT_PARENTHESIS,
-    NODE_RIGHT_PARENTHESIS,
-    NODE_RIGHT_BRACE,
-    NODE_LEFT_BRACE,
-    NODE_EOL,
-    NODE_DATATYPE_INT,
-    NODE_DATATYPE_DOUBLE,
-    NODE_DATATYPE_STRING,
-    NODE_DATATYPE_INT_NILABLE,
-    NODE_DATATYPE_DOUBLE_NILABLE,
-    NODE_DATATYPE_STRING_NILABLE,
-    NODE_EPSILON,
-    NODE_UNDERSCORE,
-    NODE_SHIFTER
+typedef enum NodeType
+{
+    NODE_PROGRAM,                 // 0
+    NODE_BODY,                    // 1
+    NODE_BODY_END,                // 2
+    NODE_ASSIGN,                  // 3
+    NODE_DECLARATION,             // 4
+    NODE_DECLARATION_FUNCTION,    // 5
+    NODE_EXPRESSION,              // 6
+    NODE_IF_STATEMENT,            // 7
+    NODE_WHILE,                   // 8
+    NODE_RETURN,                  // 9
+    NODE_KEYWORD_LET,             // 10
+    NODE_GUARD_LET,               // 11
+    NODE_KEYWORD_VAR,             // 12
+    NODE_KEYWORD_RETURN,          // 13
+    NODE_KEYWORD_FUNC,            // 14
+    NODE_FUNCTION_CALL,           // 15
+    NODE_FUNCTION_PARAM,          // 16
+    NODE_PARAM_VALUE,             // 17
+    NODE_PARAM_LIST,              // 18
+    NODE_IDENTIFIER,              // 19
+    NODE_INT,                     // 20
+    NODE_DOUBLE,                  // 21
+    NODE_STRING,                  // 22
+    NODE_NIL,                     // 23
+    NODE_INT_NILABLE,             // 24
+    NODE_DOUBLE_NILABLE,          // 25
+    NODE_STRING_NILABLE,          // 26
+    NODE_OPERATOR_ADD,            // 27
+    NODE_OPERATOR_SUB,            // 28
+    NODE_OPERATOR_MUL,            // 29
+    NODE_OPERATOR_DIV,            // 30
+    NODE_OPERATOR_BELOW,          // 31
+    NODE_OPERATOR_ABOVE,          // 32
+    NODE_OPERATOR_BEQ,            // 33
+    NODE_OPERATOR_AEQ,            // 34
+    NODE_OPERATOR_EQUAL,          // 35
+    NODE_OPERATOR_NEQ,            // 36
+    NODE_OPERATOR_NIL_COALESCING, // 37
+    NODE_OPERATOR_UNARY,          // 38
+    NODE_LEFT_PARENTHESIS,        // 39
+    NODE_RIGHT_PARENTHESIS,       // 40
+    NODE_RIGHT_BRACE,             // 41
+    NODE_LEFT_BRACE,              // 42
+    NODE_EOL,                     // 43
+    NODE_DATATYPE_INT,            // 44
+    NODE_DATATYPE_DOUBLE,         // 45
+    NODE_DATATYPE_STRING,         // 46
+    NODE_DATATYPE_INT_NILABLE,    // 47
+    NODE_DATATYPE_DOUBLE_NILABLE, // 48
+    NODE_DATATYPE_STRING_NILABLE, // 49
+    NODE_EPSILON,                 // 50
+    NODE_UNDERSCORE,              // 51
+    NODE_SHIFTER                  // 52
 } NodeType;
 
-typedef enum RuleType {
+typedef enum RuleType
+{
     RULE_ID,
     RULE_PARENTHESES,
     RULE_ADD,
@@ -94,17 +96,20 @@ typedef enum RuleType {
     RULE_NEQ,
 } RuleType;
 
-typedef struct t_n_mapping {
+typedef struct t_n_mapping
+{
     token_type_t t_value;
     NodeType n_value;
 } Token_to_node;
 
-typedef struct n_d_mapping {
+typedef struct n_d_mapping
+{
     NodeType n_value;
     data_type_t d_value;
 } Node_to_data;
 
-typedef struct tt_i_mapping {
+typedef struct tt_i_mapping
+{
     NodeType n_value;
     unsigned i_value;
 } NodeTypeToIndex;
@@ -112,7 +117,8 @@ typedef struct tt_i_mapping {
 extern const Node_to_data node_to_data[];
 extern const Token_to_node token_to_node[];
 
-typedef struct TreeNode {
+typedef struct TreeNode
+{
     NodeType type;
     bool terminal;
     struct TreeNode **children;
@@ -133,5 +139,4 @@ bool parse(TreeNode *startNeterminal);
 // for debug
 void print_global_table(global_symtable *table);
 
-//void printTree(TreeNode *node);
-
+// void printTree(TreeNode *node);

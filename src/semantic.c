@@ -187,8 +187,11 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
         first_run = false;
     }
 
+    
+
     for(int i = 0; i < node->numChildren; i++){
         TreeNode* child = node->children[i];
+        
         if(child->type == NODE_EXPRESSION){
             if(child->numChildren >= 2 && child->children[1]->type == NODE_OPERATOR_UNARY){
                 next_identifier_unwrapped = true;
@@ -343,6 +346,8 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
 
     }
 
+    
+
     if(scan_for_coal){
         return ERR_SEMANTIC_TYPE_COMPATIBILITY;
     }
@@ -397,9 +402,12 @@ error_code_t semantic_relation_expression(TreeNode* node, bool *result, Stack* l
         return ERR_SEMANTIC_TYPE_COMPATIBILITY;
     }
 
+    
+
     data_type_t l_type = DATA_NONE;
     data_type_t r_type = DATA_NONE;
 
+    
     error_code_t er = semantic_arithmetic_expression(l_expression, &l_type, local_tables, true);
     if(er != ERR_NONE){
         return er;
@@ -407,7 +415,9 @@ error_code_t semantic_relation_expression(TreeNode* node, bool *result, Stack* l
 
     bool l_immediate = !set_by_variable;
 
+    
     er = semantic_arithmetic_expression(r_expression, &r_type, local_tables, true);
+    
     if(er != ERR_NONE){
         return er;
     }
@@ -419,6 +429,8 @@ error_code_t semantic_relation_expression(TreeNode* node, bool *result, Stack* l
 
     // relation operators except == and != cannot have nilable operands
     // 
+
+    
 
     switch(operator->type){
         case NODE_OPERATOR_ABOVE:
@@ -736,6 +748,7 @@ error_code_t semantic_func_declaration(TreeNode* node){
         }
     }else{
         // the function is not in the global table, there must be an error from the parser
+
         return ERR_INTERNAL;
     }
 
@@ -785,6 +798,7 @@ error_code_t semantic_declaration(TreeNode* node, Stack* local_symtables){
     *nil = DATA_NIL;
 
     symtable_record_local_t* record = check_stack(local_symtables, identifier->label);
+
     if(record == NULL){
         // we did not find the identifier in the local tables, we need to check the global table
         symtable_record_global_t *record_global = symtable_search(global_table, identifier->label, GLOBAL_TABLE);
@@ -1058,9 +1072,14 @@ error_code_t semantic_while_statement(TreeNode* node, Stack* local_tables){
     TreeNode* expression = node->children[0];
     TreeNode* body = node->children[1];
 
+    
+
     if(expression->type == NODE_EXPRESSION){
+        
         return semantic_relation_expression(expression, NULL, local_tables);
     }
+
+    
 
     return ERR_NONE;
 }
@@ -1110,6 +1129,7 @@ error_code_t semantic(TreeNode *node){
     else if(type == NODE_DECLARATION){
         return semantic_declaration(node, stack_of_local_tables);
     }else if(type == NODE_WHILE){
+        
         return semantic_while_statement(node, stack_of_local_tables);
     }
 
