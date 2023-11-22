@@ -760,5 +760,103 @@ run_test '
 }' 0 "while statement"
 
 
+#scope tests
+run_test '
+    func foo() -> Int{
+    var x : Int = 3
+    var y : Int = 4
+    while x == y {
+        var x : Int = 3
+        var y : Int = 4
+        return 3
+    } 
+    return 4
+}' 0 "while statement"
+
+run_test '
+    func foo(_ param : String) -> Int{
+    return param
+}' 4 "wrong function call"
+
+run_test 'func foo(_ param : Int) -> Int{
+    return param
+}
+
+if(3 > 4){
+    let y = 6
+    foo(y)
+}else{
+    let y = 9
+    foo(y)
+}
+
+let y = 6
+foo(y)' 0 "multiple scopes"
+
+
+run_test 'func foo(_ param : Int) -> Int{
+    return param
+}
+
+var x : Int = 8
+while(x == 3){
+    let y = 6
+    foo(y)
+}
+
+let y = 6
+foo(y)' 0 "multiple scopes"
+
+
+run_test 'func foo(_ param : Int) -> Int{
+    return param
+}' 0 "func correct param return"
+
+
+run_test 'func foo(_ param : Int) -> Int{
+    return param + 3
+}' 0 "func correct param return"
+
+
+run_test 'func foo(_ param : Int) -> Int{
+    return param + "string"
+}' 7 "func correct param return"
+
+
+run_test 'func foo(_ param : Int) -> Int{
+    return param
+}
+
+let x = nil
+if let x{
+    foo(x)
+}' 8 "wrong declaration"
+
+
+run_test 'func foo(_ param : Int) -> Int{
+    return param
+}
+
+let x : Int? = nil
+if let x{
+    foo(x)
+}else{
+
+}' 0 "correct declaration correct guard let"
+
+run_test 'func foo(_ param : Int) -> Int{
+    return param
+}
+
+let x : String? = nil
+if let x{
+    foo(x)
+}else{
+
+}' 4 "wrong param type"
+
+
+
+
 
 generate_test_summary

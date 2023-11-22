@@ -1081,6 +1081,7 @@ bool parseParameters(TreeNode *funcParams)
         return true;
     }
 
+
     TreeNode *funcParamValue = createNewNode(funcParam, NODE_PARAM_VALUE, false);
     if (funcParam == NULL)
     {
@@ -1119,6 +1120,7 @@ bool parseParameters(TreeNode *funcParams)
 
         if (token.type == TOKEN_COLON)
         {
+            
 
             if (move_buffer(&funcParam->label, token.source_value) != ERR_CODE_OK)
             {
@@ -1179,6 +1181,7 @@ bool parseParameters(TreeNode *funcParams)
             }
         }
 
+        
         if (token.type == TOKEN_COMMA)
         {
             return parseParameters(funcParams);
@@ -1222,18 +1225,22 @@ bool parseParameters(TreeNode *funcParams)
         return false;
     }
 
-    if (!skipEmptyLines(&token))
-    {
-        return false;
-    }
+    // if (!skipEmptyLines(&token))
+    // {
+    //     return false;
+    // }
+    token_t next_token = get_token(file);
 
-    if (token.type == TOKEN_COMMA)
+    printf("token.type: %d\n", next_token.type);
+    if (next_token.type == TOKEN_COMMA)
     {
         return parseParameters(funcParams);
     }
 
-    if (token.type == TOKEN_RIGHT_PARENTHESIS)
+
+    if (next_token.type == TOKEN_RIGHT_PARENTHESIS)
     {
+        printf("right parenthesis\n");
         return true;
     }
 
@@ -1695,6 +1702,7 @@ bool parseIfStatement(TreeNode *node, bool isWhile)
     }
 
     inBlock++;
+    local_table = NULL;
     if (!parse(body))
     {
         printf("Error: parse body\n");
@@ -1828,16 +1836,16 @@ bool parseParameter(TreeNode *funcParamList, parameter_list_t *param_list)
         return false;
     }
 
-    if (!skipEmptyLines(&token))
-    {
-        return false;
-    }
-
     // vložení názvu parametru do tabulky symbolů
     if (move_buffer(&param->name, token.source_value) != ERR_CODE_OK)
     {
         return false;
     }
+    if (!skipEmptyLines(&token))
+    {
+        return false;
+    }
+
 
     if (token.type != TOKEN_COLON)
     {
@@ -1890,6 +1898,31 @@ bool parseParameter(TreeNode *funcParamList, parameter_list_t *param_list)
     }
 
     return false;
+}
+
+
+
+error_code_t fill_local_params(local_symtable* local_sym_table, parameter_list_t* param_list){
+    if(local_sym_table == NULL || param_list == NULL){
+        return ERR_INTERNAL;
+    }
+
+    first(param_list);
+    while(parameter_list_active(param_list)){
+        function_parameter_t* param = parameter_list_get_active(param_list);
+        symtable_local_data_t* data = create_local_data(SYM_VAR, param->data_type, param->nilable, true, NULL);
+        if(data == NULL){
+            return ERR_INTERNAL;
+        }
+
+        if(symtable_insert(local_sym_table, param->name, data, LOCAL_TABLE) != ERR_CODE_ST_OK){
+            return ERR_INTERNAL;
+        }
+
+        parameter_list_next(param_list);
+    }
+
+    return ERR_NONE;
 }
 
 bool parseParamList(TreeNode *funcParamList, parameter_list_t *param_list)
@@ -2084,8 +2117,36 @@ bool parseFuncDeclaration(TreeNode *node)
     if (l_brace)
     {
         TreeNode *funcBody = createNewNode(node, NODE_BODY, false);
+        bool push = false;
         inBlock++;
         inFunction = true;
+        if(local_table == NULL){
+            local_table = create_local_symtable(ST_LOCAL_INIT_SIZE);
+
+            if(local_table == NULL){
+                error = ERR_INTERNAL;
+                return false;
+            }
+            push = true;
+
+        }
+    
+
+        error_code_t e = fill_local_params(local_table, param_list);
+        if(e != ERR_NONE){
+            error = e;
+            return false;
+        }
+
+
+        if(push){
+            if(stack_push(stack_of_local_tables, local_table) != STACK_SUCCESS){
+                error = ERR_INTERNAL;
+                return false;
+            }
+        }
+        
+
         if (!parse(funcBody))
         {
             return false;
@@ -2205,27 +2266,16 @@ bool parse(TreeNode *startNeterminal)
         case TOKEN_RIGHT_BRACE:
             if (inBlock)
             {
+                
 
                 nextNeterminal->type = NODE_BODY_END;
                 nextNeterminal->terminal = true;
+                
+                if(!inFunction){
+                    stack_pop(stack_of_local_tables); // pop local table (since we are leaving the block) (unless we are in a function, then its popped in parseFuncDeclaration)
+                    local_table = NULL; // set local table to NULL (since we are leaving the block)
 
-                // if (startNeterminal->numChildren == 1)
-                // {
-                //     nextNeterminal->type = NODE_BODY_END;
-                //     nextNeterminal->terminal = true;
-                // }
-                // else
-                // {
-                //     if (createNewNode(nextNeterminal, NODE_BODY_END, true) == NULL)
-                //     {
-                //         return false;
-                //     }
-                //     // free(nextNeterminal);
-                //     // startNeterminal->numChildren--;
-                //     // startNeterminal->children[startNeterminal->numChildren] = NULL;
-                // }
-                // stack_pop(stack_of_local_tables); // pop local table (since we are leaving the block)
-                local_table = NULL; // set local table to NULL (since we are leaving the block)
+                }
                 return true;
             }
             return false;
@@ -2251,7 +2301,6 @@ bool parse(TreeNode *startNeterminal)
                 if (semantic_result != ERR_NONE)
                 {
                     error = semantic_result;
-                    printf("xd\n");
                     return false;
                 }
 
@@ -2362,6 +2411,7 @@ bool parse(TreeNode *startNeterminal)
                 return false;
             }
             nextNeterminal->type = NODE_DECLARATION_FUNCTION;
+            
 
             semantic_result = semantic(nextNeterminal);
 
@@ -2372,6 +2422,9 @@ bool parse(TreeNode *startNeterminal)
                 printf("xd\n");
                 return false;
             }
+
+            stack_pop(stack_of_local_tables); // pop local table (since we are leaving the function)
+            local_table = NULL; // set local table to NULL (since we are leaving the function)
 
             token = get_token(file);
 
@@ -2416,40 +2469,40 @@ bool parse(TreeNode *startNeterminal)
 
 void print_global_table(global_symtable *table)
 {
-    printf("Global table:");
-    if (get_size(table) == 0)
-    {
-        printf(" is empty\n");
-        return;
-    }
+    // printf("Global table:");
+    // if (get_size(table) == 0)
+    // {
+    //     printf(" is empty\n");
+    //     return;
+    // }
 
-    printf("\n");
-    for (int i = 0; i < table->capacity; i++)
-    {
-        symtable_record_global_t *item = table->records[i];
-        if (item != NULL)
-        {
-            printf("Record: ");
-            printf("data type: %d, symbol type %d, nilable: %d, defined %d, key %s, value %p\n", item->data->data_type, item->data->symbol_type, item->data->nilable, item->data->defined, item->key, item->data->value);
-            printf("Parameters:\n");
-            parameter_list_t *list = item->data->parameters;
-            if (list == NULL)
-                continue;
+    // printf("\n");
+    // for (int i = 0; i < table->capacity; i++)
+    // {
+    //     symtable_record_global_t *item = table->records[i];
+    //     if (item != NULL)
+    //     {
+    //         printf("Record: ");
+    //         printf("data type: %d, symbol type %d, nilable: %d, defined %d, key %s, value %p\n", item->data->data_type, item->data->symbol_type, item->data->nilable, item->data->defined, item->key, item->data->value);
+    //         printf("Parameters:\n");
+    //         parameter_list_t *list = item->data->parameters;
+    //         if (list == NULL)
+    //             continue;
 
-            if(list->size == SIZE_MAX)
-                continue;
+    //         if(list->size == SIZE_MAX)
+    //             continue;
 
-            first(list);
-            for (int i = 0; i < parameter_list_get_size(list); i++)
-            {
-                function_parameter_t *param = parameter_list_get_active(list);
-                printf("label: %s, name: %s, data type: %d, nilable: %d\n", param->label, param->name, param->data_type, param->nilable);
+    //         first(list);
+    //         for (int i = 0; i < parameter_list_get_size(list); i++)
+    //         {
+    //             function_parameter_t *param = parameter_list_get_active(list);
+    //             printf("label: %s, name: %s, data type: %d, nilable: %d\n", param->label, param->name, param->data_type, param->nilable);
 
-                parameter_list_next(list);
-            }
-            printf("\n");
-        }
-    }
+    //             parameter_list_next(list);
+    //         }
+    //         printf("\n");
+    //     }
+    // }
 }
 
 void print_local_table(local_symtable *table)
