@@ -20,6 +20,7 @@ extern FILE *file;
 extern global_symtable *global_table;
 extern Stack* stack_of_local_tables;
 
+#define NODE_CHILDREN_ARRAY_CAPACITY 8 // minimální počet, po kterých se bude realokovat pole dětí uzlu
 
 typedef enum NodeType {
     NODE_PROGRAM,

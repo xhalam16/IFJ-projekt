@@ -748,6 +748,7 @@ error_code_t semantic_func_declaration(TreeNode* node){
         }
     }else{
         // the function is not in the global table, there must be an error from the parser
+
         return ERR_INTERNAL;
     }
 
@@ -797,6 +798,7 @@ error_code_t semantic_declaration(TreeNode* node, Stack* local_symtables){
     *nil = DATA_NIL;
 
     symtable_record_local_t* record = check_stack(local_symtables, identifier->label);
+
     if(record == NULL){
         // we did not find the identifier in the local tables, we need to check the global table
         symtable_record_global_t *record_global = symtable_search(global_table, identifier->label, GLOBAL_TABLE);
