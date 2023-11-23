@@ -1184,7 +1184,12 @@ token_t peek_token(FILE *source_file)
 //     while ((token = get_token(file)).type != TOKEN_EOF)
 //     {
 //         printf("%s\n", token_type_string_values[token.type]);
+//         free_token(token);
 //     }
+
+//     free_token(token);
+
+
 
 //     fclose(file);
 // }

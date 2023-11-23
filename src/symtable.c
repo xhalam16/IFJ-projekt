@@ -360,24 +360,53 @@ void symtable_delete(void *table, char *key, table_type_t type){
     }
 }
 
-
-void symtable_free(void *table){
-    if(table == NULL){
-        return;
-    }
-
-    if(((global_symtable *)table)->records != NULL){
+void symtable_clear(void* table, table_type_t type){
+    if(type == GLOBAL_TABLE){
         for(int i = 0; i < get_capacity(table); i++){
             symtable_record_global_t *record = ((global_symtable *)table)->records[i];
             if(record != NULL){
+                parameter_list_free(record->data->parameters);
+                if(record->data->value != NULL){
+                    free(record->data->value);
+                }
+
                 free(record->data);
                 free(record);
             }
         }
-        free(((global_symtable *)table)->records);
+        ((global_symtable *)table)->size = 0;
+    } else if(type == LOCAL_TABLE){
+        for(int i = 0; i < get_capacity(table); i++){
+            symtable_record_local_t *record = ((local_symtable *)table)->records[i];
+            if(record != NULL){
+                if(record->data->value != NULL){
+                    free(record->data->value);
+                }
+                free(record->data);
+                free(record);
+            }
+        }
+        ((local_symtable *)table)->size = 0;
     }
+}
+
+
+void symtable_free(void *table, table_type_t type){
+    if(table == NULL){
+        return;
+    }
+
+    symtable_clear(table, type);
+    if(type == GLOBAL_TABLE){
+        free(((global_symtable *)table)->records);
+    }else if(type == LOCAL_TABLE){
+        free(((local_symtable *)table)->records);
+    }
+    
     free(table);
 }
+
+
 
 
 //********************PARAMETER LIST*************************
@@ -423,16 +452,25 @@ function_parameter_t *parameter_list_get_active(parameter_list_t *list){
     return list->active;
 }
 
+void first(parameter_list_t *list){
+    if(list == NULL){
+        return;
+    }
+
+    list->active = list->first;
+}
+
+
 void parameter_list_free(parameter_list_t *list){
     if(list == NULL){
         return;
     }
 
-    function_parameter_t *parameter = list->first;
-    while(parameter != NULL){
-        function_parameter_t *next = parameter->next;
-        free(parameter);
-        parameter = next;
+    first(list);
+    while(parameter_list_active(list)){
+        function_parameter_t *param = parameter_list_get_active(list);
+        free_param(param);
+        parameter_list_next(list);
     }
     free(list);
 }
@@ -450,18 +488,11 @@ void free_param(function_parameter_t *param){
     if(param == NULL){
         return;
     }
-    free(param->name);
-    free(param->label);
+    // free(param->name);
+    // free(param->label);
     free(param);
 }
 
-void first(parameter_list_t *list){
-    if(list == NULL){
-        return;
-    }
-
-    list->active = list->first;
-}
 
 size_t parameter_list_get_size(parameter_list_t *list){
     if(list == NULL){

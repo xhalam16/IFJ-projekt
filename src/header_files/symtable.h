@@ -355,4 +355,4 @@ void symtable_delete(void *table, char *key, table_type_t type);
  * Frees symtable pointed to by table
  * @param table - pointer to table
  */
-void symtable_free(void *table);
+void symtable_free(void *table, table_type_t type);

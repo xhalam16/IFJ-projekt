@@ -872,6 +872,116 @@ if let x{
 
 }' 4 "wrong param type"
 
+run_test '
+func foo(_ param : String) -> String{
+    return param
+}
+
+let x : String = "45"
+if let x{
+    foo(x)
+}else{
+
+}' 9 "wrong guard let typing"
+
+run_test '
+    func foo() -> Int?{
+        let x : Int? = 3
+        if let x{
+            return x!
+        }else{
+            return nil
+        }
+    }
+' 7 "unwrapping in guard let - wrong"
+
+
+
+
+run_test '
+func foo(_ param : String, x param2 : Int){
+    return
+}
+
+foo("string", x: 3)' 0 "correct function call literals"
+
+
+
+run_test '
+func foo(_ param : String, x param2 : Int){
+    return
+}
+
+foo("string", 3)' 4 "correct literals missing label"
+
+
+run_test '
+func foo(_ param : String, x param2 : Int){
+    return
+}
+let x : String? = "abcd"
+let y : Int? = 3
+
+foo(x, y)' 4 "correct variables missing label"
+
+
+run_test '
+func foo(_ param : String, x param2 : Int){
+    return
+}
+let x : String? = "abcd"
+let y : Int? = 3
+
+foo(x, x: y)' 0 "correct function call variables"
+
+run_test '
+func foo(_ param : String, x param2 : Int){
+    return
+}
+let x : String = "abcd"
+let y : Int = 3
+
+foo(x, x: y)' 0 "correct function call variables"
+
+
+
+
+run_test '
+func foo(_ param : String, x param2 : Int){
+    return
+}
+
+foo("string", x: "string")' 4 "wrong function call"
+
+run_test '
+func foo(_ param : String, x param2 : Int){
+    return
+}
+
+foo("string", x: 4, 3)' 4 "wrong param count"
+
+
+run_test '
+func foo(_ param : String, x param2 : Int){
+    return
+}
+
+foo(y: "string", x: 4, 3)' 4 "label where it should not be"
+
+run_test '
+func foo(_ param : String, x param2 : Int){
+    return
+}
+
+foo(y: "string", 4)' 4 "label where it should not be and missing label"
+
+
+run_test '
+let x : Int? = nil
+let y : String = "abcd"
+    
+let z = x ?? y
+' 7 "coallescing wrong types"
 
 
 
