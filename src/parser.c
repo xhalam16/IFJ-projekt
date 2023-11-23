@@ -185,8 +185,8 @@ bool fill_global_builtin_functions(global_symtable *table)
         "readInt",
         "readDouble",
         "readString",
-        "int2double",
-        "double2int",
+        "Int2Double",
+        "Double2Int",
         "length",
         "substring",
         "ord",
@@ -1514,7 +1514,6 @@ bool parseDeclaration(TreeNode *neterminal, bool constant)
 {
     symtable_local_data_t *local_data;
     symtable_global_data_t *global_data;
-
     // create local symtable if there is not currently one
     bool push = false;
     if (local_table == NULL)
@@ -1654,6 +1653,17 @@ bool parseDeclaration(TreeNode *neterminal, bool constant)
                     return false;
                 }
             }
+
+
+            if (push && inBlock)
+            {
+                if (stack_push(stack_of_local_tables, local_table) != STACK_SUCCESS)
+                {
+                    error = ERR_INTERNAL;
+                    return false;
+                }
+            }
+
 
             return true;
         }
@@ -1826,6 +1836,11 @@ bool parseIfStatement(TreeNode *node, bool isWhile)
         {
             return false;
         }
+
+        // todo sem guard let variable zmena v tabulce na nilable true a pak pridani do else body_end
+
+
+
 
         TreeNode *id = createNewNode(ifCond, NODE_IDENTIFIER, true);
         if (id == NULL)
@@ -2131,6 +2146,7 @@ bool parseFuncDeclaration(TreeNode *node)
         return false;
     }
 
+
     TreeNode *funcName = createNewNode(node, NODE_IDENTIFIER, true);
     if (funcName == NULL)
     {
@@ -2146,6 +2162,7 @@ bool parseFuncDeclaration(TreeNode *node)
     }
 
     // vložení názvu funkce do tabulky symbolů
+
 
     if (move_buffer(&key, bf) != ERR_CODE_OK)
     {
@@ -2264,8 +2281,10 @@ bool parseFuncDeclaration(TreeNode *node)
 
     int ret = symtable_insert(global_table, key, data, GLOBAL_TABLE);
 
-    if (ret != ERR_CODE_ST_OK)
+    if (ret != ERR_CODE_ST_OK){
+        error = ERR_INTERNAL;
         return false;
+    }
 
     if (l_brace)
     {
@@ -2421,9 +2440,31 @@ bool parse(TreeNode *startNeterminal)
         case TOKEN_RIGHT_BRACE:
             if (inBlock)
             {
-
+                
                 nextNeterminal->type = NODE_BODY_END;
                 nextNeterminal->terminal = true;
+                
+                if(nextNeterminal->label != NULL){
+                    // the label now contains key to the local table (or global table if we are in the global scope)
+                    // we need to change nilable to false since the variable is now not guarded
+                    char* key = nextNeterminal->label;
+                    symtable_record_local_t* record = check_stack(stack_of_local_tables, key);
+
+                    if(record == NULL){
+
+                        symtable_record_global_t* record_global = symtable_search(global_table, key, GLOBAL_TABLE);
+                        if(record_global == NULL){
+                            error = ERR_SEMANTIC_DEFINITION;
+                            return false;
+                        }
+
+                        record_global->data->nilable = true;
+
+                    }else{
+                        record->data->nilable = true;
+                    }
+
+                }
 
                 if (!inFunction)
                 {
@@ -2599,8 +2640,11 @@ bool parse(TreeNode *startNeterminal)
                 return false;
             }
 
+            Stack_Frame* top_frame = stack_top(stack_of_local_tables);
             stack_pop(stack_of_local_tables); // pop local table (since we are leaving the function)
-            local_table = NULL;               // set local table to NULL (since we are leaving the function)
+            symtable_free(top_frame->data, LOCAL_TABLE);
+            local_table = NULL; // set local table to NULL (since we are leaving the function)
+
 
             token = get_token(file);
 
@@ -2622,6 +2666,7 @@ bool parse(TreeNode *startNeterminal)
             }
 
             break;
+
         case TOKEN_UNKNOWN:
 
             error = ERR_LEX_ANALYSIS;
@@ -2629,6 +2674,8 @@ bool parse(TreeNode *startNeterminal)
         case TOKEN_ERROR:
             error = ERR_INTERNAL;
             return false;
+
+        
         default:
 
             return false;
@@ -2841,6 +2888,8 @@ int main(void)
     printTree(startNeterminal, ar, 0, 0);
 
     dispose(startNeterminal);
+    symtable_free(global_table, GLOBAL_TABLE);
+    stack_free(stack_of_local_tables);
 
     if (fclose(file) == EOF)
     {
