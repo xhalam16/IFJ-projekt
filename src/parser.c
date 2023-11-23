@@ -462,10 +462,10 @@ void dispose(TreeNode *parseTree)
         return;
     }
 
-    if (parseTree->label != NULL)
-    {
-        free(parseTree->label);
-    }
+    // if (parseTree->label != NULL)
+    // {
+    //     free(parseTree->label);
+    // }
     if (parseTree->local_symtable != NULL)
     {
         free(parseTree->local_symtable);
