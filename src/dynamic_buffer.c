@@ -92,13 +92,15 @@ int move_buffer(char** dest, DynamicBuffer* src){
         if(*dest == NULL){
             return ERR_CODE_ALLOC;
         }
+    }else{
+        if(strlen(*dest) < src->size){
+            *dest = realloc(*dest, src->size * sizeof(char) + 1);
+            if(*dest == NULL){
+                return ERR_CODE_ALLOC;
+            }
+        }
     }
 
-    if (sizeof(*dest) < src->size)
-    {
-        /* code */
-    }
-    
 
     strcpy(*dest, src->buffer);
     buffer_clear(src);

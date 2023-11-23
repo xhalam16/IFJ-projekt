@@ -1369,6 +1369,7 @@ bool parseParameters(TreeNode *funcParams)
         funcParamValue->token_value = token.value;
     }
 
+    // free_token(next);
     // if (!skipEmptyLines(&token))
     // {
     //     return false;
@@ -1498,7 +1499,7 @@ bool parseDeclaration(TreeNode *neterminal, bool constant)
     symtable_global_data_t *global_data;
     // create local symtable if there is not currently one
     bool push = false;
-    if (local_table == NULL)
+    if (local_table == NULL && inBlock)
     {
         local_table = create_local_symtable(ST_LOCAL_INIT_SIZE);
 
@@ -1818,6 +1819,60 @@ bool parseIfStatement(TreeNode *node, bool isWhile)
         }
 
         // todo sem guard let variable zmena v tabulce na nilable true a pak pridani do else body_end
+        char* key = token.source_value->buffer;
+        symtable_record_local_t *local_record = check_stack(stack_of_local_tables, key);
+        if(local_record == NULL){
+            // we need to check global table
+            symtable_record_global_t *global_record = symtable_search(global_table, key, GLOBAL_TABLE);
+
+            if(global_record == NULL){
+                // variable not found
+                error = ERR_SEMANTIC_NOT_DEFINED;
+                return false;
+            }
+
+             if(global_record->data->symbol_type != SYM_CONSTANT){
+                error = ERR_SEMANTIC_OTHERS;
+                return false;
+            }
+
+            if(!global_record->data->defined){
+                error = ERR_SEMANTIC_NOT_DEFINED;
+                return false;
+            }
+
+            if(!global_record->data->nilable){
+                error = ERR_SEMANTIC_OTHERS;
+                return false;
+            }
+
+            global_record->data->nilable = false;
+
+        }else if(local_record != NULL){
+            if(local_record->data->symbol_type != SYM_CONSTANT){
+                error = ERR_SEMANTIC_OTHERS;
+                return false;
+            }
+
+            if(!local_record->data->defined){
+                error = ERR_SEMANTIC_NOT_DEFINED;
+                return false;
+            }
+
+            if(!local_record->data->nilable){
+                error = ERR_SEMANTIC_OTHERS;
+                return false;
+            }
+
+
+            local_record->data->nilable = false;
+        }else{
+            error = ERR_SEMANTIC_NOT_DEFINED;
+            return false;
+        }
+
+
+
 
         TreeNode *id = createNewNode(ifCond, NODE_IDENTIFIER, true);
         if (id == NULL)
@@ -2425,6 +2480,7 @@ bool parse(TreeNode *startNeterminal)
                     // the label now contains key to the local table (or global table if we are in the global scope)
                     // we need to change nilable to false since the variable is now not guarded
                     char *key = nextNeterminal->label;
+                    printf("ending block key: %s\n", key);
                     symtable_record_local_t *record = check_stack(stack_of_local_tables, key);
 
                     if (record == NULL)
