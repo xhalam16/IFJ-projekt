@@ -14,7 +14,7 @@ unsigned paramId = 0;
 unsigned varsId = 0;
 int res_index = 0;
 
-void setGlobalVars()
+void setGlobalVars(void)
 {
     if (f != NULL)
     {
