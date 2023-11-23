@@ -28,3 +28,5 @@ void free_buffer(DynamicBuffer* buffer);
 
 int move_buffer(char** dest, DynamicBuffer* src);
 
+int move_buffer_to_buffer(DynamicBuffer* dest, DynamicBuffer* src);
+

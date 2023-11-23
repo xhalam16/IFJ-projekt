@@ -1,9 +1,11 @@
 #include "header_files/dynamic_buffer.h" 
+#include <stdio.h>
 
 int init_buffer(DynamicBuffer* buffer, size_t capacity){
     buffer->capacity = capacity;
     buffer->size = 0;
     buffer->buffer = malloc(capacity * sizeof(char));
+    
     if(buffer->buffer == NULL){
         return ERR_CODE_ALLOC;
     }
@@ -94,10 +96,34 @@ int move_buffer(char** dest, DynamicBuffer* src){
         }
     }
 
+    if (sizeof(*dest) < src->size)
+    {
+        /* code */
+    }
+    
 
     strcpy(*dest, src->buffer);
     buffer_clear(src);
     return ERR_CODE_OK;
 }
 
+int move_buffer_to_buffer(DynamicBuffer* dest, DynamicBuffer* src){
+
+    
+
+    if(dest->capacity < src->size){
+        if(resize_buffer(dest, src->size) != ERR_CODE_OK){
+            return ERR_CODE_ALLOC;
+        }
+    }
+    printf("dest->capacity: %ld\n", dest->capacity);
+    printf("src->size: %ld\n", src->size);
+
+    printf("dest->buffer: %s\n", dest->buffer);
+
+    memcpy(dest->buffer, src->buffer, src->size + 1);
+    
+    dest->size = src->size;
+    return ERR_CODE_OK;
+}
 
