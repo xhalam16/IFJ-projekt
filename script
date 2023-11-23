@@ -1038,4 +1038,31 @@ if let inp {
 write("Vysledek je: ", vysl)
 write("Chyba pri nacitani celeho cisla!")' 0 "example 8.2"
 
+run_test 'var y = "String"
+if y > "XD" {
+    y = "xd"
+} else {
+
+}' 0 "string comparison"
+
+run_test 'var a : Int = 5
+var b : Int = 10
+var c : Int = 15
+var d : Int = 20
+var e : Int
+e = a - (b + c) + (d)' 0 "int expression"
+
+run_test 'func xd(_ a : Int, with param : String) -> Int {
+    return 10
+}
+while 4 > 10 {
+    var ds = xd(10, with: "cau")
+
+    if ds < 8 {
+         ds = 8
+    } else {
+         ds = xd(ds, with: "sracka")
+    }
+}' 0 "function call"
+
 generate_test_summary

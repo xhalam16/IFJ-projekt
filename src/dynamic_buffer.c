@@ -4,13 +4,11 @@
 int init_buffer(DynamicBuffer* buffer, size_t capacity){
     buffer->capacity = capacity;
     buffer->size = 0;
-    buffer->buffer = malloc(capacity * sizeof(char));
+    buffer->buffer = calloc(capacity, sizeof(char)); // zatemňování: -5 bodů standardní ceník už dlouhá léta
     
     if(buffer->buffer == NULL){
         return ERR_CODE_ALLOC;
     }
-
-
 
     return ERR_CODE_OK;
 }
@@ -109,17 +107,11 @@ int move_buffer(char** dest, DynamicBuffer* src){
 
 int move_buffer_to_buffer(DynamicBuffer* dest, DynamicBuffer* src){
 
-    
-
     if(dest->capacity < src->size){
         if(resize_buffer(dest, src->size) != ERR_CODE_OK){
             return ERR_CODE_ALLOC;
         }
     }
-    printf("dest->capacity: %ld\n", dest->capacity);
-    printf("src->size: %ld\n", src->size);
-
-    printf("dest->buffer: %s\n", dest->buffer);
 
     memcpy(dest->buffer, src->buffer, src->size + 1);
     

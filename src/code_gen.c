@@ -3,12 +3,16 @@
 #include "header_files/code_gen.h"
 #include "header_files/stack.h"
 
+TreeNode *is_terminal(TreeNode *node);
+
+char *recognize_type(TreeNode *node, bool local);
+
 FILE *f = NULL;
 unsigned labelId = 0;
 unsigned retvalId = 0;
 unsigned paramId = 0;
 unsigned varsId = 0;
-int tempResIndex = 0;
+int res_index = 0;
 
 void setGlobalVars()
 {
@@ -32,6 +36,8 @@ void generateFuncCall(TreeNode *node, bool local)
 
     fprintf(f, "CREATEFRAME\n");
 
+    char *frame = local ? "LF" : "GF";
+
     if (node->children[1]->children[0]->type != NODE_EPSILON)
     {
         for (unsigned i = 0; i < node->children[1]->numChildren; i++)
@@ -45,20 +51,21 @@ void generateFuncCall(TreeNode *node, bool local)
             {
                 paramValue = node->children[1]->children[i]->children[1];
             }
+
             fprintf(f, "DEFVAR TF@%%%d\n", i);
             switch (paramValue->type)
             {
             case NODE_INT:
-                fprintf(f, "MOVE TF@%%%d int@%d\n", i, node->children[1]->children[i]->token_value.int_value);
+                fprintf(f, "MOVE TF@%%%d int@%d\n", i, paramValue->token_value.int_value);
                 break;
             case NODE_DOUBLE:
-                fprintf(f, "MOVE TF@%%%d float@%a\n", i, node->children[1]->children[i]->token_value.double_value);
+                fprintf(f, "MOVE TF@%%%d float@%a\n", i, paramValue->token_value.double_value);
                 break;
             case NODE_STRING:
-                fprintf(f, "MOVE TF@%%%d string@%s\n", i, node->children[1]->children[i]->token_value.string_value->buffer);
+                fprintf(f, "MOVE TF@%%%d string@%s\n", i, paramValue->label);
                 break;
             case NODE_IDENTIFIER:
-                fprintf(f, "MOVE TF@%%%d LF@%s\n", i, paramValue->label);
+                fprintf(f, "MOVE TF@%%%d %s@%s\n", i, frame, paramValue->label);
                 break;
             default:
                 break;
@@ -86,18 +93,24 @@ void generateCommand(TreeNode *node)
         generateFuncCall(node, true);
         break;
     case NODE_RETURN:
+        
         generateReturn(node->children[0]);
         break;
     case NODE_ASSIGN:
-        generateAssign(node, true);
+        if (node->children[0]->type == NODE_DECLARATION)
+        {
+            generateDeclaration(node, true);
+        }
+        else
+        {
+            generateAssign(node, true);
+        }
         break;
     case NODE_IF_STATEMENT:
         generateIf(node, true);
         break;
     case NODE_WHILE:
         generateWhile(node, true);
-    case NODE_DECLARATION:
-        generateDeclaration(node, true);
     case NODE_EXPRESSION:
         generateExpression(node, true);
         break;
@@ -115,7 +128,7 @@ void generateFuncDeclaration(TreeNode *node, bool local)
     fprintf(f, "PUSHFRAME\n");
 
     if (node->children[3]->type != NODE_EPSILON) /**/
-        fprintf(f, "DEFVAR LF@%%retval%d\n", retvalId++);
+        fprintf(f, "DEFVAR LF@%%retval_%d\n", retvalId);
 
     // if (node->children[2]->children[0]->type != NODE_EPSILON)
     // {
@@ -131,6 +144,7 @@ void generateFuncDeclaration(TreeNode *node, bool local)
     {
         for (unsigned i = 0; i < node->children[4]->numChildren; i++) // procházíme příkazy
         {
+
             generateCommand(node->children[4]->children[i]); // generujeme příkaz
         }
     }
@@ -138,100 +152,156 @@ void generateFuncDeclaration(TreeNode *node, bool local)
     fprintf(f, "POPFRAME\n");                                // odstraníme rámec
     fprintf(f, "RETURN\n");                                  // vrátíme se z funkce
     fprintf(f, "LABEL $end$%s\n", node->children[1]->label); // označíme konec funkce
-    retvalId--;
 }
 
 void generateReturn(TreeNode *node)
 {
     setGlobalVars();
 
-    if (node->children[0]->type != NODE_EPSILON)
+    TreeNode *tree = is_terminal(node);
+
+    char *type;
+    char *result;
+
+    
+    if (node->type != NODE_EPSILON)
     {
-        fprintf(f, "MOVE LF@%%retval%d LF@%s\n", retvalId, node->children[0]->label);
+
+        if (tree != NULL)
+        {
+            type = recognize_type(tree, true);
+            result = tree->label;
+        }
+        else
+        {
+            generateExpression(node, true);
+            result = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
+            if (result == NULL) // Kontrola alokace paměti
+            {
+                return;
+            }
+            sprintf(result, "$res_%d", ++res_index);
+            type = "LF";
+        }
+
+
+        fprintf(f, "MOVE LF@%%retval_%d %s@%s\n", retvalId, type, result);
     }
+
+    
 
     // případně generateExpression()
 }
 
-void generateAssign(TreeNode *node, bool local)
-{
-    setGlobalVars();
-
-    char *frame = local ? "LF" : "GF";
-
-    if (node->children[0]->type == NODE_DECLARATION)
-    {
-        generateDeclaration(node->children[0], local);
-    }
-
-    generateExpression(node->children[1], local);
-    // fprintf(file, "MOVE %s@%s %s\n", frame, node->children[0]->label, node->children[1]->label);
-}
-
 /* Pomocná funkce, která rozezná binární operaci a vrací string odpovídající instrukci dané operace */
-char *recognize_bin_operation(TreeNode *node)
+int recognize_bin_operation(TreeNode *node, char **operation_string)
 {
     switch (node->type)
     {
     case NODE_OPERATOR_ADD:
-        return "ADD";
+        *operation_string = "ADD";
+        return NODE_OPERATOR_ADD;
     case NODE_OPERATOR_SUB:
-        return "SUB";
+        *operation_string = "SUB";
+        return NODE_OPERATOR_SUB;
     case NODE_OPERATOR_MUL:
-        return "MUL";
+        *operation_string = "MUL";
+        return NODE_OPERATOR_MUL;
     case NODE_OPERATOR_DIV:
-        return "DIV";
+        *operation_string = "DIV";
+        return NODE_OPERATOR_DIV;
     case NODE_OPERATOR_BELOW:
-        return "LT";
+        *operation_string = "LT";
+        return NODE_OPERATOR_BELOW;
     case NODE_OPERATOR_ABOVE:
-        return "GT";
+        *operation_string = "GT";
+        return NODE_OPERATOR_ABOVE;
     case NODE_OPERATOR_BEQ:
-        return "LET";
+        *operation_string = "LET";
+        return NODE_OPERATOR_BEQ;
     case NODE_OPERATOR_AEQ:
-        return "GET";
+        *operation_string = "GET";
+        return NODE_OPERATOR_AEQ;
     case NODE_OPERATOR_EQUAL:
-        return "EQ";
+        *operation_string = "EQ";
+        return NODE_OPERATOR_EQUAL;
     case NODE_OPERATOR_NEQ:
-        return "NEQ";
+        *operation_string = "NEQ";
+        return NODE_OPERATOR_NEQ;
     case NODE_OPERATOR_NIL_COALESCING:
-        return "COAL";
+        *operation_string = "COAL";
+        return NODE_OPERATOR_NIL_COALESCING;
     default:
         break;
     }
 
-    return NULL;
+    return 0;
 }
 
 char *recognize_type(TreeNode *node, bool local)
 {
-    switch (node->type)
+    /* Pokud není uzel NULL, urči pro terminál, zda se jedná o konstantu, eventuálně o jakou a vrať její typ ve formě stringu*/
+    if (node != NULL)
     {
-    case NODE_INT:
-        node->label = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
-        sprintf(node->label, "%d", node->token_value.int_value);
-        return "int";
-    case NODE_DOUBLE:
-        node->label = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
-        sprintf(node->label, "%f", node->token_value.double_value);
-        return "float";
-    case NODE_STRING:
-        node->label = node->token_value.string_value->buffer;
-
-        return "string";
-    case NODE_NIL:
-        node->label = "nil";
-        return "nil";
-    default:
-        break;
+        switch (node->type)
+        {
+        case NODE_INT:
+            node->label = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
+            if (node->label == NULL) // Kontrola alokace paměti
+            {
+                return NULL;
+            }
+            sprintf(node->label, "%d", node->token_value.int_value);
+            return "int";
+        case NODE_DOUBLE:
+            node->label = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
+            if (node->label == NULL) // Kontrola alokace paměti
+            {
+                return NULL;
+            }
+            sprintf(node->label, "%a", node->token_value.double_value);
+            return "float";
+        case NODE_STRING:
+            return "string"; // hodnota literálu je už uložena v atributu label díky jiné funkci, takže není potřeba ji přesoubvat
+        case NODE_NIL:
+            node->label = "nil";
+            return "nil";
+        default:
+            break;
+        }
     }
 
+    /* Pokud je parametr node NULL nebo se jedná o terminál typu identifikátor (proměnná) */
     return local ? "LF" : "GF";
+}
+
+/* Funkce vrací ukazatel na terminál na terminální uzel, pokud je výraz terminální */
+TreeNode *is_terminal(TreeNode *node)
+{
+    /* Pokud má uzel pouze jedno dítě, jedná se o terminální výraz a vrací své dítě */
+    if (node->numChildren == 1)
+    {
+        return node->children[0];
+    }
+
+    /* Pokud má uzel dva potomky, jedná se o výraz typu expr! a kontrolujeme proto, zda je terminál expr, tedy první dítě */
+    if (node->numChildren == 2)
+    {
+        return is_terminal(node->children[0]);
+    }
+
+    /* Pokud má uzel tři potomky a zároveň je typu (expr), kontrolujeme, zda je terminál expr */
+    if (node->numChildren == 3 && node->children[1]->type == NODE_EXPRESSION)
+    {
+        return is_terminal(node->children[1]);
+    }
+
+    /**-*/ return NULL;
 }
 
 /* DŮLEŽITÉ - VELMI DŮLEŽITÉ */
 int generateExpression(TreeNode *node, bool local)
 {
-    
     setGlobalVars();
 
     char *frame = local ? "LF" : "GF";
@@ -240,7 +310,7 @@ int generateExpression(TreeNode *node, bool local)
     if (node->numChildren == 1)
     {
         /* Pokud jsme došli k terminálu, vrať pouze index, není potřeba ho zvyšovat kvůli terminálům, protože použijeme label terminálu a vynoř se z rekurze */
-        // return tempResIndex;
+        // return res_index;
     }
     /* Expr = expr! */
     else if (node->numChildren == 2)
@@ -254,72 +324,86 @@ int generateExpression(TreeNode *node, bool local)
         /* Expr = (expr) */
         if (node->children[0]->type == NODE_LEFT_PARENTHESIS)
         {
-            printf("meeesiiii\n\n\n\n\n\n\n\n\n\n");
             /* Zpracuj expression, který je na indexu 1 a nakonec vrať poslední použitoui hodnotu indexu id pomocných proměnných */
             return generateExpression(node->children[1], local);
         }
         /* Předpokládáme, že první a třetí děti jsou operandy */
         else
         {
-            char *operation = recognize_bin_operation(node->children[1]);
+            char *operation = NULL;
+            int operation_id = recognize_bin_operation(node->children[1], &operation);
 
-            /* Rekurzivně zpracuj nejdříve levý podtrom výrazu a poté pravý podstrom výrazu */
-            int a = generateExpression(node->children[0], local);
-            int b = generateExpression(node->children[2], local);
-
-            /* Zvyš index counteru pro identifikátory pomocných proměnných pro mezivýsledky */
-            tempResIndex++;
-
-            /* Do left_child a right_child ulož hodnoty labelů synů synů pro případ, že půjde o terminály. V tom případě půjde o labely proměnných */
-            char *left_child = node->children[0]->children[0]->label;
-            char *right_child = node->children[2]->children[0]->label;
-
-            // int a = generateExpression(node->children[0], local);
-            // int b = generateExpression(node->children[2], local);
-            // tempResIndex++;
-
-            // char *leftChild = "";
-            // char *rightChild = "";
-
-            char *typeA = recognize_type(node->children[0]->children[0], local);
-            char *typeB = recognize_type(node->children[2]->children[0], local);
-            // leftChild = node->children[0]->children[0]->label;
-            // rightChild = node->children[2]->children[0]->label;
-
-            // //char *leftChild = recognize_type(node->children[0]->children[0], local);
-            // //char *rightChild = recognize_type(node->children[0]->children[0], local);
-
-            if (!node->children[0]->children[0]->terminal)
+            /* Pokud je operace sčítání, odčítání, násobení nebo dělení */
+            if ((operation_id >= NODE_OPERATOR_ADD && operation_id <= NODE_OPERATOR_DIV) || operation_id == NODE_OPERATOR_BELOW || operation_id == NODE_OPERATOR_ABOVE)
             {
-                /* Pokud není dítě terminál a nebo je to závorka, nahraď left_child, případně right_child pomocnou proměnnou pro mezivýsledek se správným indexem */
-                if (!node->children[0]->children[0]->terminal || node->children[0]->children[0]->type == NODE_LEFT_PARENTHESIS)
+                /* Rekurzivně zpracuj nejdříve levý podtrom výrazu a poté pravý podstrom výrazu */
+                int a = generateExpression(node->children[0], local);
+                int b = generateExpression(node->children[2], local);
+
+                /* Zvyš index counteru pro identifikátory pomocných proměnných pro mezivýsledky */
+                res_index++;
+
+                TreeNode *leftTree = is_terminal(node->children[0]);
+                TreeNode *rightTree = is_terminal(node->children[2]);
+
+                char *left_child_type = recognize_type(leftTree, local);
+
+                if (left_child_type == NULL)
                 {
-                    left_child = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
-                    if (left_child == NULL) // Kontrola alokace paměti
+                    return -1;
+                }
+
+                char *right_child_type = recognize_type(rightTree, local);
+
+                if (right_child_type == NULL)
+                {
+                    return -1;
+                }
+
+                /* stringy pro uložení názvu proměnných */
+                char *right_child;
+                char *left_child;
+
+                /* Pokud je levé dítě neterminál, nastav název proměnné na pomocnou proměnnou $res_index, podle odpovídajícího indexu */
+                if (leftTree == NULL)
+                {
+                    left_child = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH); // -5 bodov!!!!!!!
+                    if (left_child == NULL)                                  // Kontrola alokace paměti
                     {
                         return -1;
                     }
-                    snprintf(left_child, MAX_VAR_NAME_LENGTH, "$res%d", a); // Převeď návratovou hodnotu a do řetězce pro pomocnou proměnnou
+                    snprintf(left_child, MAX_VAR_NAME_LENGTH, "$res_%d", a); // Převeď návratovou hodnotu a do řetězce pro pomocnou proměnnou
                 }
-                if (!node->children[2]->children[0]->terminal || node->children[2]->children[0]->type == NODE_LEFT_PARENTHESIS)
+                else
+                { /* Pokud je pravé dítě terminál, nastav název proměnné na label */
+                    left_child = leftTree->label;
+                }
+                /* Pokud je pravé dítě neterminál, nastav název proměnné na pomocnou proměnnou $res_index, podle odpovídajícího indexu */
+                if (rightTree == NULL)
                 {
+                    printf("RIGHT CHILD TYPE: %d\n", node->children[2]->children[0]->terminal);
                     right_child = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
                     if (right_child == NULL) // Kontrola alokace paměti
                     {
                         return -1;
                     }
-                    snprintf(right_child, MAX_VAR_NAME_LENGTH, "$res%d", b); // Převeď návratovou hodnotu b do řetězce pro pomocnou proměnnou
+                    snprintf(right_child, MAX_VAR_NAME_LENGTH, "$res_%d", b); // Převeď návratovou hodnotu b do řetězce pro pomocnou proměnnou
+                }
+                else /* Pokud je levé dítě terminál, nastav název proměnné na label */
+                {
+                    right_child = rightTree->label;
                 }
 
-                fprintf(f, "DEFVAR %s@$res%d\n", frame, tempResIndex);
-                fprintf(f, "%s %s@$res%d %s@%s %s@%s\n", operation, frame, tempResIndex, typeA, left_child, typeB, right_child);
+                fprintf(f, "DEFVAR %s@$res_%d\n", frame, res_index);
+                fprintf(f, "%s %s@$res_%d %s@%s %s@%s\n", operation, frame, res_index, left_child_type, left_child, left_child_type, right_child);
+            }
+            else if (operation_id == 5)
+            {
             }
         }
-        printf("temp: %d\n\n", tempResIndex);
-        /* Vrať poslední použitý counter indexu pro id pomocných proměnných */
-        
     }
-    return tempResIndex;
+    /* Vrať poslední použitý indexu pro id pomocných proměnných */
+    return res_index;
 }
 
 void generateIf(TreeNode *node, bool local)
@@ -328,11 +412,11 @@ void generateIf(TreeNode *node, bool local)
 
     char *frame = local ? "LF" : "GF";
 
-    fprintf(f, "DEFVAR %s@%%res%d\n", frame, labelId);
+    fprintf(f, "DEFVAR %s@%%res_%d\n", frame, labelId);
 
     int res = generateExpression(node->children[0], local);
 
-    fprintf(f, "JUMPIFNEQ $else$%d %s@res%d bool@true\n", labelId, frame, res);
+    fprintf(f, "JUMPIFNEQ $else$%d %s@res_%d bool@true\n", labelId, frame, res);
 
     if (node->children[1]->children[0]->type != NODE_BODY_END)
     {
@@ -364,11 +448,11 @@ void generateWhile(TreeNode *node, bool local)
 
     char *frame = local ? "LF" : "GF";
 
-    fprintf(f, "DEFVAR %s@%%res%d\n", frame, labelId);
+    fprintf(f, "DEFVAR %s@%%res_%d\n", frame, labelId);
 
     int resId = generateExpression(node->children[0], local);
 
-    fprintf(f, "JUMPIFNEQ $end$while$%d %s@res%d bool@true\n", labelId, frame, resId);
+    fprintf(f, "JUMPIFNEQ $end$while$%d %s@res_%d bool@true\n", labelId, frame, resId);
 
     for (unsigned i = 0; i < node->children[1]->numChildren; i++)
     {
@@ -390,13 +474,62 @@ void generateDeclaration(TreeNode *node, bool local)
     setGlobalVars();
 
     char *frame = local ? "LF" : "GF";
+    char *label = (node->type == NODE_ASSIGN) ? node->children[0]->children[0]->label : node->children[0]->label;
+    fprintf(f, "DEFVAR %s@%s\n", frame, label);
 
     if (node->type == NODE_ASSIGN)
-    {
         generateAssign(node, local);
+}
+
+void generateAssign(TreeNode *node, bool local)
+{
+
+    setGlobalVars();
+
+    char *frame = local ? "LF" : "GF";
+
+    char *type;
+    char *result;
+
+    if (node->children[1]->type == NODE_FUNCTION_CALL)
+    {
+        generateFuncCall(node->children[1], local);
+        result = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
+        if (result == NULL) // Kontrola alokace paměti
+        {
+            return;
+        }
+        sprintf(result, "$retval_%d", retvalId--);
+        type = "TF";
     }
     else
     {
-        fprintf(f, "DEFVAR %s@%s\n", frame, node->children[0]->label);
+        TreeNode *tree = is_terminal(node->children[1]);
+
+        if (tree != NULL)
+        {
+            type = recognize_type(tree, local);
+            result = tree->label;
+        }
+        else
+        {
+            generateExpression(node->children[1], local);
+            result = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
+            if (result == NULL) // Kontrola alokace paměti
+            {
+                return;
+            }
+            sprintf(result, "$res_%d", res_index);
+            type = frame;
+        }
+    }
+
+    if (node->children[0]->type == NODE_DECLARATION)
+    {
+        fprintf(f, "MOVE %s@%s %s@%s\n", frame, node->children[0]->children[0]->label, type, result);
+    }
+    else
+    {
+        fprintf(f, "MOVE %s@%s %s@%s\n", frame, node->children[0]->label, type, result);
     }
 }
