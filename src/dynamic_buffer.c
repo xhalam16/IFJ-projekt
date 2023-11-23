@@ -94,13 +94,15 @@ int move_buffer(char** dest, DynamicBuffer* src){
         if(*dest == NULL){
             return ERR_CODE_ALLOC;
         }
+    }else{
+        if(strlen(*dest) < src->size){
+            *dest = realloc(*dest, src->size * sizeof(char) + 1);
+            if(*dest == NULL){
+                return ERR_CODE_ALLOC;
+            }
+        }
     }
 
-    if (sizeof(*dest) < src->size)
-    {
-        /* code */
-    }
-    
 
     strcpy(*dest, src->buffer);
     buffer_clear(src);
@@ -108,18 +110,11 @@ int move_buffer(char** dest, DynamicBuffer* src){
 }
 
 int move_buffer_to_buffer(DynamicBuffer* dest, DynamicBuffer* src){
-
-    
-
     if(dest->capacity < src->size){
         if(resize_buffer(dest, src->size) != ERR_CODE_OK){
             return ERR_CODE_ALLOC;
         }
     }
-    printf("dest->capacity: %ld\n", dest->capacity);
-    printf("src->size: %ld\n", src->size);
-
-    printf("dest->buffer: %s\n", dest->buffer);
 
     memcpy(dest->buffer, src->buffer, src->size + 1);
     

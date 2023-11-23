@@ -615,7 +615,7 @@ if let value  {
     print(value)
 } else {
     print("Value is nil")
-}' 3 "if let"
+}' 5 "if let"
 
 run_test 'let message = "Chybný řetězec' 2 "wrong string"
 
@@ -985,7 +985,7 @@ if let newInput {
                 let tmp = readString()
                 str1 = tmp ?? ""
         } 
-} else {}}' 5 "if let wrong"
+} else {}' 0 "example 1"
 
 run_test '// Program 1: Vypocet faktorialu (iterativne)
 /* Hlavni telo programu */
@@ -994,16 +994,17 @@ let a : Int? = readInt()
 if let a {
         if (a < 0) {write("Faktorial nelze spocitat\n")
         } else {
-} 
-} else {}
-var a = Int2Double(a)
-var vysl : Double = 1
-while (a > 0) {
-vysl = vysl * a 
-a=a-1
-}
-write("Vysledek je: ", vysl, "\n")
-write("Chyba pri nacitani celeho cisla!\n")' 0 "example 8.1"
+                var a = Int2Double(a)
+                var vysl : Double = 1
+                while (a > 0){
+                        vysl = vysl * a
+                        a = a - 1
+                }
+                write("Vysledek je: ", vysl, "\n")
+        }
+} else{
+        write("Chyba pri nacitani celeho cisla!\n")
+}' 0 "example 8.1"
 
 run_test '// Program 2: Vypocet faktorialu (rekurzivne)
 // Hlavni telo programu
@@ -1017,25 +1018,54 @@ func decrement(of n: Int, by m: Int) -> Int {
 // Definice funkce pro vypocet hodnoty faktorialu
 func factorial(_ n : Int) -> Int {
         var result : Int?
+        if (n < 2) {
+                result = 1
+        } else {
+                let decremented_n = decrement(of: n, by: 1)
+                let temp_result = factorial(decremented_n)
+                result = n * temp_result
+        }
+        return result!
 }
-if (n < 2) {
-        result = 1
-} else {
-        let decremented_n = decrement(of: n, by: 1)
-        let temp_result = factorial(decremented_n)
-        result = n * temp_result
-}
-return result!
 // pokracovani hlavniho tela programu
 if let inp {
         if (inp < 0)    { // Pokracovani hlavniho tela programu
-                write("Faktorial nelze spocitat!")
+            write("Faktorial nelze spocitat!")
         } else {
-            let vysl = factorial(inp) 12
+            let vysl = factorial(inp)
+            write("Vysledek je: ", vysl)
         } 
 } else {
-}
-write("Vysledek je: ", vysl)
-write("Chyba pri nacitani celeho cisla!")' 0 "example 8.2"
+        write("Chyba pri nacitani celeho cisla!")
+}' 0 "example 8.2"
+
+
+run_test 'func foo() -> Int {
+    return 3 < 4
+}' 4 "wrong return type"
+
+run_test 'func foo() -> Int {
+    let x = 3
+    let y = 4
+    return x > y
+}' 4 "wrong return type"
+
+run_test 'while 3 + 4 {
+
+}' 7 "wrong while condition"
+
+
+run_test '
+let x = 4
+let y = 5
+while x + 5 {
+
+}' 7 "wrong while condition"
+
+
+run_test 'var a : Int = 5
+func xd(_ a : Int, with param : String) -> Int {
+    return 10
+}' 0 "function declaration"
 
 generate_test_summary

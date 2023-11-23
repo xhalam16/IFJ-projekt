@@ -11,6 +11,8 @@ bool next_identifier_unwrapped = false;
 bool scan_for_coal = false;
 bool coal_found = false;
 static bool expression_nilable_bool = false;
+static bool same_symbol_assign = false;
+static bool sem_ret = false;
 
 bool is_neterminal(TreeNode *node){
     return !node->terminal;
@@ -101,6 +103,30 @@ symtable_record_local_t* check_stack(Stack* local_tables, char* identifier){
     
 }
 
+symtable_record_local_t* get_nth_record(Stack* local_tables, char* identifier, int n){
+    // we need to check from top to bottom
+    int count = 0;
+    for(int i = local_tables->top; i >= 0; i--){
+        Stack_Frame* frame = stack_get(local_tables, i);
+        local_symtable* table = (local_symtable*)frame->data;
+
+        symtable_record_local_t *record = symtable_search(table, identifier, LOCAL_TABLE);
+
+        if(record != NULL){
+            // we found the identifier in the local table
+            if(count == n){
+                return record;
+            }
+            count++;
+        }
+    }
+
+ 
+    return NULL;
+    
+}
+
+
 // this function assumes that the node is an immediate operand
 bool is_datatype_compatible(data_type_t type1, data_type_t type2, bool coal_found){
 
@@ -134,8 +160,10 @@ bool types_compatible_relation(data_type_t type1, data_type_t type2, bool type1_
         return (type1 == DATA_INT && type2 == DATA_DOUBLE) || (type1 == DATA_DOUBLE && type2 == DATA_INT) || (type1 == type2);
     } else if (type1_immediate || type2_immediate) {
     // Either type1 or type2 is immediate
-        return (type1_immediate == DATA_INT && (type2 == DATA_INT || type2 == DATA_DOUBLE)) ||
-            (type2_immediate == DATA_INT && (type1 == DATA_INT || type1 == DATA_DOUBLE));
+
+        return (type1_immediate && type1 == DATA_INT && (type2 == DATA_INT || type2 == DATA_DOUBLE)) ||
+            (type2_immediate && type2 == DATA_INT && (type1 == DATA_INT || type1 == DATA_DOUBLE)) ||
+            type1 == type2;
     } else {
         // Neither type1 nor type2 is immediate
         return type1 == type2;
@@ -143,7 +171,26 @@ bool types_compatible_relation(data_type_t type1, data_type_t type2, bool type1_
 }
 
 
+bool is_not_arithmetic(TreeNode* node){
+    NodeType except[] = {
+        NODE_OPERATOR_ABOVE,
+        NODE_OPERATOR_AEQ,
+        NODE_OPERATOR_BELOW,
+        NODE_OPERATOR_BEQ,
+        NODE_OPERATOR_EQUAL,
+        NODE_OPERATOR_NEQ,
+    };
 
+    for(int i = 0; i < node->numChildren; i++){
+        for(int j = 0; j < sizeof(except) / sizeof(NodeType); j++){
+            if(node->children[i]->type == except[j]){
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
 
 error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_type, Stack* local_tables, bool reset){
     // data_type will be set to the type of the expression
@@ -166,6 +213,11 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
     if(reset) first_run = true;
 
     if(first_run){
+
+        if(is_not_arithmetic(node)){
+            return sem_ret ? ERR_SEMANTIC_FUNC : ERR_SEMANTIC_TYPE_COMPATIBILITY;
+        }
+
         if(node->numChildren == 1 && node->children[0]->type == NODE_NIL){
             *data_type = DATA_NIL;
             return ERR_NONE;
@@ -226,6 +278,10 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
             }else if(child->type == NODE_IDENTIFIER){
             
                 symtable_record_local_t* record = check_stack(local_tables, child->label);
+                if(same_symbol_assign){
+                    record = get_nth_record(local_tables, child->label, 1);
+                    same_symbol_assign = false;
+                }
 
                 data_type_t var_data_type = DATA_NONE;
                 bool var_nilable = false;
@@ -265,7 +321,7 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
                     is_nil = record->data->value;
                 }
 
-                
+
                 if(is_nil != NULL && *is_nil == DATA_NIL){
                     // variable has value nil
                     if(!var_nilable){
@@ -319,8 +375,6 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
                 return ERR_NONE;
 
             }else if(is_binary_arithmetic(child->type)){
-                // TODO: nil ?? nil -> error 7
-                // TODO: x (nil) coallescing nil -> error 7 (currently throws 4)
                 if(scan_for_coal && child->type != NODE_OPERATOR_NIL_COALESCING){
                     return ERR_SEMANTIC_TYPE_COMPATIBILITY;
                 }else{
@@ -328,7 +382,7 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
 
                 }
 
-                if(*data_type == DATA_STRING && child->type != NODE_OPERATOR_ADD){
+                if(*data_type == DATA_STRING && child->type != NODE_OPERATOR_ADD && child->type != NODE_OPERATOR_NIL_COALESCING){
                     return ERR_SEMANTIC_TYPE_COMPATIBILITY;
                 }
                 
@@ -412,6 +466,8 @@ error_code_t semantic_relation_expression(TreeNode* node, bool *result, Stack* l
     data_type_t r_type = DATA_NONE;
 
     
+
+    
     error_code_t er = semantic_arithmetic_expression(l_expression, &l_type, local_tables, true);
     if(er != ERR_NONE){
         return er;
@@ -430,6 +486,7 @@ error_code_t semantic_relation_expression(TreeNode* node, bool *result, Stack* l
 
     bool r_expression_nilable = expression_nilable(r_expression);
     bool l_expression_nilable = expression_nilable(l_expression);
+
 
     // relation operators except == and != cannot have nilable operands
     // 
@@ -461,7 +518,7 @@ error_code_t semantic_relation_expression(TreeNode* node, bool *result, Stack* l
 
             break;
         default:
-            return ERR_INTERNAL;
+            return ERR_SEMANTIC_TYPE_COMPATIBILITY;
     }
 
     return ERR_NONE;
@@ -483,6 +540,26 @@ bool is_term(NodeType type){
     }
 }
 
+bool identifier_in_subtree(TreeNode* subtree, const char* identifier) {
+    // Check if the current node is an identifier with matching label
+    if (subtree->type == NODE_IDENTIFIER && strcmp(subtree->label, identifier) == 0) {
+        return true;
+    }
+
+    // Check corresponding children recursively
+    for (int i = 0; i < subtree->numChildren; i++) {
+        if (identifier_in_subtree(subtree->children[i], identifier)) {
+            return true;
+        }
+    }
+
+    return false;  // If not found in the current node or its children, return false
+}
+
+bool same_identifier_in_subtrees(TreeNode* subtree1, TreeNode* subtree2, const char* identifier) {
+    return identifier_in_subtree(subtree1, identifier) && identifier_in_subtree(subtree2, identifier);
+}
+  
 error_code_t semantic_func_call(TreeNode* node, Stack* local_tables){
     TreeNode *function_name = node->children[0];
     TreeNode *param_list = node->children[1];
@@ -568,6 +645,12 @@ error_code_t semantic_func_call(TreeNode* node, Stack* local_tables){
 
             } else if(passed_param->type == NODE_IDENTIFIER){
                 symtable_record_local_t *record = check_stack(local_tables, passed_param->label);
+                // if there is same variable in the same subtree, we need to skip the first record we find
+                if(same_symbol_assign){
+                    record = get_nth_record(local_tables, passed_param->label, 1);
+                    same_symbol_assign = false;
+                }
+
                 if(record == NULL){
                     symtable_record_global_t *record_global = symtable_search(global_table, passed_param->label, GLOBAL_TABLE);
                     if(record_global == NULL){
@@ -579,13 +662,9 @@ error_code_t semantic_func_call(TreeNode* node, Stack* local_tables){
                     
                     if(record_global->data->data_type != param_table_type){
                         first(param_list_table);
-                    
                         return ERR_SEMANTIC_FUNC;
                     }
                 }else{
-
-                    printf("record global: %d\n", record->data->data_type);
-                    printf("param_table_type: %d\n", param_table_type);
 
                     if(record->data->data_type != param_table_type){
                         first(param_list_table);
@@ -671,7 +750,9 @@ error_code_t semantic_return(TreeNode* node, Stack* local_symbtables, data_type_
 
         // todo resolve typing and expression semantic
         data_type_t type = DATA_NONE;
+        sem_ret = true;
         error_code_t e = semantic_arithmetic_expression(ret_statement, &type, local_symbtables, true);
+        sem_ret = false;
         if(e != ERR_NONE){
             return e;
         }
@@ -843,6 +924,8 @@ error_code_t semantic_assign(TreeNode* node, Stack* local_tables){
     bool declaration = false;
     bool with_type = false;
 
+    
+
     TreeNode* identifier = left_child;
 
     if(left_child->type == NODE_DECLARATION){
@@ -854,6 +937,8 @@ error_code_t semantic_assign(TreeNode* node, Stack* local_tables){
         }
 
     }
+
+    same_symbol_assign = same_identifier_in_subtrees(right_child, left_child, identifier->label) && declaration;
 
     // we need to check if the identifier exists in the local tables or in the global table
     // we need to check if the identifier is not read-only
@@ -944,14 +1029,6 @@ error_code_t semantic_assign(TreeNode* node, Stack* local_tables){
         // Int? -> Int? - valid
         // if the function return type is nilable, the variable type must be nilable as well
 
-        // if(fun_record->data->nilable && !variable_nilable){
-        //     return ERR_SEMANTIC_TYPE_COMPATIBILITY;
-        // }
-
-        // if(fun_record->data->data_type != type_of_var){
-        //     return ERR_SEMANTIC_TYPE_COMPATIBILITY;
-        // }
-
         type_of_r_value = fun_record->data->data_type;
         r_value_nilable = fun_record->data->nilable;
 
@@ -983,6 +1060,15 @@ error_code_t semantic_assign(TreeNode* node, Stack* local_tables){
             }
 
             return ERR_NONE;
+        }else{
+            // the r_value is not nil, we update the record
+            if(record != NULL){
+                record->data->value = NULL;
+            }
+            else if(record_global != NULL){
+                record_global->data->value = NULL;
+            }
+            
         }
 
 
@@ -1014,45 +1100,45 @@ error_code_t semantic_guard_let(TreeNode* node, Stack* local_tables, char** guar
         return ERR_INTERNAL;
     }
 
-    symtable_record_local_t* record = check_stack(local_tables, identifier_name);
-    if(record == NULL){
-        // we did not find the identifier in the local tables, we need to check the global table
-        symtable_record_global_t *record_global = symtable_search(global_table, identifier_name, GLOBAL_TABLE);
-        if(record_global == NULL){
-            // we did not find the identifier in the global table
-            return ERR_SEMANTIC_NOT_DEFINED;
-        }
+    // symtable_record_local_t* record = check_stack(local_tables, identifier_name);
+    // if(record == NULL){
+    //     // we did not find the identifier in the local tables, we need to check the global table
+    //     symtable_record_global_t *record_global = symtable_search(global_table, identifier_name, GLOBAL_TABLE);
+    //     if(record_global == NULL){
+    //         // we did not find the identifier in the global table
+    //         return ERR_SEMANTIC_NOT_DEFINED;
+    //     }
 
-        if(record_global->data->symbol_type != SYM_CONSTANT){
-            return ERR_SEMANTIC_OTHERS;
-        }
+    //     if(record_global->data->symbol_type != SYM_CONSTANT){
+    //         return ERR_SEMANTIC_OTHERS;
+    //     }
 
-        if(!record_global->data->defined){
-            return ERR_SEMANTIC_NOT_DEFINED;
-        }
+    //     if(!record_global->data->defined){
+    //         return ERR_SEMANTIC_NOT_DEFINED;
+    //     }
 
-        if(!record_global->data->nilable){
-            return ERR_SEMANTIC_OTHERS;
-        }
+    //     if(!record_global->data->nilable){
+    //         return ERR_SEMANTIC_OTHERS;
+    //     }
 
-        record_global->data->nilable = false;
+    //    // record_global->data->nilable = false;
 
-    }else{
-        // we found the identifier in the local tables
-        // we need to check if the identifier is not read-only
-        if(record->data->symbol_type != SYM_CONSTANT){
-            return ERR_SEMANTIC_OTHERS;
-        }
+    // }else{
+    //     // we found the identifier in the local tables
+    //     // we need to check if the identifier is not read-only
+    //     if(record->data->symbol_type != SYM_CONSTANT){
+    //         return ERR_SEMANTIC_OTHERS;
+    //     }
 
-        if(!record->data->defined){
-            return ERR_SEMANTIC_NOT_DEFINED;
-        }
+    //     if(!record->data->defined){
+    //         return ERR_SEMANTIC_NOT_DEFINED;
+    //     }
 
-        if(!record->data->nilable){
-            return ERR_SEMANTIC_OTHERS;
-        }
-        record->data->nilable = false;
-    }
+    //     if(!record->data->nilable){
+    //         return ERR_SEMANTIC_OTHERS;
+    //     }
+    //    // record->data->nilable = false;
+    // }
 
     *guarded_let_key = identifier->label;
 
@@ -1111,7 +1197,6 @@ error_code_t semantic_if_statement(TreeNode* node, Stack* local_tables){
 
         body_end->label = guarded_let_key;
     }
-    // todo: guard_let, semantic body or else_body bool for not nilable variable in the guard let expression
 
     return ERR_NONE;
 }
