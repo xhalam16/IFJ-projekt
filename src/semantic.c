@@ -280,6 +280,10 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
                     next_identifier_unwrapped = false;
                 }
 
+                // if we use unwrapping operator on something that is not nilable, we return error
+                if(next_identifier_unwrapped && !var_nilable){ 
+                    return ERR_SEMANTIC_TYPE_COMPATIBILITY;
+                }
 
                 if(var_nilable){
                     if(!next_identifier_unwrapped){
@@ -613,7 +617,7 @@ error_code_t semantic_func_call(TreeNode* node, Stack* local_tables){
 
         
 
-
+        }
             // if the param has a name, we need to check if they are matching
             if(param_label_from_table != NULL){
                 TreeNode *param_name = param_tree->children[0];
@@ -622,7 +626,7 @@ error_code_t semantic_func_call(TreeNode* node, Stack* local_tables){
                     return ERR_SEMANTIC_FUNC;
                 }
             }
-        }
+        
     
         parameter_list_next(record->data->parameters);
         
@@ -999,7 +1003,7 @@ error_code_t semantic_assign(TreeNode* node, Stack* local_tables){
 }
 
 
-error_code_t semantic_guard_let(TreeNode* node, Stack* local_tables){
+error_code_t semantic_guard_let(TreeNode* node, Stack* local_tables, char** guarded_let_key){
     TreeNode* identifier = node->children[0];
 
     // if the variable was not declared, its an error
@@ -1027,6 +1031,12 @@ error_code_t semantic_guard_let(TreeNode* node, Stack* local_tables){
             return ERR_SEMANTIC_NOT_DEFINED;
         }
 
+        if(!record_global->data->nilable){
+            return ERR_SEMANTIC_OTHERS;
+        }
+
+        record_global->data->nilable = false;
+
     }else{
         // we found the identifier in the local tables
         // we need to check if the identifier is not read-only
@@ -1037,12 +1047,43 @@ error_code_t semantic_guard_let(TreeNode* node, Stack* local_tables){
         if(!record->data->defined){
             return ERR_SEMANTIC_NOT_DEFINED;
         }
+
+        if(!record->data->nilable){
+            return ERR_SEMANTIC_OTHERS;
+        }
+        record->data->nilable = false;
     }
+
+    *guarded_let_key = identifier->label;
 
     return ERR_NONE;
 }
 
+TreeNode* find_body_end(TreeNode* node){
+    // this function finds the body end node
+    // body_end
+    // child 0 - body
+    // child 1 - body_end
+    // child 2 - epsilon
 
+    if(node->type == NODE_BODY_END){
+        return node;
+    }
+
+    if(node->numChildren == 0){
+        return NULL;
+    }
+
+    TreeNode* body_end = NULL;
+    for(int i = 0; i < node->numChildren; i++){
+        body_end = find_body_end(node->children[i]);
+        if(body_end != NULL){
+            return body_end;
+        }
+    }
+
+    return NULL;
+}
 
 error_code_t semantic_if_statement(TreeNode* node, Stack* local_tables){
     // if_statement
@@ -1057,7 +1098,18 @@ error_code_t semantic_if_statement(TreeNode* node, Stack* local_tables){
     if(expression->type == NODE_EXPRESSION){
         return semantic_relation_expression(expression, NULL, local_tables);
     }else if(expression->type == NODE_GUARD_LET){
-        return semantic_guard_let(expression, local_tables);
+        char* guarded_let_key = NULL;
+        error_code_t e =  semantic_guard_let(expression, local_tables, &guarded_let_key);
+        if(e != ERR_NONE){
+            return e;
+        }
+
+        TreeNode* body_end = find_body_end(else_body);
+        if(body_end == NULL){
+            return ERR_INTERNAL;
+        }
+
+        body_end->label = guarded_let_key;
     }
     // todo: guard_let, semantic body or else_body bool for not nilable variable in the guard let expression
 

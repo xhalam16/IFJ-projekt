@@ -356,3 +356,12 @@ void generateDeclaration(TreeNode *node, bool local)
 
     // fprintf(f, "DEFVAR GF@%s\n", node->children[0]->label);
 }
+
+
+
+
+
+
+
+
+
