@@ -472,7 +472,7 @@ void parameter_list_free(parameter_list_t *list){
         free_param(param);
         parameter_list_next(list);
     }
-    free(list);
+    //free(list);
 }
 
 
