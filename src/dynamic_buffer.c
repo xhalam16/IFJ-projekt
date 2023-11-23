@@ -29,9 +29,7 @@ int resize_buffer(DynamicBuffer* buffer, size_t new_capacity){
 
 void free_buffer(DynamicBuffer* buffer){
     free(buffer->buffer);
-    buffer->buffer = NULL;
-    buffer->capacity = 0;
-    buffer->size = 0;
+    free(buffer);
 }
 
 int buffer_append_char(DynamicBuffer* buffer, char data){

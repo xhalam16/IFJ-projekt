@@ -480,7 +480,7 @@ void dispose(TreeNode *parseTree)
     //     free(parseTree->token_value.string_value);
     // }
 
-    free(parseTree->children);
+    //free(parseTree->children);
 
     free(parseTree);
 }
@@ -2880,6 +2880,8 @@ int main(void)
         error = ERR_NONE;
     }
 
+    
+
     print_global_table(global_table);
 
     print_stack(stack_of_local_tables);
@@ -2888,8 +2890,11 @@ int main(void)
     printTree(startNeterminal, ar, 0, 0);
 
     dispose(startNeterminal);
+    
     symtable_free(global_table, GLOBAL_TABLE);
     stack_free(stack_of_local_tables);
+
+    
 
     if (fclose(file) == EOF)
     {

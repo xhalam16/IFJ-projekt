@@ -79,7 +79,7 @@ void generateFuncCall(TreeNode *node, bool local)
 
 void generateCommand(TreeNode *node)
 {
-    
+
     switch (node->type)
     {
     case NODE_FUNCTION_CALL:
@@ -104,7 +104,6 @@ void generateCommand(TreeNode *node)
     default:
         break;
     }
-   
 }
 
 void generateFuncDeclaration(TreeNode *node, bool local)
@@ -169,8 +168,8 @@ void generateAssign(TreeNode *node, bool local)
     // fprintf(file, "MOVE %s@%s %s\n", frame, node->children[0]->label, node->children[1]->label);
 }
 
-/* Pomocná funkce, která rozezná operaci a vrací string odpovídající instrukci dané operace */
-char *recognize_operation(TreeNode *node)
+/* Pomocná funkce, která rozezná binární operaci a vrací string odpovídající instrukci dané operace */
+char *recognize_bin_operation(TreeNode *node)
 {
     switch (node->type)
     {
@@ -217,7 +216,7 @@ char *recognize_type(TreeNode *node, bool local)
         return "float";
     case NODE_STRING:
         node->label = node->token_value.string_value->buffer;
-        
+
         return "string";
     case NODE_NIL:
         node->label = "nil";
@@ -239,65 +238,86 @@ int generateExpression(TreeNode *node, bool local)
     /* Expr = i */
     if (node->numChildren == 1)
     {
+        /* Pokud jsme došli k terminálu, vrať pouze index, není potřeba ho zvyšovat kvůli terminálům, protože použijeme label terminálu a vynoř se z rekurze */
+        // return tempResIndex;
     }
     /* Expr = expr! */
     else if (node->numChildren == 2)
     {
         return generateExpression(node->children[0], local);
         // fprintf(f, "")
-
-        /* Expr = (expr) nebo Expr = expr op expr */
     }
+    /* Expr = (expr) nebo Expr = expr op expr */
     else if (node->numChildren == 3)
     {
         /* Expr = (expr) */
         if (node->children[0]->type == NODE_LEFT_PARENTHESIS)
         {
+            printf("meeesiiii\n\n\n\n\n\n\n\n\n\n");
+            /* Zpracuj expression, který je na indexu 1 a nakonec vrať poslední použitoui hodnotu indexu id pomocných proměnných */
             return generateExpression(node->children[1], local);
         }
         /* Předpokládáme, že první a třetí děti jsou operandy */
-
-        char *operation = recognize_operation(node->children[1]);
-
-        
-
-        int a = generateExpression(node->children[0], local);
-        int b = generateExpression(node->children[2], local);
-        tempResIndex++;
-        
-        char *leftChild = "";
-        char *rightChild = "";
-        
-        char *typeA = recognize_type(node->children[0]->children[0], local);
-        
-        char *typeB = recognize_type(node->children[2]->children[0], local);
-        leftChild = node->children[0]->children[0]->label;
-        rightChild = node->children[2]->children[0]->label;
-
-        //char *leftChild = recognize_type(node->children[0]->children[0], local);
-        //char *rightChild = recognize_type(node->children[0]->children[0], local);
-
-        if (!node->children[0]->children[0]->terminal)
+        else
         {
-            leftChild = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
-            if (leftChild == NULL)
-            {
-                return -1;
-            }
-            snprintf(leftChild, MAX_VAR_NAME_LENGTH, "$res%d", a);
-        }
-        if (!node->children[2]->children[0]->terminal)
-        {
-            rightChild = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
-            if (rightChild == NULL)
-            {
-                return -1;
-            }
-            snprintf(rightChild, MAX_VAR_NAME_LENGTH, "$res%d", b);
-        }
+            char *operation = recognize_bin_operation(node->children[1]);
 
-        fprintf(f, "DEFVAR %s@$res%d\n", frame, tempResIndex);
-        fprintf(f, "%s %s@$res%d %s@%s %s@%s\n", operation, frame, tempResIndex, typeA, leftChild, typeB, rightChild);
+            /* Rekurzivně zpracuj nejdříve levý podtrom výrazu a poté pravý podstrom výrazu */
+            int a = generateExpression(node->children[0], local);
+            int b = generateExpression(node->children[2], local);
+
+            /* Zvyš index counteru pro identifikátory pomocných proměnných pro mezivýsledky */
+            tempResIndex++;
+
+            /* Do left_child a right_child ulož hodnoty labelů synů synů pro případ, že půjde o terminály. V tom případě půjde o labely proměnných */
+            char *left_child = node->children[0]->children[0]->label;
+            char *right_child = node->children[2]->children[0]->label;
+
+            // int a = generateExpression(node->children[0], local);
+            // int b = generateExpression(node->children[2], local);
+            // tempResIndex++;
+
+            // char *leftChild = "";
+            // char *rightChild = "";
+
+            // char *typeA = recognize_type(node->children[0]->children[0], local);
+
+            // char *typeB = recognize_type(node->children[2]->children[0], local);
+            // leftChild = node->children[0]->children[0]->label;
+            // rightChild = node->children[2]->children[0]->label;
+
+            // //char *leftChild = recognize_type(node->children[0]->children[0], local);
+            // //char *rightChild = recognize_type(node->children[0]->children[0], local);
+
+            if (!node->children[0]->children[0]->terminal)
+            {
+                /* Pokud není dítě terminál a nebo je to závorka, nahraď left_child, případně right_child pomocnou proměnnou pro mezivýsledek se správným indexem */
+                if (!node->children[0]->children[0]->terminal || node->children[0]->children[0]->type == NODE_LEFT_PARENTHESIS)
+                {
+                    left_child = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
+                    if (left_child == NULL) // Kontrola alokace paměti
+                    {
+                        return -1;
+                    }
+                    snprintf(left_child, MAX_VAR_NAME_LENGTH, "$res%d", a); // Převeď návratovou hodnotu a do řetězce pro pomocnou proměnnou
+                }
+                if (!node->children[2]->children[0]->terminal || node->children[2]->children[0]->type == NODE_LEFT_PARENTHESIS)
+                {
+                    right_child = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
+                    if (right_child == NULL) // Kontrola alokace paměti
+                    {
+                        return -1;
+                    }
+                    snprintf(right_child, MAX_VAR_NAME_LENGTH, "$res%d", b); // Převeď návratovou hodnotu b do řetězce pro pomocnou proměnnou
+                }
+
+                fprintf(f, "DEFVAR %s@$res%d\n", frame, tempResIndex);
+                fprintf(f, "%s %s@$res%d %s@%s %s@%s\n", operation, frame, tempResIndex, frame, left_child, frame, right_child);
+            }
+        }
+        printf("temp: %d\n\n", tempResIndex);
+        /* Vrať poslední použitý counter indexu pro id pomocných proměnných */
+        
     }
     return tempResIndex;
 }
@@ -345,8 +365,6 @@ void generateWhile(TreeNode *node, bool local)
     char *frame = local ? "LF" : "GF";
 
     fprintf(f, "DEFVAR %s@%%res%d\n", frame, labelId);
-
-    
 
     int resId = generateExpression(node->children[0], local);
 
