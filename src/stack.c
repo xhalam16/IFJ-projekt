@@ -108,6 +108,7 @@ void stack_free(Stack *stack)
         return;
     }
 
+    
     free(stack->frames);
     free(stack);
 }
