@@ -231,6 +231,7 @@ char *recognize_type(TreeNode *node, bool local)
 /* DŮLEŽITÉ - VELMI DŮLEŽITÉ */
 int generateExpression(TreeNode *node, bool local)
 {
+    
     setGlobalVars();
 
     char *frame = local ? "LF" : "GF";
@@ -280,9 +281,8 @@ int generateExpression(TreeNode *node, bool local)
             // char *leftChild = "";
             // char *rightChild = "";
 
-            // char *typeA = recognize_type(node->children[0]->children[0], local);
-
-            // char *typeB = recognize_type(node->children[2]->children[0], local);
+            char *typeA = recognize_type(node->children[0]->children[0], local);
+            char *typeB = recognize_type(node->children[2]->children[0], local);
             // leftChild = node->children[0]->children[0]->label;
             // rightChild = node->children[2]->children[0]->label;
 
@@ -312,7 +312,7 @@ int generateExpression(TreeNode *node, bool local)
                 }
 
                 fprintf(f, "DEFVAR %s@$res%d\n", frame, tempResIndex);
-                fprintf(f, "%s %s@$res%d %s@%s %s@%s\n", operation, frame, tempResIndex, frame, left_child, frame, right_child);
+                fprintf(f, "%s %s@$res%d %s@%s %s@%s\n", operation, frame, tempResIndex, typeA, left_child, typeB, right_child);
             }
         }
         printf("temp: %d\n\n", tempResIndex);

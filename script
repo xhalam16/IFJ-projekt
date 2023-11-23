@@ -2,41 +2,39 @@
 test_count=0
 fail_count=0
 
-generate_test_summary(){
-    echo "###############################################" >> result.txt
-    echo "Test Summary:" >> result.txt
-    echo "Total tests: $test_count" >> result.txt
-    echo "Failed tests: $fail_count" >> result.txt
-    echo "Passed percentage: $((100-100*fail_count/test_count))%" >> result.txt
-    echo "###############################################" >> result.txt
+generate_test_summary() {
+    echo "###############################################" >>result.txt
+    echo "Test Summary:" >>result.txt
+    echo "Total tests: $test_count" >>result.txt
+    echo "Failed tests: $fail_count" >>result.txt
+    echo "Passed percentage: $((100 - 100 * fail_count / test_count))%" >>result.txt
+    echo "###############################################" >>result.txt
 }
 
 run_test() {
-    test_count=$((test_count+1))
+    test_count=$((test_count + 1))
     input_content="$1"
     expected_error_code=$2
     test_name="$3"
 
     # Clear the contents of test.txt
-    > test.txt
+    >test.txt
 
-    echo "$input_content" > test.txt
+    echo "$input_content" >test.txt
 
-
-
-    ./parser > o.txt
+    ./parser >o.txt
     actual_error_code=$?
     echo actual_error_code: $actual_error_code
     if [ "$actual_error_code" -eq "$expected_error_code" ]; then
-        echo "Test $3 PASSED!" >> result.txt
+        echo "Test $3 PASSED!" >>result.txt
     else
-        echo "Test $3 FAILED! Expected error code: $expected_error_code, Actual error code: $actual_error_code" >> result.txt
-        fail_count=$((fail_count+1))
+        echo "Test $3 FAILED! Expected error code: $expected_error_code, Actual error code: $actual_error_code" >>result.txt
+        fail_count=$((fail_count + 1))
     fi
 }
 
 # Run tests
-> result.txt
+>result.txt
 run_test 'func foo() -> Int{
     var x : String = "abcd"
     var y : String = "s"
@@ -72,7 +70,6 @@ run_test 'func foo() -> Int{
     var y : Double = 4.4
     return x + y
 }' 7
-
 
 run_test 'func foo() -> Int{
     var x : Int = 3
@@ -241,7 +238,6 @@ run_test 'func foo() -> Int?{
     return nil - x
 }' 7 "nil minus x variable"
 
-
 run_test 'func foo() -> Int?{
     return 3
 }' 0 "int return"
@@ -286,7 +282,6 @@ run_test 'func foo() -> Int?{
     return (nil)
 }' 0 "nil in parentheses"
 
-
 run_test 'func foo() -> Int{
     var x : Int? = 3
     return x
@@ -302,12 +297,10 @@ run_test 'func foo() -> Int{
     return x! + 3
 }' 0 "int? return unwrapped plus int"
 
-
 run_test 'func foo() -> Int{
     var x : Int? = 3
     return x! + 3.3
 }' 7 "int? return unwrapped plus double"
-
 
 run_test 'func foo() -> Int{
     var x : Int? = 3
@@ -376,7 +369,6 @@ run_test 'func foo() -> String?{
     return "3" + x
 }' 7 "variable with nil value in expression"
 
-
 run_test 'func foo() -> String?{
     var x : String? = nil
     return x
@@ -391,7 +383,6 @@ run_test 'func foo() -> Int?{
 run_test 'func foo() -> Double{
     return 3.3 / 4.4
 }' 0 "division double return"
-
 
 run_test 'func foo() -> Double{
     return 3.3 / 4
@@ -412,9 +403,6 @@ run_test 'func foo() -> Int{
 run_test 'func foo() -> Int{
     return 3.3 / 4
 }' 4 "division Int return"
-
-
-
 
 run_test 'func foo() -> Int{
     return nil ?? 3
@@ -447,7 +435,6 @@ run_test 'func foo() -> Int{
     let x : Int? = nil
     return x + 3 ?? (3)
 }' 7 "nil coallescing int return"
-
 
 run_test 'func foo() -> Int{
     let x : Int? = nil
@@ -489,7 +476,6 @@ run_test 'func foo() -> Int?{
     return x + nil
 }' 7 "int expression int? return"
 
-
 run_test 'func foo() -> Int?{
     let x : Int = 3
     return x - 3
@@ -500,7 +486,6 @@ run_test 'func foo() -> Int?{
     let y : Int? = 4
     return x - y
 }' 7 "int expression int? return"
-
 
 # udělej mi nějaké testy na ify a while a fory a funkce a všechno co jde
 
@@ -525,7 +510,6 @@ run_test 'func foo() -> Int{
     return 8
     return 3
 }' 0 "int return"
-
 
 run_test 'func foo() -> Double{
     return 3 + 3
@@ -559,15 +543,11 @@ run_test 'func foo() -> Double{
     return 9
 }' 4 "4 returns one invalid"
 
-
-
-
 run_test 'func foo() -> Double{
     return 3 + 3
     return 8
     return 3.3 + 3.3
 }' 0 "int return"
-
 
 run_test 'func foo() -> Int{
     var x : Int = 3
@@ -637,7 +617,6 @@ if let value  {
     print("Value is nil")
 }' 3 "if let"
 
-
 run_test 'let message = "Chybný řetězec' 2 "wrong string"
 
 run_test 'let sum = (5 + 3' 2 "wrong parentheses"
@@ -650,11 +629,10 @@ run_test 'func square(_ x: Int) -> Int {
 
 square(1)' 0 "function call"
 
-
 #built-in functions
 run_test '
     readString()
-'  0 "readString call"
+' 0 "readString call"
 
 run_test '
     readString(3)
@@ -662,27 +640,25 @@ run_test '
 
 run_test 'readString(3, 4, "abcd")' 4 "too many arguments"
 
-
 run_test '
     let x : String
     x = readString()
-'  9 "readString wrong assign"
+' 9 "readString wrong assign"
 
 run_test '
     let x : String
     x = readString(3)
-'  9 "readString wrong assign with wrong call"
+' 9 "readString wrong assign with wrong call"
 
 run_test '
     let x : String?
     x = readString(3)
-'  9 "readString wrong assign into constant with wrong call"
-
+' 9 "readString wrong assign into constant with wrong call"
 
 run_test '
     var x : String?
     x = readString()
-'  0 "readString correct assign with correct call"
+' 0 "readString correct assign with correct call"
 
 run_test 'var x : String?
     x = readString(3)' 4 "readString correct assign with wrong call"
@@ -700,7 +676,6 @@ run_test '
     x = readString()
     x = readString(3)' 9 "readString correct assign with wrong call"
 
-
 run_test 'var x: Int' 0 "Valid Variable Declaration - Int"
 run_test 'var y = 42' 0 "Valid Variable Declaration with Initialization - Int"
 run_test 'var z: Double = 3.14' 0 "Valid Variable Declaration - Double with Initialization"
@@ -713,8 +688,6 @@ run_test 'let f = "hello"' 0 "Valid Constant Declaration with Initialization - S
 run_test 'let g: Double = 42' 0 " Double with Initialization"
 run_test 'let h: Int?' 0 "Valid Constant Declaration - Optional Int"
 run_test 'let i: String?' 0 "Valid Constant Declaration - Optional String"
-
-
 
 run_test '
     var x : Int = 3
@@ -732,7 +705,6 @@ run_test '
     } 
     return 4
 }' 0 "while statement"
-
 
 run_test '
     func foo() -> Int{
@@ -754,7 +726,6 @@ run_test '
     return 4
 }' 0 "while statement"
 
-
 run_test '
     func foo() -> Int{
     var x : Int = 3
@@ -775,7 +746,6 @@ run_test '
 
     }
 ' 7 "while statement wrong"
-
 
 #scope tests
 run_test '
@@ -810,7 +780,6 @@ if(3 > 4){
 let y = 6
 foo(y)' 0 "multiple scopes"
 
-
 run_test 'func foo(_ param : Int) -> Int{
     return param
 }
@@ -824,21 +793,17 @@ while(x == 3){
 let y = 6
 foo(y)' 0 "multiple scopes"
 
-
 run_test 'func foo(_ param : Int) -> Int{
     return param
 }' 0 "func correct param return"
-
 
 run_test 'func foo(_ param : Int) -> Int{
     return param + 3
 }' 0 "func correct param return"
 
-
 run_test 'func foo(_ param : Int) -> Int{
     return param + "string"
 }' 7 "func correct param return"
-
 
 run_test 'func foo(_ param : Int) -> Int{
     return param
@@ -848,7 +813,6 @@ let x = nil
 if let x{
     foo(x)
 }' 8 "wrong declaration"
-
 
 run_test 'func foo(_ param : Int) -> Int{
     return param
@@ -895,9 +859,6 @@ run_test '
     }
 ' 7 "unwrapping in guard let - wrong"
 
-
-
-
 run_test '
 func foo(_ param : String, x param2 : Int){
     return
@@ -905,15 +866,12 @@ func foo(_ param : String, x param2 : Int){
 
 foo("string", x: 3)' 0 "correct function call literals"
 
-
-
 run_test '
 func foo(_ param : String, x param2 : Int){
     return
 }
 
 foo("string", 3)' 4 "correct literals missing label"
-
 
 run_test '
 func foo(_ param : String, x param2 : Int){
@@ -923,7 +881,6 @@ let x : String? = "abcd"
 let y : Int? = 3
 
 foo(x, y)' 4 "correct variables missing label"
-
 
 run_test '
 func foo(_ param : String, x param2 : Int){
@@ -943,9 +900,6 @@ let y : Int = 3
 
 foo(x, x: y)' 0 "correct function call variables"
 
-
-
-
 run_test '
 func foo(_ param : String, x param2 : Int){
     return
@@ -960,7 +914,6 @@ func foo(_ param : String, x param2 : Int){
 
 foo("string", x: 4, 3)' 4 "wrong param count"
 
-
 run_test '
 func foo(_ param : String, x param2 : Int){
     return
@@ -974,7 +927,6 @@ func foo(_ param : String, x param2 : Int){
 }
 
 foo(y: "string", 4)' 4 "label where it should not be and missing label"
-
 
 run_test '
 let x : Int? = nil
@@ -991,7 +943,6 @@ foo(10, "String", 1.247)
 if (2 > 10) {
     foo(10, "String", 1.247)
 }' 2 "wrong if statement"
-
 
 run_test 'let x = 3
 while x {}' 7 "while statement"
@@ -1012,7 +963,79 @@ var x = 10
 y(lol : x, XD : 10)' 0 "function call"
 
 run_test '
+var a = 10
+a = Int2Double(a)
+a = a + 4' 0 "function call"
+
+run_test '
 var a = Int2Double(a)
-a = a + 4' 3 "function call"
+a = a + 4' 4 "function call wrong param"
+
+run_test 'var str1 = "Toto je nejaky text v programu jazyka IFJ23"
+let str2 = str1 + ", ktery jeste trochu obohatime"
+write(str1, "\n", str2, "\n")
+let i = length(str1)
+write("Pozice retezce \"text\" v str2: ", i, "\n")
+write("Zadejte serazenou posloupnost vsech malych pismen a-h, ")
+let newInput = readString()
+if let newInput {
+        str1 = newInput
+        while (str1 != "abcdefgh") {
+                write("Spatne zadana posloupnost, zkuste znovu:\n")
+                let tmp = readString()
+                str1 = tmp ?? ""
+        } 
+} else {}}' 5 "if let wrong"
+
+run_test '// Program 1: Vypocet faktorialu (iterativne)
+/* Hlavni telo programu */
+write("Zadejte cislo pro vypocet faktorialu\n")
+let a : Int? = readInt()
+if let a {
+        if (a < 0) {write("Faktorial nelze spocitat\n")
+        } else {
+} 
+} else {}
+var a = Int2Double(a)
+var vysl : Double = 1
+while (a > 0) {
+vysl = vysl * a 
+a=a-1
+}
+write("Vysledek je: ", vysl, "\n")
+write("Chyba pri nacitani celeho cisla!\n")' 0 "example 8.1"
+
+run_test '// Program 2: Vypocet faktorialu (rekurzivne)
+// Hlavni telo programu
+write("Zadejte cislo pro vypocet faktorialu: ")
+
+let inp = readInt()
+// pomocna funkce pro dekrementaci celeho cisla o zadane cislo
+func decrement(of n: Int, by m: Int) -> Int {
+        return n - m
+}
+// Definice funkce pro vypocet hodnoty faktorialu
+func factorial(_ n : Int) -> Int {
+        var result : Int?
+}
+if (n < 2) {
+        result = 1
+} else {
+        let decremented_n = decrement(of: n, by: 1)
+        let temp_result = factorial(decremented_n)
+        result = n * temp_result
+}
+return result!
+// pokracovani hlavniho tela programu
+if let inp {
+        if (inp < 0)    { // Pokracovani hlavniho tela programu
+                write("Faktorial nelze spocitat!")
+        } else {
+            let vysl = factorial(inp) 12
+        } 
+} else {
+}
+write("Vysledek je: ", vysl)
+write("Chyba pri nacitani celeho cisla!")' 0 "example 8.2"
 
 generate_test_summary
