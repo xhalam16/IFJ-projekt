@@ -79,6 +79,7 @@ void generateFuncCall(TreeNode *node, bool local)
 
 void generateCommand(TreeNode *node)
 {
+    
     switch (node->type)
     {
     case NODE_FUNCTION_CALL:
@@ -103,6 +104,7 @@ void generateCommand(TreeNode *node)
     default:
         break;
     }
+   
 }
 
 void generateFuncDeclaration(TreeNode *node, bool local)
@@ -201,6 +203,32 @@ char *recognize_operation(TreeNode *node)
     return NULL;
 }
 
+char *recognize_type(TreeNode *node, bool local)
+{
+    switch (node->type)
+    {
+    case NODE_INT:
+        node->label = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
+        sprintf(node->label, "%d", node->token_value.int_value);
+        return "int";
+    case NODE_DOUBLE:
+        node->label = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
+        sprintf(node->label, "%f", node->token_value.double_value);
+        return "float";
+    case NODE_STRING:
+        node->label = node->token_value.string_value->buffer;
+        
+        return "string";
+    case NODE_NIL:
+        node->label = "nil";
+        return "nil";
+    default:
+        break;
+    }
+
+    return local ? "LF" : "GF";
+}
+
 /* DŮLEŽITÉ - VELMI DŮLEŽITÉ */
 int generateExpression(TreeNode *node, bool local)
 {
@@ -236,9 +264,18 @@ int generateExpression(TreeNode *node, bool local)
         int a = generateExpression(node->children[0], local);
         int b = generateExpression(node->children[2], local);
         tempResIndex++;
+        
+        char *leftChild = "";
+        char *rightChild = "";
+        
+        char *typeA = recognize_type(node->children[0]->children[0], local);
+        
+        char *typeB = recognize_type(node->children[2]->children[0], local);
+        leftChild = node->children[0]->children[0]->label;
+        rightChild = node->children[2]->children[0]->label;
 
-        char *leftChild = node->children[0]->children[0]->label;
-        char *rightChild = node->children[2]->children[0]->label;
+        //char *leftChild = recognize_type(node->children[0]->children[0], local);
+        //char *rightChild = recognize_type(node->children[0]->children[0], local);
 
         if (!node->children[0]->children[0]->terminal)
         {
@@ -260,7 +297,7 @@ int generateExpression(TreeNode *node, bool local)
         }
 
         fprintf(f, "DEFVAR %s@$res%d\n", frame, tempResIndex);
-        fprintf(f, "%s %s@res%d %s@%s %s@%s\n", operation, frame, tempResIndex, frame, leftChild, frame, rightChild);
+        fprintf(f, "%s %s@$res%d %s@%s %s@%s\n", operation, frame, tempResIndex, typeA, leftChild, typeB, rightChild);
     }
     return tempResIndex;
 }
@@ -273,9 +310,9 @@ void generateIf(TreeNode *node, bool local)
 
     fprintf(f, "DEFVAR %s@%%res%d\n", frame, labelId);
 
-    // vyhodnocení výrazu
+    int res = generateExpression(node->children[0], local);
 
-    fprintf(f, "JUMPIFNEQ $else$%d %s@res%d bool@true\n", labelId, frame, labelId);
+    fprintf(f, "JUMPIFNEQ $else$%d %s@res%d bool@true\n", labelId, frame, res);
 
     if (node->children[1]->children[0]->type != NODE_BODY_END)
     {
@@ -309,11 +346,13 @@ void generateWhile(TreeNode *node, bool local)
 
     fprintf(f, "DEFVAR %s@%%res%d\n", frame, labelId);
 
-    // vyhodnocení výrazu
+    
 
-    fprintf(f, "JUMPIFNEQ $end$while$%d %s@res%d bool@true\n", labelId, frame, labelId);
+    int resId = generateExpression(node->children[0], local);
 
-    for (unsigned i = 0; i < node->numChildren; i++)
+    fprintf(f, "JUMPIFNEQ $end$while$%d %s@res%d bool@true\n", labelId, frame, resId);
+
+    for (unsigned i = 0; i < node->children[1]->numChildren; i++)
     {
         generateCommand(node->children[1]->children[i]);
     }
@@ -340,19 +379,6 @@ void generateDeclaration(TreeNode *node, bool local)
     }
     else
     {
-        fprintf(f, "DEFVAR %s@%s$%d\n", frame, node->children[0]->label, varsId++);
+        fprintf(f, "DEFVAR %s@%s\n", frame, node->children[0]->label);
     }
-
-    // fprintf(f, "DEFVAR %s@%s\n", frame, node->children[0]->children[0]->label);
-
-    // if (node->children[1]->type == NODE_FUNCTION_CALL)
-    // {
-    //     generateFuncCall(node->children[1], local);
-    // }
-    // else
-    // {
-    //     generateExpression(node->children[1], local);
-    // }
-
-    // fprintf(f, "DEFVAR GF@%s\n", node->children[0]->label);
 }

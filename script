@@ -901,4 +901,8 @@ run_test 'func y(lol x : Int, XD s : Int) -> Int{
 var x = 10
 y(lol : x, XD : 10)' 0 "function call"
 
+run_test '
+var a = Int2Double(a)
+a = a + 4' 3 "function call"
+
 generate_test_summary

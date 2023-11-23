@@ -743,33 +743,49 @@ token_type_t checkForImmediateOperands(token_type_t tokenType, TreeNode *nodeExp
         break;
     case TOKEN_DOUBLE_QUOTE:
         token = get_token(file);
-        // printf("TOKEN TYPE: %d\n", token.type);
-        if (token.type != TOKEN_STRING)
+        tokenType = TOKEN_IDENTIFIER;
+        *temp = NODE_STRING;
+        if (token.type != TOKEN_STRING && token.type != TOKEN_DOUBLE_QUOTE)
         {
             return -1;
         }
+
+        if (token.type == TOKEN_DOUBLE_QUOTE)
+        {
+            stack_push(stack, temp);
+            return tokenType;
+        }
+
         token = get_token(file);
+
         if (token.type != TOKEN_DOUBLE_QUOTE)
         {
             return -1;
         }
-        tokenType = TOKEN_IDENTIFIER;
-        *temp = NODE_STRING;
+        
         stack_push(stack, temp);
         break;
     case TOKEN_TRIPLE_DOUBLE_QUOTE:
         token = get_token(file);
-        if (token.type != TOKEN_STRING)
+        tokenType = TOKEN_IDENTIFIER;
+        *temp = NODE_STRING;
+        if (token.type != TOKEN_STRING && token.type != TOKEN_TRIPLE_DOUBLE_QUOTE)
         {
             return -1;
         }
+
+        if (token.type == TOKEN_TRIPLE_DOUBLE_QUOTE)
+        {
+            stack_push(stack, temp);
+            return tokenType;
+        }
+
         token = get_token(file);
         if (token.type != TOKEN_TRIPLE_DOUBLE_QUOTE)
         {
             return -1;
         }
-        tokenType = TOKEN_IDENTIFIER;
-        *temp = NODE_STRING;
+        
         stack_push(stack, temp);
         break;
     default:
@@ -778,7 +794,7 @@ token_type_t checkForImmediateOperands(token_type_t tokenType, TreeNode *nodeExp
     return tokenType;
 }
 
-TreeNode *buildTree(Stack *treeStack, TreeNode *nodeExpression, Stack *idTypeStack, Stack *identifier_stack)
+TreeNode *buildTree(Stack *treeStack, TreeNode *nodeExpression, Stack *idTypeStack, Stack *identifier_stack, Stack *tokenValueStack)
 {
     RuleType *stackTop = malloc(sizeof(RuleType));
     *stackTop = *((RuleType *)(stack_top(treeStack)->data));
@@ -788,13 +804,22 @@ TreeNode *buildTree(Stack *treeStack, TreeNode *nodeExpression, Stack *idTypeSta
         NodeType idType = *((NodeType *)(stack_top(idTypeStack)->data));
         TreeNode *id = createNewNode(nodeExpression, idType, true);
 
-        /*
-        if (idType >= NODE_INT && idType <= NODE_STRING)
-        {
-            id->token_value = *((token_value_t *)(stack_top()->data));
-            stack_pop();
-        }
-        */
+        
+        
+        // if (idType >= NODE_INT && idType <= NODE_STRING)
+        // {
+        //     id->token_value = *((token_value_t *)(stack_top(tokenValueStack)->data));
+            
+        //     if (idType == NODE_STRING) {
+        //         printf("STRING VALUE: %s\n", id->token_value.string_value->buffer);
+        //         printf("STACK SIZE: %d\n", stack_size(tokenValueStack));
+        //     }
+            
+
+        //     stack_pop(tokenValueStack);
+        //     printf("STACK SIZE: %d\n", stack_size(tokenValueStack));
+        // }
+        
         if (idType == NODE_IDENTIFIER)
         {
             Stack_Frame *frame = stack_top(identifier_stack);
@@ -880,8 +905,8 @@ TreeNode *buildTree(Stack *treeStack, TreeNode *nodeExpression, Stack *idTypeSta
         }
         free(stack_top(treeStack)->data);
         stack_pop(treeStack);
-        buildTree(treeStack, expressionRight, idTypeStack, identifier_stack);
-        buildTree(treeStack, expressionLeft, idTypeStack, identifier_stack);
+        buildTree(treeStack, expressionRight, idTypeStack, identifier_stack, tokenValueStack);
+        buildTree(treeStack, expressionLeft, idTypeStack, identifier_stack, tokenValueStack);
         break;
     case RULE_PARENTHESES:;
         TreeNode *leftParenthesis = createNewNode(nodeExpression, NODE_LEFT_PARENTHESIS, true);
@@ -901,7 +926,7 @@ TreeNode *buildTree(Stack *treeStack, TreeNode *nodeExpression, Stack *idTypeSta
         }
         free(stack_top(treeStack)->data);
         stack_pop(treeStack);
-        buildTree(treeStack, expression, idTypeStack, identifier_stack);
+        buildTree(treeStack, expression, idTypeStack, identifier_stack, tokenValueStack);
         break;
     case RULE_UNARY:;
         TreeNode *expressionUnary = createNewNode(nodeExpression, NODE_EXPRESSION, false);
@@ -916,7 +941,7 @@ TreeNode *buildTree(Stack *treeStack, TreeNode *nodeExpression, Stack *idTypeSta
         }
         free(stack_top(treeStack)->data);
         stack_pop(treeStack);
-        buildTree(treeStack, expressionUnary, idTypeStack, identifier_stack);
+        buildTree(treeStack, expressionUnary, idTypeStack, identifier_stack, tokenValueStack);
         break;
     default:
         return NULL;
@@ -938,7 +963,7 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
     Stack *stack = stack_init(STACK_INIT_CAPACITY);
     Stack *idTypeStack = stack_init(STACK_INIT_CAPACITY);
     Stack *identifier_labels_stack = stack_init(STACK_INIT_CAPACITY);
-    // Stack * = stack_init(STACK_INIT_CAPACITY);
+    Stack *tokenValueStack = stack_init(STACK_INIT_CAPACITY);
     stack_push(stack, endMarkerPtr);
 
     token_t token = prevToken;
@@ -979,6 +1004,7 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
 
         if (tokenType == TOKEN_EOL && condition)
         {
+            
             skipEmptyLines(&token);
             tokenType = token.type;
         }
@@ -998,45 +1024,55 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
             stack_push(identifier_labels_stack, token.source_value);
         }
 
-        /*
-        token_t next = peek_token(file);
-        printf("NEXT TYPE: %d\n", next.type);
-        if (next.type == TOKEN_STRING)
-        {
-            token_value_t *tokenValuePtr = malloc(sizeof(token_value_t));
-            tokenValuePtr->string_value = next.value.string_value;
-            stack_push(, tokenValuePtr);
-        }
+        
+        
+        // token_t next = peek_token(file);
+        // free_token(next);
+        // token = get_token(file);
+        // printf("TOKEN TYPE: %d\n", token.type);
+        // if (next.type == TOKEN_STRING)
+        // {
+        //     printf("NEXT STRING VALUE: %s\n", next.value.string_value->buffer);
+        //     token_value_t *tokenValuePtr = malloc(sizeof(token_value_t));
+        //     tokenValuePtr->string_value = malloc(sizeof(DynamicBuffer));
+        //     init_buffer(tokenValuePtr->string_value, BUFFER_INIT_CAPACITY);
+        //     move_buffer(&(tokenValuePtr->string_value->buffer), next.value.string_value);
+        //     printf("TOKEN VALUE: %s\n", tokenValuePtr->string_value->buffer);
+        //     stack_push(tokenValueStack, tokenValuePtr);
+        // }
 
-        if (next.type == TOKEN_DOUBLE_QUOTE || next.type == TOKEN_TRIPLE_DOUBLE_QUOTE)
-        {
-            token_value_t *tokenValuePtr = malloc(sizeof(token_value_t));
-            DynamicBuffer *buffer = malloc(sizeof(DynamicBuffer));
-            init_buffer(buffer, 2);
-            buffer->buffer[0] = ' ';
-            buffer->buffer[1] = '\0';
-            tokenValuePtr->string_value = buffer;
-            stack_push(, tokenValuePtr);
-        }
+        
+        // if (next.type == TOKEN_DOUBLE_QUOTE || next.type == TOKEN_TRIPLE_DOUBLE_QUOTE)
+        // {
+        //     token_value_t *tokenValuePtr = malloc(sizeof(token_value_t));
+        //     tokenValuePtr->string_value = malloc(sizeof(DynamicBuffer));
+        //     init_buffer(tokenValuePtr->string_value, BUFFER_INIT_CAPACITY);
+        //     move_buffer(&(tokenValuePtr->string_value->buffer), next.value.string_value);
+        //     stack_push(tokenValueStack, tokenValuePtr);
+        // }
 
-        if (tokenType == TOKEN_INT)
-        {
-            token_value_t *tokenValuePtr = malloc(sizeof(token_value_t));
-            tokenValuePtr->int_value = token.value.int_value;
-            stack_push(, tokenValuePtr);
-        }
+        // if (tokenType == TOKEN_INT)
+        // {
+        //     token_value_t *tokenValuePtr = malloc(sizeof(token_value_t));
+        //     tokenValuePtr->int_value = token.value.int_value;
+        //     stack_push(tokenValueStack, tokenValuePtr);
+        // }
 
-        if (tokenType == TOKEN_DOUBLE)
-        {
-            token_value_t *tokenValuePtr = malloc(sizeof(token_value_t));
-            tokenValuePtr->double_value = token.value.double_value;
-            stack_push(, tokenValuePtr);
-        }
-        */
+        // if (tokenType == TOKEN_DOUBLE)
+        // {
+        //     token_value_t *tokenValuePtr = malloc(sizeof(token_value_t));
+        //     tokenValuePtr->double_value = token.value.double_value;
+        //     stack_push(tokenValueStack, tokenValuePtr);
+        // }
+
+        
+
         tokenType = checkForImmediateOperands(tokenType, nodeExpression, idTypeStack, true);
 
         int topTerminalIndex;
         stackTop = topTerminal(stack, &topTerminalIndex);
+
+        
 
         if (stackTop == -1)
         {
@@ -1055,11 +1091,18 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
         {
             return false;
         }
+
+        
+
         *inputPtr = expressionTokenTypeToNode(tokenType);
 
         tableValue = nodeTypeToIndex(stackTop, *inputPtr);
 
+        
+
         printf("INPUT: %d\n STACKTOP: %d\n TOKEN TYPE: %d\n TABLE VALUE: %c\n\n", *inputPtr, stackTop, tokenType, tableValue);
+
+        
 
         switch (tableValue)
         {
@@ -1074,8 +1117,9 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
             }
 
             stack_push(stack, inputPtr);
-
+            
             token = get_token(file);
+           
             break;
         case '>':
             free(inputPtr);
@@ -1110,6 +1154,7 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
                 stack_free(treeStack);
                 stack_free(idTypeStack);
                 stack_free(identifier_labels_stack);
+                stack_free(tokenValueStack);
                 printf("Error: !isRule\n");
                 return false;
             }
@@ -1123,6 +1168,7 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
             stack_free(treeStack);
             stack_free(idTypeStack);
             stack_free(identifier_labels_stack);
+            stack_free(tokenValueStack);
             return false;
         }
 
@@ -1131,14 +1177,14 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
     // stack_empty(stack);
     stack_free(stack);
 
-    buildTree(treeStack, nodeExpression, idTypeStack, identifier_labels_stack);
+    buildTree(treeStack, nodeExpression, idTypeStack, identifier_labels_stack, tokenValueStack);
     // stack_empty(treeStack);
     // stack_empty(idTypeStack);
 
     stack_free(treeStack);
     stack_free(idTypeStack);
     stack_free(identifier_labels_stack);
-
+    stack_free(tokenValueStack);
     return true;
 }
 
@@ -1724,8 +1770,10 @@ bool parseDeclaration(TreeNode *neterminal, bool constant)
     token_t prevToken = token;
     if (token.type == TOKEN_IDENTIFIER)
     {
-
+        
         DynamicBuffer *b = token.source_value;
+
+        token = peek_token(file);
 
         if (token.type == TOKEN_LEFT_PARENTHESIS)
         {
@@ -2473,6 +2521,9 @@ bool parse(TreeNode *startNeterminal)
                 return false;
             }
 
+            if (!inBlock)
+                generateIf(nextNeterminal, inBlock);
+
             break;
         case TOKEN_KEYWORD_WHILE:
             nextNeterminal->type = NODE_WHILE;
@@ -2497,6 +2548,10 @@ bool parse(TreeNode *startNeterminal)
             {
                 return false;
             }
+
+            if (!inBlock)
+                generateWhile(nextNeterminal, inBlock);
+
             break;
         case TOKEN_KEYWORD_LET:
         case TOKEN_KEYWORD_VAR:;
@@ -2517,7 +2572,12 @@ bool parse(TreeNode *startNeterminal)
                 return false;
             }
 
-            generateDeclaration(nextNeterminal, inBlock);
+            
+
+            if (!inBlock)
+                generateDeclaration(nextNeterminal, inBlock);
+
+            
 
             free_token(token);
 
