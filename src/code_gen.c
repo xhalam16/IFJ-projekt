@@ -543,3 +543,7 @@ void generateAssign(TreeNode *node, bool local)
         fprintf(f, "MOVE %s@%s %s@%s\n", frame, node->children[0]->label, type, result);
     }
 }
+
+
+
+

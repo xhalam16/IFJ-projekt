@@ -1433,7 +1433,6 @@ bool parseFuncCall(TreeNode *node, DynamicBuffer *func_name)
 
 bool parseAssign(TreeNode *assign, DynamicBuffer *id_name)
 {
-
     TreeNode *assignId = createNewNode(assign, NODE_IDENTIFIER, true);
     if (assignId == NULL)
     {
@@ -1506,19 +1505,7 @@ bool parseDeclaration(TreeNode *neterminal, bool constant)
     symtable_local_data_t *local_data;
     symtable_global_data_t *global_data;
     // create local symtable if there is not currently one
-    bool push = false;
-    if (local_table == NULL && inBlock)
-    {
-        local_table = create_local_symtable(ST_LOCAL_INIT_SIZE);
-
-        if (local_table == NULL)
-        {
-            error = ERR_INTERNAL;
-            return false;
-        }
-
-        push = true;
-    }
+    
 
     symbol_type_t type = constant ? SYM_CONSTANT : SYM_VAR;
 
@@ -1618,13 +1605,15 @@ bool parseDeclaration(TreeNode *neterminal, bool constant)
 
             if (inBlock)
             {
-                if (symtable_search(local_table, key, LOCAL_TABLE) != NULL)
+                local_symtable* to_insert = stack_get(stack_of_local_tables, inBlock - 1)->data;
+                if (symtable_search(to_insert, key, LOCAL_TABLE) != NULL)
                 {
                     error = ERR_SEMANTIC_DEFINITION;
                     return false;
                 }
 
-                if (symtable_insert(local_table, key, local_data, LOCAL_TABLE) != ERR_CODE_ST_OK)
+             
+                if (symtable_insert(to_insert, key, local_data, LOCAL_TABLE) != ERR_CODE_ST_OK)
                 {
                     error = ERR_INTERNAL;
                     return false;
@@ -1645,14 +1634,6 @@ bool parseDeclaration(TreeNode *neterminal, bool constant)
                 }
             }
 
-            if (push && inBlock)
-            {
-                if (stack_push(stack_of_local_tables, local_table) != STACK_SUCCESS)
-                {
-                    error = ERR_INTERNAL;
-                    return false;
-                }
-            }
 
             return true;
         }
@@ -1730,13 +1711,15 @@ bool parseDeclaration(TreeNode *neterminal, bool constant)
 
     if (inBlock)
     {
-        if (symtable_search(local_table, key, LOCAL_TABLE) != NULL)
+        local_symtable* to_insert = stack_get(stack_of_local_tables, inBlock - 1)->data;
+        if (symtable_search(to_insert, key, LOCAL_TABLE) != NULL)
         {
             error = ERR_SEMANTIC_DEFINITION;
             return false;
         }
+     
 
-        if (symtable_insert(local_table, key, local_data, LOCAL_TABLE) != ERR_CODE_ST_OK)
+        if (symtable_insert(to_insert, key, local_data, LOCAL_TABLE) != ERR_CODE_ST_OK)
         {
             error = ERR_INTERNAL;
             return false;
@@ -1757,14 +1740,15 @@ bool parseDeclaration(TreeNode *neterminal, bool constant)
         }
     }
 
-    if (push && inBlock)
-    {
-        if (stack_push(stack_of_local_tables, local_table) != STACK_SUCCESS)
-        {
-            error = ERR_INTERNAL;
-            return false;
-        }
-    }
+    // if (push && inBlock)
+    // {
+    //     printf("Pushing local table declaration second part\n");
+    //     if (stack_push(stack_of_local_tables, local_table) != STACK_SUCCESS)
+    //     {
+    //         error = ERR_INTERNAL;
+    //         return false;
+    //     }
+    // }
 
     token_t prevToken = token;
     if (token.type == TOKEN_IDENTIFIER)
@@ -2120,6 +2104,7 @@ error_code_t fill_local_params(local_symtable *local_sym_table, parameter_list_t
             return ERR_INTERNAL;
         }
 
+       
         if (symtable_insert(local_sym_table, param->name, data, LOCAL_TABLE) != ERR_CODE_ST_OK)
         {
             return ERR_INTERNAL;
@@ -2299,17 +2284,6 @@ bool parseFuncDeclaration(TreeNode *node)
     }
 
     free_token(token);
-    // if (funcBody->local_symtable == NULL)
-    // {
-    //     funcBody->local_symtable = create_local_symtable(ST_LOCAL_INIT_SIZE);
-
-    //     // malloc failed
-    //     if (funcBody->local_symtable == NULL)
-    //     {
-
-    //         return false;
-    //     }
-    // }
 
     if (symtable_search(global_table, key, GLOBAL_TABLE) != NULL)
     {
@@ -2329,10 +2303,9 @@ bool parseFuncDeclaration(TreeNode *node)
     {
 
         TreeNode *funcBody = createNewNode(node, NODE_BODY, false);
-        bool push = false;
         inBlock++;
         inFunction = true;
-        if (local_table == NULL)
+        if (local_table == NULL && stack_get(stack_of_local_tables, inBlock - 1) == NULL)
         {
             local_table = create_local_symtable(ST_LOCAL_INIT_SIZE);
 
@@ -2341,24 +2314,18 @@ bool parseFuncDeclaration(TreeNode *node)
                 error = ERR_INTERNAL;
                 return false;
             }
-            push = true;
+            
+            stack_push(stack_of_local_tables, local_table);
         }
 
-        error_code_t e = fill_local_params(local_table, param_list);
+        local_symtable* loc = stack_get(stack_of_local_tables, inBlock - 1)->data;
+        error_code_t e = fill_local_params(loc, param_list);
         if (e != ERR_NONE)
         {
             error = e;
             return false;
         }
 
-        if (push)
-        {
-            if (stack_push(stack_of_local_tables, local_table) != STACK_SUCCESS)
-            {
-                error = ERR_INTERNAL;
-                return false;
-            }
-        }
         
         if (!parse(funcBody))
         {
@@ -2461,6 +2428,23 @@ bool parse(TreeNode *startNeterminal)
         }
     }
 
+    if ((local_table == NULL || inFunction) && inBlock && stack_get(stack_of_local_tables, inBlock - 1) == NULL) // function solves this 
+    {
+        local_table = create_local_symtable(ST_LOCAL_INIT_SIZE);
+
+        if (local_table == NULL)
+        {
+            error = ERR_INTERNAL;
+            return false;
+        }
+
+        // push = true;
+        stack_push(stack_of_local_tables, local_table);
+    }
+
+
+
+
     token_t token;
     if (!skipEmptyLines(&token))
     {
@@ -2511,11 +2495,11 @@ bool parse(TreeNode *startNeterminal)
                     }
                 }
 
-                if (!inFunction)
-                {
+               if (inBlock != 1 || !inFunction)
+               {
                     stack_pop(stack_of_local_tables); // pop local table (since we are leaving the block) (unless we are in a function, then its popped in parseFuncDeclaration)
                     local_table = NULL;               // set local table to NULL (since we are leaving the block)
-                }
+               }
 
                 return true;
             }
@@ -2675,11 +2659,11 @@ bool parse(TreeNode *startNeterminal)
                 return false;
             }
 
-            
             Stack_Frame *top_frame = stack_top(stack_of_local_tables);
             stack_pop(stack_of_local_tables); // pop local table (since we are leaving the function)
             symtable_free(top_frame->data, LOCAL_TABLE);
             local_table = NULL; // set local table to NULL (since we are leaving the function)
+            
             
             token = get_token(file);
 
@@ -2901,7 +2885,8 @@ int main(void)
     }
 
     error = ERR_SYNTAX_ANALYSIS;
-    file = stdin; //fopen("test.txt", "r");
+    //file = stdin; 
+    file = fopen("test.txt", "r");
     if (file == NULL)
     {
         error = ERR_INTERNAL;
@@ -2920,7 +2905,7 @@ int main(void)
     //print_stack(stack_of_local_tables);
     bool ar[10] = {true};
     
-    //printTree(startNeterminal, ar, 0, 0);
+    printTree(startNeterminal, ar, 0, 0);
     dispose(startNeterminal);   
     
 
@@ -2932,6 +2917,6 @@ int main(void)
         error = ERR_INTERNAL;
     }
 
-    //printf("%d\n", error);
+    printf("%d\n", error);
     return error;
 }
