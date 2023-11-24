@@ -1095,4 +1095,58 @@ while 4 > 10 {
     }
 }' 0 "function call"
 
+
+run_test 'if 3 == 3{
+        var x = 4
+        while 9 == 8{
+            let z = 3
+            
+        }
+}else{
+        let ii = 9
+        x = 9
+}' 5 "local tables test outside function"
+
+
+run_test 'func xd(_ a : Int, with param : String) -> Int {
+    if 3 == 3{
+        var x = 4
+        while 9 == 8{
+            let z = 3
+            
+        }
+    }else{
+        let ii = 9
+        x = 9
+    }
+
+    return 6
+}' 5 "local tables test inside function"
+
+run_test 'func xd(_ a : Int, with param : String) -> Int {
+    if 3 == 3{
+        var x = 4
+        while 9 == 8{
+            let z = 3
+            x = 9
+        }
+    }else{
+        let ii = 9
+    }
+
+    return 6
+}' 0 "local tables test inside function"
+
+run_test 'if 3 == 3{
+        var x = 4
+        while 9 == 8{
+            let z = 3
+            x = 9
+        }
+}else{
+        let ii = 9
+}' 0 "local tables test outside function"
+
+
+
 generate_test_summary
