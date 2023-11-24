@@ -1182,7 +1182,7 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
             return false;
         }
 
-    } while (tokenType != TOKEN_EOL || *((NodeType *)(stack_top(stack)->data)) != NODE_EXPRESSION || stack->top != 1);
+    } while (tokenType != TOKEN_EOL || *((NodeType *)(stack_top(stack)->data)) != NODE_EXPRESSION || stack_size(stack) != 2);
 
     // stack_empty(stack);
     stack_free(stack);
@@ -2901,7 +2901,7 @@ int main(void)
     }
 
     error = ERR_SYNTAX_ANALYSIS;
-    file = stdin; //fopen("test.txt", "r");
+    file = fopen("test.txt", "r");
     if (file == NULL)
     {
         error = ERR_INTERNAL;

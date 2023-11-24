@@ -29,7 +29,7 @@ void setGlobalVars(void)
     {
         return;
     }
-    f = stdout;//fopen(stdout, "w");
+    f = fopen(stdout, "w");
 
     if (f == NULL)
     {
