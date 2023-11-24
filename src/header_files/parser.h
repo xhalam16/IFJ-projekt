@@ -1,3 +1,11 @@
+/* 
+ * Projekt: Překladač jazyka IFJ23
+ * Soubor: parser.h
+ * Datum: 24. 11. 2023
+ * Autor: Šimon Motl, xmotls00
+ */
+
+
 #pragma once
 
 #include <stdio.h>

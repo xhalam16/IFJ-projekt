@@ -1,3 +1,11 @@
+/* 
+ * Projekt: Překladač jazyka IFJ23
+ * Soubor: stack.h
+ * Datum: 24. 11. 2023
+ * Autor: Marek Halamka, xhalam16
+ */
+
+
 #pragma once
 #include <stdio.h>
 #include <stdlib.h>

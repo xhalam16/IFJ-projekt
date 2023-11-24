@@ -1,3 +1,11 @@
+/* 
+ * Projekt: Překladač jazyka IFJ23
+ * Soubor: parser.c
+ * Datum: 24. 11. 2023
+ * Autor: Šimon Motl, xmotls00
+ */
+
+
 #include "header_files/parser.h"
 #include "header_files/semantic.h"
 #include "header_files/code_gen.h"

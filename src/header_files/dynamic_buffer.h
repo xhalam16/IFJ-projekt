@@ -1,3 +1,11 @@
+/* 
+ * Projekt: Překladač jazyka IFJ23
+ * Soubor: dynamic_buffer.h
+ * Datum: 24. 11. 2023
+ * Autor: Marek Halamka, xhalam16
+ */
+
+
 #pragma once
 
 

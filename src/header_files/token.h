@@ -1,3 +1,10 @@
+/* 
+ * Projekt: Překladač jazyka IFJ23
+ * Soubor: token.h
+ * Datum: 24. 11. 2023
+ * Autor: Marek Halamka, xhalam16
+ */
+
 #pragma once
 #include "dynamic_buffer.h"
 
