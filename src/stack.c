@@ -1,3 +1,11 @@
+/* 
+ * Projekt: Překladač jazyka IFJ23
+ * Soubor: stack.c
+ * Datum: 24. 11. 2023
+ * Autor: Marek Halamka, xhalam16
+ */
+
+
 #include "header_files/stack.h"
 
 Stack *stack_init(int capacity)
