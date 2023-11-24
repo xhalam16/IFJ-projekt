@@ -1,3 +1,11 @@
+/* 
+ * Projekt: Překladač jazyka IFJ23
+ * Soubor: semantic.c
+ * Datum: 24. 11. 2023
+ * Autor: Marek Halamka, xhalam16
+ */
+
+
 #include "header_files/parser.h"
 #include "header_files/stack.h"
 #include "header_files/code_gen.h"

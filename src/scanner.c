@@ -1,3 +1,11 @@
+/* 
+ * Projekt: Překladač jazyka IFJ23
+ * Soubor: scanner.c
+ * Datum: 24. 11. 2023
+ * Autor: Marek Halamka, xhalam16
+ */
+
+
 #include "header_files/scanner.h"
 #include "header_files/dynamic_buffer.h"
 

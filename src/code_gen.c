@@ -1,4 +1,13 @@
 
+/* 
+ * Projekt: Překladač jazyka IFJ23
+ * Soubor: code_gen.c
+ * Datum: 24. 11. 2023
+ * Autor: Šimon Motl, xmotls00
+ *        Richard Juřica, xjuric31
+ */
+
+
 #include "header_files/parser.h"
 #include "header_files/code_gen.h"
 #include "header_files/stack.h"

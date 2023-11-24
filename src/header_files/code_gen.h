@@ -1,3 +1,12 @@
+/* 
+ * Projekt: Překladač jazyka IFJ23
+ * Soubor: symtable.c
+ * Datum: 24. 11. 2023
+ * Autor: Šimon Motl, xmotls00
+ *        Richard Juřica, xjuric31
+ */
+
+
 #include <stdio.h>
 #include <stdbool.h>
 
