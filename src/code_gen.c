@@ -20,7 +20,7 @@ void setGlobalVars(void)
     {
         return;
     }
-    f = fopen("out.ifjcode", "w");
+    f = stdout;//fopen(stdout, "w");
 
     if (f == NULL)
     {
@@ -334,7 +334,8 @@ int generateExpression(TreeNode *node, bool local)
             int operation_id = recognize_bin_operation(node->children[1], &operation);
 
             /* Pokud je operace sčítání, odčítání, násobení nebo dělení */
-            if ((operation_id >= NODE_OPERATOR_ADD && operation_id <= NODE_OPERATOR_DIV) || operation_id == NODE_OPERATOR_BELOW || operation_id == NODE_OPERATOR_ABOVE)
+            if ((operation_id >= NODE_OPERATOR_ADD && operation_id <= NODE_OPERATOR_DIV) 
+                || operation_id == NODE_OPERATOR_BELOW || operation_id == NODE_OPERATOR_ABOVE || operation_id == NODE_OPERATOR_EQUAL)
             {
                 /* Rekurzivně zpracuj nejdříve levý podtrom výrazu a poté pravý podstrom výrazu */
                 int a = generateExpression(node->children[0], local);
@@ -381,7 +382,7 @@ int generateExpression(TreeNode *node, bool local)
                 /* Pokud je pravé dítě neterminál, nastav název proměnné na pomocnou proměnnou $res_index, podle odpovídajícího indexu */
                 if (rightTree == NULL)
                 {
-                    printf("RIGHT CHILD TYPE: %d\n", node->children[2]->children[0]->terminal);
+                    //printf("RIGHT CHILD TYPE: %d\n", node->children[2]->children[0]->terminal);
                     right_child = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
                     if (right_child == NULL) // Kontrola alokace paměti
                     {

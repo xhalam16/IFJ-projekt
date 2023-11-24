@@ -466,22 +466,19 @@ void dispose(TreeNode *parseTree)
     // {
     //     free(parseTree->label);
     // }
-    if (parseTree->local_symtable != NULL)
-    {
-        free(parseTree->local_symtable);
-    }
 
     for (unsigned i = 0; i < parseTree->numChildren; i++)
     {
+
         dispose(parseTree->children[i]);
     }
 
     // if(parseTree->token_value.string_value != NULL){
     //     free(parseTree->token_value.string_value);
     // }
-
-    // free(parseTree->children);
-
+    
+    free(parseTree->children);
+    
     free(parseTree);
 }
 
@@ -561,10 +558,15 @@ bool load_string(TreeNode **node, bool multi_line)
     }
 
     (*node)->type = NODE_STRING;
-    if (move_buffer(&(*node)->label, token.value.string_value) != ERR_CODE_OK)
-    {
-        return false;
-    }
+
+    (*node)->label = NULL;
+    (*node)->label = malloc(sizeof(char) * (token.value.string_value->size + 1));
+    token.value.string_value->buffer[token.value.string_value->size] = '\0';
+    strcpy((*node)->label, token.value.string_value->buffer);
+    // if (move_buffer(&(*node)->label, token.value.string_value) != ERR_CODE_OK)
+    // {
+    //     return false;
+    // }
 
     return true;
 }
@@ -858,7 +860,7 @@ TreeNode *buildTree(Stack *treeStack, TreeNode *nodeExpression, Stack *idTypeSta
         {
             Stack_Frame *frame = stack_top(identifier_stack);
             DynamicBuffer *id_buffer = frame->data;
-
+            id->label = NULL;
             if (move_buffer(&id->label, id_buffer) != ERR_CODE_OK)
             {
                 error = ERR_INTERNAL;
@@ -986,7 +988,7 @@ TreeNode *buildTree(Stack *treeStack, TreeNode *nodeExpression, Stack *idTypeSta
 
 bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition)
 {
-
+    
     NodeType *endMarkerPtr = malloc(sizeof(NodeType));
     if (endMarkerPtr == NULL)
     {
@@ -1010,6 +1012,8 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
     {
 
         tokenType = token.type;
+        //token = get_token(file);
+        // printf("TOKEN TYPE: %d\n", token.type);
 
         /*
         if (tokenType == TOKEN_EOL)
@@ -1054,9 +1058,6 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
             tokenType = TOKEN_EOL;
         }
 
-        if (tokenType == TOKEN_DOUBLE_QUOTE || tokenType == TOKEN_TRIPLE_DOUBLE_QUOTE)
-        {
-        }
         if (tokenType == TOKEN_IDENTIFIER)
         {
             stack_push(identifier_labels_stack, token.source_value);
@@ -1144,7 +1145,7 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
                 }
 
                 *stackTopPtr = NODE_EXPRESSION;
-                stack_push(stack, stackTopPtr);
+                stack_push(stack, stackTopPtr); 
             }
             else
             {
@@ -1173,7 +1174,7 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
             return false;
         }
 
-    } while (tokenType != TOKEN_EOL || *((NodeType *)(stack_top(stack)->data)) != NODE_EXPRESSION || stack->size != 2);
+    } while (tokenType != TOKEN_EOL || *((NodeType *)(stack_top(stack)->data)) != NODE_EXPRESSION || stack->top != 1);
 
     // stack_empty(stack);
     stack_free(stack);
@@ -1403,10 +1404,9 @@ bool parseFuncCall(TreeNode *node, DynamicBuffer *func_name)
 
     if (func_name != NULL)
     {
-        if (move_buffer(&funcCallId->label, func_name) != ERR_CODE_OK)
-        {
-            return false;
-        }
+        func_name->buffer[func_name->size] = '\0';
+        funcCallId->label = calloc(100,sizeof(char));
+        strncpy(funcCallId->label, func_name->buffer, func_name->size + 1);
     }
 
     TreeNode *funcCallParams = createNewNode(node, NODE_PARAM_LIST, false);
@@ -2435,6 +2435,8 @@ bool parse(TreeNode *startNeterminal)
 {
     error_code_t semantic_result;
 
+    
+
     if (global_table == NULL)
     {
         global_table = create_global_symtable(ST_GLOBAL_INIT_SIZE);
@@ -2480,7 +2482,7 @@ bool parse(TreeNode *startNeterminal)
                     // the label now contains key to the local table (or global table if we are in the global scope)
                     // we need to change nilable to false since the variable is now not guarded
                     char *key = nextNeterminal->label;
-                    printf("ending block key: %s\n", key);
+                    //printf("ending block key: %s\n", key);
                     symtable_record_local_t *record = check_stack(stack_of_local_tables, key);
 
                     if (record == NULL)
@@ -2653,6 +2655,7 @@ bool parse(TreeNode *startNeterminal)
             {
                 return false;
             }
+            
             nextNeterminal->type = NODE_DECLARATION_FUNCTION;
 
             semantic_result = semantic(nextNeterminal);
@@ -2678,7 +2681,7 @@ bool parse(TreeNode *startNeterminal)
             }
             
             generateFuncDeclaration(nextNeterminal, inBlock);
-
+            
             break;
         case TOKEN_KEYWORD_RETURN:
             free_token(token);
@@ -2714,7 +2717,7 @@ bool parse(TreeNode *startNeterminal)
     {
         return false;
     }
-
+    
     return true;
 }
 
@@ -2838,27 +2841,27 @@ void printTree(TreeNode *x, bool *flag, int depth, int isLast)
     {
         if (flag[i])
         {
-           // printf("|   ");
+           printf("|   ");
         }
         else
         {
-           // printf("    ");
+           printf("    ");
         }
     }
 
-    //if (depth == 0)
-       // printf("%s, with value %s\n", node_type_to_string(x->type), x->label);
+    if (depth == 0)
+       printf("%s, with value %s\n", node_type_to_string(x->type), x->label);
 
-    //else
+    else
      if (isLast)
     {
-       // printf("+--- %s, with value %s\n", node_type_to_string(x->type), x->label);
+       printf("+--- %s, with value %s\n", node_type_to_string(x->type), x->label);
 
         flag[depth] = false;
     }
     else
     {
-       // printf("+--- %s, with value %s\n", node_type_to_string(x->type), x->label);
+       printf("+--- %s, with value %s\n", node_type_to_string(x->type), x->label);
     }
 
     for (size_t it = 0; it < x->numChildren; ++it)
@@ -2890,7 +2893,7 @@ int main(void)
     }
 
     error = ERR_SYNTAX_ANALYSIS;
-    file = fopen("test.txt", "r");
+    file = stdin; //fopen("test.txt", "r");
     if (file == NULL)
     {
         error = ERR_INTERNAL;
@@ -2904,14 +2907,14 @@ int main(void)
         error = ERR_NONE;
     }
 
-    print_global_table(global_table);
-
-    print_stack(stack_of_local_tables);
+    //print_global_table(global_table);
+    
+    //print_stack(stack_of_local_tables);
     bool ar[10] = {true};
-
-    printTree(startNeterminal, ar, 0, 0);
-
-    dispose(startNeterminal);
+    
+    //printTree(startNeterminal, ar, 0, 0);
+    dispose(startNeterminal);   
+    
 
     symtable_free(global_table, GLOBAL_TABLE);
     stack_free(stack_of_local_tables);
@@ -2921,6 +2924,6 @@ int main(void)
         error = ERR_INTERNAL;
     }
 
-    printf("%d\n", error);
+    //printf("%d\n", error);
     return error;
 }

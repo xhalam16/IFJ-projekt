@@ -18,20 +18,30 @@ bool is_neterminal(TreeNode *node){
     return !node->terminal;
 }
 
-int return_count(TreeNode *node){
+int return_count(TreeNode *node, bool reset){
     static int count = 0;
+
+    if(reset){
+        count = 0;
+    }
+
     for(int i = 0; i < node->numChildren; i++){
         if(node->children[i]->type == NODE_RETURN){
             count++;
         }
-        return_count(node->children[i]);
+        return_count(node->children[i], false);
     }
     return count;
 }
 
-void get_all_returns(TreeNode *node, TreeNode** returns){
+void get_all_returns(TreeNode *node, TreeNode** returns, bool reset){
     // function assumes that the returns array is initialized
     static int index = 0;
+
+    if(reset){
+        index = 0;
+    }
+
     if(returns == NULL){
         return;
     }
@@ -45,7 +55,7 @@ void get_all_returns(TreeNode *node, TreeNode** returns){
     }
 
     for(int i = 0; i < node->numChildren; i++){
-        get_all_returns(node->children[i], returns);
+        get_all_returns(node->children[i], returns, false);
     }
     
 }
@@ -826,7 +836,7 @@ error_code_t semantic_func_declaration(TreeNode* node){
                 return ERR_SEMANTIC_DEFINITION;
             }
 
-
+            
         }else{
             // this is most likely a symbol redefinition resulting in error
             return ERR_SEMANTIC_DEFINITION;
@@ -843,10 +853,9 @@ error_code_t semantic_func_declaration(TreeNode* node){
     // if(!has_return(body, &return_node) && record->data->data_type != DATA_NONE){
     //     return ERR_SEMANTIC_FUNC;
     // }
-    int ret_count = return_count(body);
+    int ret_count = return_count(body, true);
     TreeNode** returns = malloc(sizeof(TreeNode*) * ret_count);
-    get_all_returns(body, returns);
-
+    get_all_returns(body, returns, true);
     for(int i = 0; i < ret_count; i++){
         TreeNode* return_node = returns[i];
         if(return_node != NULL){
@@ -862,7 +871,7 @@ error_code_t semantic_func_declaration(TreeNode* node){
         free(returns);
         return ERR_SEMANTIC_FUNC;
     }
-
+    
     free(returns);
     return ERR_NONE;
 }

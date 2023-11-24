@@ -42,7 +42,7 @@ int buffer_append_char(DynamicBuffer* buffer, char data){
     buffer->buffer[buffer->size] = data;
     buffer->size += 1;
 
-    buffer->buffer[buffer->size] = '\0';
+    //buffer->buffer[buffer->size] = '\0';
 
     return ERR_CODE_OK;
 }
@@ -88,20 +88,29 @@ bool buffer_equals_string(DynamicBuffer* buffer, const char* string){
 int move_buffer(char** dest, DynamicBuffer* src){
    
     if(*dest == NULL){
-        *dest = malloc(src->size * sizeof(char) + 1);
+
+        *dest = malloc(200 * sizeof(char) + 1);
         if(*dest == NULL){
             return ERR_CODE_ALLOC;
         }
-    }else{
+    }
+    else{
         if(strlen(*dest) < src->size){
-            *dest = realloc(*dest, src->size * sizeof(char) + 1);
+            *dest = realloc(*dest, src->size * sizeof(char) );
+
             if(*dest == NULL){
                 return ERR_CODE_ALLOC;
             }
+
         }
+
     }
 
 
+    //src->buffer[src->size] = '\0';
+    //memset(*dest, 0, src->size);
+    //*dest = realloc(*dest, 1000 * sizeof(char) + 1);
+    //src->buffer[src->size] = '\0';
     strcpy(*dest, src->buffer);
     buffer_clear(src);
     return ERR_CODE_OK;
