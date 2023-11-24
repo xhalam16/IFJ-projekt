@@ -16,7 +16,7 @@
 
 #define ERR_CODE_OK 0
 #define ERR_CODE_ALLOC 1
-#define BUFFER_INIT_CAPACITY 16
+#define BUFFER_INIT_CAPACITY 32
 
 typedef struct dynamic_buffer {
     char* buffer;
@@ -37,4 +37,6 @@ void free_buffer(DynamicBuffer* buffer);
 int move_buffer(char** dest, DynamicBuffer* src);
 
 int move_buffer_to_buffer(DynamicBuffer* dest, DynamicBuffer* src);
+
+
 

@@ -476,10 +476,10 @@ void parameter_list_free(parameter_list_t *list){
     first(list);
     while(parameter_list_active(list)){
         function_parameter_t *param = parameter_list_get_active(list);
-        free_param(param);
         parameter_list_next(list);
+        free_param(param);
     }
-    //free(list);
+    free(list);
 }
 
 
