@@ -419,16 +419,6 @@ int generateExpression(TreeNode *node, bool local)
                 fprintf(f, "%s %s@$res_%d %s@%s %s@%s\n", operation, frame, res_index, left_child_type, left_child_varname, right_child_type, right_child_varname);
                 }
             }
-            /* Pokud je oprace NEQ */
-            // else if (operation_id == NODE_OPERATOR_NEQ)
-            // {
-            //     int left_index = generateExpression(node->children[0], local);
-            //     int right_index = generateExpression(node->children[2], local);
-            //     res_index++;
-
-            //     fprintf(f, "DEFVAR %s$res_%d\n", frame, res_index);
-            //     fprintf(f, "EQ %s$res_%d %s@%s %s@%s\n", frame, res_index, left_child_type, left_child_varname, left_child_type, right_child_varname);
-            // }
         }
     }
     /* Vrať poslední použitý indexu pro id pomocných proměnných */
