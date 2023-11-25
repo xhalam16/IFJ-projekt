@@ -29,7 +29,8 @@ void setGlobalVars(void)
     {
         return;
     }
-    f = stdout;//fopen(stdout, "w");
+    //f = stdout;fopen(stdout, "w");
+    f = fopen("out.ifjcode", "w");
 
     if (f == NULL)
     {
@@ -333,7 +334,7 @@ int generateExpression(TreeNode *node, bool local)
         /* Expr = (expr) */
         if (node->children[0]->type == NODE_LEFT_PARENTHESIS)
         {
-            /* Zpracuj expression, který je na indexu 1 a nakonec vrať poslední použitoui hodnotu indexu id pomocných proměnných */
+            /* Zpracuj expression, který je na indexu 1 a nakonec vrať poslední použitou hodnotu indexu id pomocných proměnných */
             return generateExpression(node->children[1], local);
         }
         /* Předpokládáme, že první a třetí děti jsou operandy */
@@ -342,13 +343,14 @@ int generateExpression(TreeNode *node, bool local)
             char *operation = NULL;
             int operation_id = recognize_bin_operation(node->children[1], &operation);
 
-            /* Pokud je operace sčítání, odčítání, násobení nebo dělení */
+            /* Pokud je operace sčítání, odčítání, násobení dělení, menší, větší nebo rovno */
             if ((operation_id >= NODE_OPERATOR_ADD && operation_id <= NODE_OPERATOR_DIV) 
-                || operation_id == NODE_OPERATOR_BELOW || operation_id == NODE_OPERATOR_ABOVE || operation_id == NODE_OPERATOR_EQUAL)
+                || operation_id == NODE_OPERATOR_BELOW || operation_id == NODE_OPERATOR_ABOVE || operation_id == NODE_OPERATOR_EQUAL
+                || operation_id == NODE_OPERATOR_NEQ)
             {
                 /* Rekurzivně zpracuj nejdříve levý podtrom výrazu a poté pravý podstrom výrazu */
-                int a = generateExpression(node->children[0], local);
-                int b = generateExpression(node->children[2], local);
+                int left_index = generateExpression(node->children[0], local);
+                int right_index = generateExpression(node->children[2], local);
 
                 /* Zvyš index counteru pro identifikátory pomocných proměnných pro mezivýsledky */
                 res_index++;
@@ -371,45 +373,62 @@ int generateExpression(TreeNode *node, bool local)
                 }
 
                 /* stringy pro uložení názvu proměnných */
-                char *right_child;
-                char *left_child;
+                char *right_child_varname;
+                char *left_child_varname;
 
                 /* Pokud je levé dítě neterminál, nastav název proměnné na pomocnou proměnnou $res_index, podle odpovídajícího indexu */
                 if (leftTree == NULL)
                 {
-                    left_child = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH); // -5 bodov!!!!!!!
-                    if (left_child == NULL)                                  // Kontrola alokace paměti
+                    left_child_varname = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH); // -5 bodov!!!!!!!
+                    if (left_child_varname == NULL)                                  // Kontrola alokace paměti
                     {
                         return -1;
                     }
-                    snprintf(left_child, MAX_VAR_NAME_LENGTH, "$res_%d", a); // Převeď návratovou hodnotu a do řetězce pro pomocnou proměnnou
+                    snprintf(left_child_varname, MAX_VAR_NAME_LENGTH, "$res_%d", left_index); // Převeď návratovou hodnotu a do řetězce pro pomocnou proměnnou
                 }
                 else
                 { /* Pokud je pravé dítě terminál, nastav název proměnné na label */
-                    left_child = leftTree->label;
+                    left_child_varname = leftTree->label;
                 }
                 /* Pokud je pravé dítě neterminál, nastav název proměnné na pomocnou proměnnou $res_index, podle odpovídajícího indexu */
                 if (rightTree == NULL)
                 {
                     //printf("RIGHT CHILD TYPE: %d\n", node->children[2]->children[0]->terminal);
-                    right_child = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
-                    if (right_child == NULL) // Kontrola alokace paměti
+                    right_child_varname = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
+                    if (right_child_varname == NULL) // Kontrola alokace paměti
                     {
                         return -1;
                     }
-                    snprintf(right_child, MAX_VAR_NAME_LENGTH, "$res_%d", b); // Převeď návratovou hodnotu b do řetězce pro pomocnou proměnnou
+                    snprintf(right_child_varname, MAX_VAR_NAME_LENGTH, "$res_%d", right_index); // Převeď návratovou hodnotu b do řetězce pro pomocnou proměnnou
                 }
                 else /* Pokud je levé dítě terminál, nastav název proměnné na label */
                 {
-                    right_child = rightTree->label;
+                    right_child_varname = rightTree->label;
                 }
 
+                if(operation_id == NODE_OPERATOR_NEQ) {
+                    fprintf(f, "DEVAR %s@$res_%d\n", frame, res_index);
+                    fprintf(f, "EQ %s@$res_%d %s@%s %s@%s\n", frame, res_index, left_child_type, left_child_varname, right_child_type, right_child_varname);
+                    res_index++;
+
+                    fprintf(f, "DEFVAR %s@$res_%d\n", frame, res_index);
+                    fprintf(f, "NOT %s@$res_%d %s@$res_%d\n", frame, res_index, frame, res_index - 1); // teoreticky by to mozna slo ulozit do stejne promenne idk
+                }
+                else { // pokud jde o jinou operaci
                 fprintf(f, "DEFVAR %s@$res_%d\n", frame, res_index);
-                fprintf(f, "%s %s@$res_%d %s@%s %s@%s\n", operation, frame, res_index, left_child_type, left_child, left_child_type, right_child);
+                fprintf(f, "%s %s@$res_%d %s@%s %s@%s\n", operation, frame, res_index, left_child_type, left_child_varname, right_child_type, right_child_varname);
+                }
             }
-            else if (operation_id == 5)
-            {
-            }
+            /* Pokud je oprace NEQ */
+            // else if (operation_id == NODE_OPERATOR_NEQ)
+            // {
+            //     int left_index = generateExpression(node->children[0], local);
+            //     int right_index = generateExpression(node->children[2], local);
+            //     res_index++;
+
+            //     fprintf(f, "DEFVAR %s$res_%d\n", frame, res_index);
+            //     fprintf(f, "EQ %s$res_%d %s@%s %s@%s\n", frame, res_index, left_child_type, left_child_varname, left_child_type, right_child_varname);
+            // }
         }
     }
     /* Vrať poslední použitý indexu pro id pomocných proměnných */
@@ -422,11 +441,15 @@ void generateIf(TreeNode *node, bool local)
 
     char *frame = local ? "LF" : "GF";
 
-    fprintf(f, "DEFVAR %s@%%res_%d\n", frame, labelId);
+    // fprintf(f, "DEFVAR %s@%%res_%d\n", frame, labelId);
 
-    int res = generateExpression(node->children[0], local);
+    // int res = generateExpression(node->children[0], local);          Přijde mi to takhle zvláštní
 
-    fprintf(f, "JUMPIFNEQ $else$%d %s@res_%d bool@true\n", labelId, frame, res);
+    // fprintf(f, "JUMPIFNEQ $else$%d %s@res_%d bool@true\n", labelId, frame, res);
+
+    generateExpression(node->children[0], local);
+
+    fprintf(f, "JUMPIFNEQ $else$%d %s@res_%d bool@true\n", labelId, frame, res_index);
 
     if (node->children[1]->children[0]->type != NODE_BODY_END)
     {
