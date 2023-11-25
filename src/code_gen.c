@@ -345,8 +345,7 @@ int generateExpression(TreeNode *node, bool local)
 
             /* Pokud je operace sčítání, odčítání, násobení dělení, menší, větší nebo rovno */
             if ((operation_id >= NODE_OPERATOR_ADD && operation_id <= NODE_OPERATOR_DIV) 
-                || operation_id == NODE_OPERATOR_BELOW || operation_id == NODE_OPERATOR_ABOVE || operation_id == NODE_OPERATOR_EQUAL
-                || operation_id == NODE_OPERATOR_NEQ)
+                || (operation_id >= NODE_OPERATOR_BELOW && operation_id <= NODE_OPERATOR_NEQ))
             {
                 /* Rekurzivně zpracuj nejdříve levý podtrom výrazu a poté pravý podstrom výrazu */
                 int left_index = generateExpression(node->children[0], local);
@@ -406,29 +405,32 @@ int generateExpression(TreeNode *node, bool local)
                     right_child_varname = rightTree->label;
                 }
 
+                fprintf(f, "DEFVAR %s@$res_%d\n", frame, res_index);
+
                 if(operation_id == NODE_OPERATOR_NEQ) {
-                    fprintf(f, "DEVAR %s@$res_%d\n", frame, res_index);
                     fprintf(f, "EQ %s@$res_%d %s@%s %s@%s\n", frame, res_index, left_child_type, left_child_varname, right_child_type, right_child_varname);
                     res_index++;
 
                     fprintf(f, "DEFVAR %s@$res_%d\n", frame, res_index);
                     fprintf(f, "NOT %s@$res_%d %s@$res_%d\n", frame, res_index, frame, res_index - 1); // teoreticky by to mozna slo ulozit do stejne promenne idk
                 }
+                else if(operation_id == NODE_OPERATOR_AEQ || operation_id == NODE_OPERATOR_BEQ) {
+                    printf("MESSI\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+                    if(operation_id == NODE_OPERATOR_AEQ) {
+                        operation = "LT";
+                    }
+                    else {
+                        operation = "GT";
+                    }
+                    fprintf(f, "%s %s@$res_%d %s@%s %s@%s\n", operation, frame, res_index, left_child_type, left_child_varname, right_child_type, right_child_varname);
+                    res_index++;
+
+                    fprintf(f, "NOT %s@$res_%d %s@res_%d\n", frame, res_index, frame, res_index - 1);
+                }
                 else { // pokud jde o jinou operaci
-                fprintf(f, "DEFVAR %s@$res_%d\n", frame, res_index);
-                fprintf(f, "%s %s@$res_%d %s@%s %s@%s\n", operation, frame, res_index, left_child_type, left_child_varname, right_child_type, right_child_varname);
+                    fprintf(f, "%s %s@$res_%d %s@%s %s@%s\n", operation, frame, res_index, left_child_type, left_child_varname, right_child_type, right_child_varname);
                 }
             }
-            /* Pokud je oprace NEQ */
-            // else if (operation_id == NODE_OPERATOR_NEQ)
-            // {
-            //     int left_index = generateExpression(node->children[0], local);
-            //     int right_index = generateExpression(node->children[2], local);
-            //     res_index++;
-
-            //     fprintf(f, "DEFVAR %s$res_%d\n", frame, res_index);
-            //     fprintf(f, "EQ %s$res_%d %s@%s %s@%s\n", frame, res_index, left_child_type, left_child_varname, left_child_type, right_child_varname);
-            // }
         }
     }
     /* Vrať poslední použitý indexu pro id pomocných proměnných */
