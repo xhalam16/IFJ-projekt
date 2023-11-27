@@ -296,7 +296,10 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
             }else if(child->type == NODE_IDENTIFIER){
             
                 symtable_record_local_t* record = check_stack(local_tables, child->label);
+                printf("stack size %d\n", local_tables->top);
+               printf("%s identifier\n", child->label);
                 if(same_symbol_assign){
+    
                     record = get_nth_record(local_tables, child->label, 1);
                     same_symbol_assign = false;
                 }
@@ -472,6 +475,8 @@ error_code_t semantic_relation_expression(TreeNode* node, bool *result, Stack* l
 
     TreeNode* l_expression = expression->children[0];
     TreeNode* r_expression = expression->children[2];
+
+
     TreeNode* operator = expression->children[1];
 
     if(l_expression == NULL || r_expression == NULL || operator == NULL){
@@ -929,6 +934,7 @@ error_code_t semantic_declaration(TreeNode* node, Stack* local_symtables){
 }
 
 error_code_t semantic_assign(TreeNode* node, Stack* local_tables){
+    
     // assign : always 2 children
     // L-child: identifier or declaration
     // R-child: expression or function call
@@ -954,6 +960,8 @@ error_code_t semantic_assign(TreeNode* node, Stack* local_tables){
         }
 
     }
+
+    printf("semantic assign, identifier %s\n", identifier->label);
 
     same_symbol_assign = same_identifier_in_subtrees(right_child, left_child, identifier->label) && declaration;
 
