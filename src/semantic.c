@@ -963,8 +963,6 @@ error_code_t semantic_assign(TreeNode* node, Stack* local_tables){
 
     }
 
-    printf("semantic assign, identifier %s\n", identifier->label);
-
     same_symbol_assign = same_identifier_in_subtrees(right_child, left_child, identifier->label) && declaration;
 
     // we need to check if the identifier exists in the local tables or in the global table

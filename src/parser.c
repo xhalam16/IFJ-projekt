@@ -491,6 +491,15 @@ void dispose(TreeNode *parseTree)
     free(parseTree);
 }
 
+void skip_comments(token_t *token)
+{
+    while (token->type == TOKEN_NONE)
+    {
+        free_token(*token);
+        *token = get_token(file);
+    }
+}
+
 int skipEmptyLines(token_t *token)
 {
     int numEols = 0;
@@ -504,6 +513,9 @@ int skipEmptyLines(token_t *token)
         free_token(*token);
         *token = get_token(file);
     }
+
+    skip_comments(token);
+
 
     if (token->type == TOKEN_UNKNOWN)
     {
@@ -757,6 +769,16 @@ token_type_t checkForImmediateOperands(token_type_t tokenType, TreeNode *nodeExp
         break;
     case TOKEN_DOUBLE_QUOTE:
         token = get_token(file);
+
+        skip_comments(&token);
+
+
+        if(token.type == TOKEN_UNKNOWN){
+            error = ERR_LEX_ANALYSIS;
+            return -1;
+        }
+
+
         tokenType = TOKEN_IDENTIFIER;
         *temp = NODE_STRING;
         if (token.type != TOKEN_STRING && token.type != TOKEN_DOUBLE_QUOTE)
@@ -788,6 +810,13 @@ token_type_t checkForImmediateOperands(token_type_t tokenType, TreeNode *nodeExp
 
         token = get_token(file);
 
+        skip_comments(&token);
+
+        if(token.type == TOKEN_UNKNOWN){
+            error = ERR_LEX_ANALYSIS;
+            return -1;
+        }
+
         if (token.type != TOKEN_DOUBLE_QUOTE)
         {
             return -1;
@@ -798,6 +827,15 @@ token_type_t checkForImmediateOperands(token_type_t tokenType, TreeNode *nodeExp
         break;
     case TOKEN_TRIPLE_DOUBLE_QUOTE:
         token = get_token(file);
+
+        skip_comments(&token);
+
+        if(token.type == TOKEN_UNKNOWN){
+            error = ERR_LEX_ANALYSIS;
+            return -1;
+        }
+
+
         tokenType = TOKEN_IDENTIFIER;
         *temp = NODE_STRING;
         if (token.type != TOKEN_STRING && token.type != TOKEN_TRIPLE_DOUBLE_QUOTE)
@@ -828,6 +866,13 @@ token_type_t checkForImmediateOperands(token_type_t tokenType, TreeNode *nodeExp
         tokenValuePtr->string_value = buffer;
 
         token = get_token(file);
+
+        skip_comments(&token);
+
+        if(token.type == TOKEN_UNKNOWN){
+            error = ERR_LEX_ANALYSIS;
+            return -1;
+        }
 
         if (token.type != TOKEN_TRIPLE_DOUBLE_QUOTE)
         {
@@ -1122,6 +1167,13 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
             stack_push(stack, inputPtr);
             token = get_token(file);
 
+            skip_comments(&token);
+
+            if(token.type == TOKEN_UNKNOWN){
+                error = ERR_LEX_ANALYSIS;
+                return false;
+            }
+
             break;
         case '<':;
             if (!pushBehindTerminal(stack, topTerminalIndex))
@@ -1131,6 +1183,14 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
 
             stack_push(stack, inputPtr);
             token = get_token(file);
+
+            skip_comments(&token);
+
+            if(token.type == TOKEN_UNKNOWN){
+                error = ERR_LEX_ANALYSIS;
+                return false;
+            }
+
             break;
         case '>':
             free(inputPtr);
@@ -1394,7 +1454,14 @@ bool parseParameters(TreeNode *funcParams)
     // }
     token_t next_token = get_token(file);
 
-    // printf("token.type: %d\n", next_token.type);
+    skip_comments(&next_token);
+
+    if(next_token.type == TOKEN_UNKNOWN){
+        error = ERR_LEX_ANALYSIS;
+        return false;
+    }
+
+    //printf("token.type: %d\n", next_token.type);
     if (next_token.type == TOKEN_COMMA)
     {
         return parseParameters(funcParams);
@@ -1489,11 +1556,26 @@ bool parseAssign(TreeNode *assign, DynamicBuffer *id_name)
         {
 
             token = get_token(file);
+
+            skip_comments(&token);
+
+            if(token.type == TOKEN_UNKNOWN){
+                error = ERR_LEX_ANALYSIS;
+                return false;
+            }
             assignValue->type = NODE_FUNCTION_CALL;
 
             if (parseFuncCall(assignValue, prevToken.source_value))
             {
                 token = get_token(file);
+
+                skip_comments(&token);
+
+                if(token.type == TOKEN_UNKNOWN){
+                    error = ERR_LEX_ANALYSIS;
+                    return false;
+                }
+
                 if (token.type != TOKEN_EOL && token.type != TOKEN_EOF)
                 {
                     return false;
@@ -1597,6 +1679,13 @@ bool parseDeclaration(TreeNode *neterminal, bool constant)
 
         free_token(token);
         token = get_token(file);
+
+        skip_comments(&token);
+
+        if(token.type == TOKEN_UNKNOWN){
+            error = ERR_LEX_ANALYSIS;
+            return false;
+        }
 
         if (token.type != TOKEN_OPERATOR_ASSIGN && (token.type == TOKEN_EOL || (token.type == TOKEN_EOF && !inBlock)))
         {
@@ -1772,6 +1861,13 @@ bool parseDeclaration(TreeNode *neterminal, bool constant)
             free_token(token);
             expression->type = NODE_FUNCTION_CALL;
             token = get_token(file);
+
+            skip_comments(&token);
+
+            if(token.type == TOKEN_UNKNOWN){
+                error = ERR_LEX_ANALYSIS;
+                return false;
+            }
 
             if (parseFuncCall(expression, b))
             {
@@ -1962,6 +2058,15 @@ bool parseIfStatement(TreeNode *node, bool isWhile)
         inBlock--;
         free_token(token);
         token = get_token(file);
+
+        skip_comments(&token);
+
+        if(token.type == TOKEN_UNKNOWN){
+            error = ERR_LEX_ANALYSIS;
+            return false;
+        }
+
+
         if (token.type != TOKEN_EOL && token.type != TOKEN_EOF)
         {
             free_token(token);
@@ -2139,6 +2244,14 @@ bool parseParamList(TreeNode *funcParamList, parameter_list_t *param_list)
     {
         free_token(token);
         token = get_token(file);
+
+        skip_comments(&token);
+
+        if(token.type == TOKEN_UNKNOWN){
+            error = ERR_LEX_ANALYSIS;
+            return false;
+        }
+
         free_token(token);
         TreeNode *funcParameter = createNewNode(funcParamList, NODE_EPSILON, true);
         if (funcParameter == NULL)
@@ -2240,6 +2353,13 @@ bool parseFuncDeclaration(TreeNode *node)
     //     return false;
     // }
     token = get_token(file);
+
+    skip_comments(&token);
+
+    if(token.type == TOKEN_UNKNOWN){
+        error = ERR_LEX_ANALYSIS;
+        return false;
+    }
 
     TreeNode *funcReturnValue = createNewNode(node, NODE_DATATYPE_INT, true);
 
@@ -2364,6 +2484,13 @@ bool parseReturn(TreeNode *node)
     token_t token;
     token = get_token(file);
 
+    skip_comments(&token);
+
+    if(token.type == TOKEN_UNKNOWN){
+        error = ERR_LEX_ANALYSIS;
+        return false;
+    }
+
     node->type = NODE_RETURN;
 
     TreeNode *returnExpression = createNewNode(node, NODE_EXPRESSION, false);
@@ -2383,6 +2510,14 @@ bool parseReturn(TreeNode *node)
         {
             free_token(token);
             token = get_token(file);
+
+            skip_comments(&token);
+
+            if(token.type == TOKEN_UNKNOWN){
+                error = ERR_LEX_ANALYSIS;
+                return false;
+            }
+
             returnExpression->type = NODE_FUNCTION_CALL;
 
             if (!parseFuncCall(returnExpression, buff))
@@ -2390,6 +2525,13 @@ bool parseReturn(TreeNode *node)
                 return false;
             }
             token = get_token(file);
+
+            skip_comments(&token);
+
+            if(token.type == TOKEN_UNKNOWN){
+                error = ERR_LEX_ANALYSIS;
+                return false;
+            }
 
             if (token.type == TOKEN_EOL)
             {
@@ -2541,6 +2683,13 @@ bool parse(TreeNode *startNeterminal)
 
                 token = get_token(file);
 
+                skip_comments(&token);
+
+                if(token.type == TOKEN_UNKNOWN){
+                    error = ERR_LEX_ANALYSIS;
+                    return false;
+                }
+
                 if (token.type != TOKEN_EOL && token.type != TOKEN_EOF)
                 {
                     return false;
@@ -2627,6 +2776,14 @@ bool parse(TreeNode *startNeterminal)
             }
 
             token = get_token(file);
+
+            skip_comments(&token);
+
+            if(token.type == TOKEN_UNKNOWN){
+                error = ERR_LEX_ANALYSIS;
+                return false;
+            }
+
             if (token.type != TOKEN_EOL && token.type != TOKEN_EOF)
             {
                 return false;
@@ -2693,6 +2850,14 @@ bool parse(TreeNode *startNeterminal)
             local_table = NULL; // set local table to NULL (since we are leaving the function)
 
             token = get_token(file);
+
+            skip_comments(&token);
+
+
+            if(token.type == TOKEN_UNKNOWN){
+                error = ERR_LEX_ANALYSIS;
+                return false;
+            }
 
             if (token.type != TOKEN_EOL && token.type != TOKEN_EOF)
             {
