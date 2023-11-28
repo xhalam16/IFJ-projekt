@@ -1127,7 +1127,11 @@ token_t get_token(FILE *source_file)
         // todo throw lexical error (TOKEN_UNKNOWN is default)
     }
 
+    if(in_block_comment_global) // -- if we are still in block comment, at the end, it must be error since it was not closed
+        token.type = TOKEN_UNKNOWN;
+
     return token;
+
 }
 
 void free_token(token_t token)
