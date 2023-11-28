@@ -1147,6 +1147,77 @@ run_test 'if 3 == 3{
         let ii = 9
 }' 0 "local tables test outside function"
 
+run_test '
+let x = @
+' 1 "lex error"
+
+run_test '
+let 1234 = 1234
+' 2 "syntax error"
+
+run_test '
+foo(3@, 4)
+' 1 "lex error"
+
+run_test '
+if(@ == 4){
+
+}' 1 "lex error"
+
+run_test '
+if(3 == @){
+
+}' 1 "lex error"
+
+run_test '
+let x = 3$
+' 1 "lex error"
+
+run_test '
+let x = 3.4$
+' 1 "lex error"
+
+run_test '
+let x = 3.4e$
+' 1 "lex error"
+
+run_test '
+/* fdfdfdfdfunction 
+fdfdfdfdfunctionsf
+DATA_STRINGfds
+f
+ds(
+        $args) {
+        # code...
+}
+
+' 1 "lex analysis not ended comment"
+
+run_test '
+/* 
+/* 
+
+fdfdfd
+*/
+*/
+' 0 "lex analysis vnorene komentare"
+
+run_test '
+/* 
+/* 
+
+fdfdfd
+*/
+' 1 "lex analysis vnorene komentare"
+
+
+run_test '
+let x = 12@3' 1 "lex error"
+
+
+
+
+
 
 
 generate_test_summary
