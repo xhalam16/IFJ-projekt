@@ -100,22 +100,16 @@ bool is_immediate_operand(NodeType type){
     return type == NODE_INT || type == NODE_DOUBLE || type == NODE_STRING || type == NODE_NIL;
 }
 
-symtable_record_local_t* check_stack(Stack* local_tables, char* identifier, int *index){
+symtable_record_local_t* check_stack(Stack* local_tables, char* identifier){
     // we need to check from top to bottom
     for(int i = local_tables->top; i >= 0; i--){
         Stack_Frame* frame = stack_get(local_tables, i);
         local_symtable* table = (local_symtable*)frame->data;
         
         symtable_record_local_t *record = symtable_search(table, identifier, LOCAL_TABLE);
-
-        // print_local_table(table);
         
         if(record != NULL){
             // we found the identifier in the local table
-            if (index != NULL) {
-                *index = i;
-            }
-            // printf("%p\n", (void *)record);
             return record;
         }
     }
@@ -299,7 +293,7 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
 
             }else if(child->type == NODE_IDENTIFIER){
             
-                symtable_record_local_t* record = check_stack(local_tables, child->label, NULL);
+                symtable_record_local_t* record = check_stack(local_tables, child->label);
                 if(same_symbol_assign){
     
                     record = get_nth_record(local_tables, child->label, 1);
@@ -444,7 +438,7 @@ bool expression_nilable(TreeNode* expression){
     }
 
     if(expression->type == NODE_IDENTIFIER){
-        symtable_record_local_t* record = check_stack(stack_of_local_tables, expression->label, NULL);
+        symtable_record_local_t* record = check_stack(stack_of_local_tables, expression->label);
         if(record == NULL){
             symtable_record_global_t* glob_record = symtable_search(global_table, expression->label, GLOBAL_TABLE);
             if(glob_record == NULL){
@@ -669,7 +663,7 @@ error_code_t semantic_func_call(TreeNode* node, Stack* local_tables){
                 }
 
             } else if(passed_param->type == NODE_IDENTIFIER){
-                symtable_record_local_t *record = check_stack(local_tables, passed_param->label, NULL);
+                symtable_record_local_t *record = check_stack(local_tables, passed_param->label);
                 // if there is same variable in the same subtree, we need to skip the first record we find
                 if(same_symbol_assign){
                     record = get_nth_record(local_tables, passed_param->label, 1);
@@ -906,7 +900,7 @@ error_code_t semantic_declaration(TreeNode* node, Stack* local_symtables){
 
     *nil = DATA_NIL;
 
-    symtable_record_local_t* record = check_stack(local_symtables, identifier->label, NULL);
+    symtable_record_local_t* record = check_stack(local_symtables, identifier->label);
 
     if(record == NULL){
         // we did not find the identifier in the local tables, we need to check the global table
@@ -969,7 +963,7 @@ error_code_t semantic_assign(TreeNode* node, Stack* local_tables){
     // we need to check if the identifier is not read-only
     // we need to check if the identifier type matches the expression type
 
-    symtable_record_local_t *record = check_stack(local_tables, identifier->label, NULL);
+    symtable_record_local_t *record = check_stack(local_tables, identifier->label);
     symtable_record_global_t *record_global = NULL;
     if(record == NULL){
         // we did not find the identifier in the local tables, we need to check the global table

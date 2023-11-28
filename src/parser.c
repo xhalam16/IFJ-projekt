@@ -1916,7 +1916,7 @@ bool parseIfStatement(TreeNode *node, bool isWhile)
 
         // todo sem guard let variable zmena v tabulce na nilable true a pak pridani do else body_end
         char *key = token.source_value->buffer;
-        symtable_record_local_t *local_record = check_stack(stack_of_local_tables, key, NULL);
+        symtable_record_local_t *local_record = check_stack(stack_of_local_tables, key);
         if (local_record == NULL)
         {
             // we need to check global table
@@ -2625,7 +2625,7 @@ bool parse(TreeNode *startNeterminal)
                     // we need to change nilable to false since the variable is now not guarded
                     char *key = nextNeterminal->label;
                     // printf("ending block key: %s\n", key);
-                    symtable_record_local_t *record = check_stack(stack_of_local_tables, key, NULL);
+                    symtable_record_local_t *record = check_stack(stack_of_local_tables, key);
 
                     if (record == NULL)
                     {
