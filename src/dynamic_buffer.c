@@ -6,7 +6,7 @@
  */
 
 #include "header_files/dynamic_buffer.h" 
-#include <stdio.h>
+
 
 int init_buffer(DynamicBuffer* buffer, size_t capacity){
     buffer->capacity = capacity;

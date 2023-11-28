@@ -9,6 +9,9 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include "parser.h"
+
+
 
 #define MAX_VAR_NAME_LENGTH 75
 
@@ -17,6 +20,17 @@ extern unsigned labelId;
 extern unsigned retvalId;
 extern unsigned paramId;
 extern unsigned varsId;
+extern int res_index;
+extern bool localFunc;
+extern bool inFunction;
+extern unsigned counter;
+extern Stack *local_tables_stack;
+extern Stack *varsId_stack;
+
+typedef struct StackItem {
+    DynamicArray *array;
+    unsigned index;
+} StackItem;
 
 void generateFuncCall(TreeNode *node, bool local);
 

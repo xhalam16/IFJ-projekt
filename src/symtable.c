@@ -257,7 +257,7 @@ void* symtable_search(void* table, char* key, table_type_t table_type){
     if(table == NULL || key == NULL){
         return NULL;
     }
-
+        
     int index = get_index(table, key, table_type);
     if(index == INDEX_NOT_FOUND){
         return NULL;
