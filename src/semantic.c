@@ -6,9 +6,7 @@
  */
 
 
-#include "header_files/parser.h"
-#include "header_files/stack.h"
-#include "header_files/code_gen.h"
+
 #include "header_files/semantic.h"
 
 
@@ -107,9 +105,9 @@ symtable_record_local_t* check_stack(Stack* local_tables, char* identifier){
     for(int i = local_tables->top; i >= 0; i--){
         Stack_Frame* frame = stack_get(local_tables, i);
         local_symtable* table = (local_symtable*)frame->data;
-
+        
         symtable_record_local_t *record = symtable_search(table, identifier, LOCAL_TABLE);
-
+        
         if(record != NULL){
             // we found the identifier in the local table
             return record;
@@ -296,8 +294,6 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
             }else if(child->type == NODE_IDENTIFIER){
             
                 symtable_record_local_t* record = check_stack(local_tables, child->label);
-                printf("stack size %d\n", local_tables->top);
-               printf("%s identifier\n", child->label);
                 if(same_symbol_assign){
     
                     record = get_nth_record(local_tables, child->label, 1);

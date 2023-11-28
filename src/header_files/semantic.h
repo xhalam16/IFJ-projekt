@@ -8,6 +8,9 @@
 
 #pragma once
 
+#include "parser.h"
+#include "stack.h"
+
 symtable_record_local_t* check_stack(Stack* local_tables, char* identifier);
 
 error_code_t semantic(TreeNode *node);

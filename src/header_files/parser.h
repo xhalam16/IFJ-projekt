@@ -16,6 +16,8 @@
 #include "scanner.h"
 #include "symtable.h"
 #include "stack.h"
+#include "dynamic_array.h"
+
 
 static error_code_t error;
 static unsigned inBlock;
@@ -146,5 +148,7 @@ bool parse(TreeNode *startNeterminal);
 
 // for debug
 void print_global_table(global_symtable *table);
+
+void print_local_table(local_symtable *table);
 
 // void printTree(TreeNode *node);
