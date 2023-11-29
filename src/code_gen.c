@@ -16,15 +16,15 @@ TreeNode *is_terminal(TreeNode *node);
 
 char *recognize_type(TreeNode *node, bool local);
 
-FILE *f = NULL;
-unsigned labelId = 0;
-unsigned retvalId = 0;
-unsigned varsId = 0;
-int res_index = 0;
-bool localFunc = false;
-unsigned counter = 0; // počítadlo zanoření
-Stack *local_tables_stack = NULL;
-Stack *varsId_stack = NULL;
+static FILE *f = NULL;
+static unsigned labelId = 0;
+static unsigned retvalId = 0;
+static unsigned varsId = 0;
+static int res_index = 0;
+static bool localFunc = false;
+static unsigned counter = 0; // počítadlo zanoření
+static Stack *local_tables_stack = NULL;
+static Stack *varsId_stack = NULL;
 
 bool setGlobalVars(void)
 {
