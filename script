@@ -590,7 +590,7 @@ run_test 'func foo() -> Int{
     return
 }' 6 "return in if else statement"
 
-run_test 'foo(x, y)' 3 "function call"
+run_test 'foo(x, y)' 3 "function call 0"
 
 run_test 'let message = "Hello, Swift!"
 print(message)' 3 "print"
@@ -607,7 +607,7 @@ run_test 'func greet(name: String) -> String {
 }
 
 let greeting = greet(name: "John")
-greet(greeting)' 2 "function call"
+greet(greeting)' 2 "function call 1"
 
 run_test 'var optionalValue: String? = "Hello, Optional!"
 
@@ -627,7 +627,7 @@ run_test 'func square(_ x: Int) -> Int {
     return x * x
 }
 
-square(1)' 0 "function call"
+square(1)' 0 "function call 2"
 
 #built-in functions
 run_test '
@@ -763,7 +763,7 @@ run_test '
 run_test '
     func foo(_ param : String) -> Int{
     return param
-}' 4 "wrong function call"
+}' 4 "wrong function call 3"
 
 run_test 'func foo(_ param : Int) -> Int{
     return param
@@ -960,12 +960,12 @@ run_test 'func y(lol x : Int, XD s : Int) -> Int{
     }
 }
 var x = 10
-y(lol : x, XD : 10)' 0 "function call"
+y(lol : x, XD : 10)' 0 "function call with labels"
 
 run_test '
 var a = 10
 a = Int2Double(a)
-a = a + 4' 0 "function call"
+a = a + 4' 0 "function call correct param"
 
 run_test '
 var a = Int2Double(a)
@@ -1093,7 +1093,7 @@ while 4 > 10 {
     } else {
          ds = xd(ds, with: "sracka")
     }
-}' 0 "function call"
+}' 0 "function call inside while"
 
 
 run_test 'if 3 == 3{
@@ -1147,6 +1147,11 @@ run_test 'if 3 == 3{
         let ii = 9
 }' 0 "local tables test outside function"
 
+run_test 'var a : Int = 5
+func xd(_ a : Int, with param : String) -> Int {
+    return 10
+}
+a = xd(101, with: "XD")' 0 "function call with arguments 0"
 run_test '
 let x = @
 ' 1 "lex error"
@@ -1219,5 +1224,16 @@ let x = 12@3' 1 "lex error"
 
 
 
+run_test 'var a : Int = 5
+func xd(_ a : Int, with param : String) -> Int {
+    var a = 10
+    return 10
+}
+a = xd(101, with: "XD")' 0 "function call with arguments 1"
+
+
+run_test 'func foo(_ a : Int){
+a = 8
+}' 9 "assign into parameter"
 
 generate_test_summary

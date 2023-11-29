@@ -6,9 +6,7 @@
  */
 
 
-#include "header_files/parser.h"
-#include "header_files/stack.h"
-#include "header_files/code_gen.h"
+
 #include "header_files/semantic.h"
 
 
@@ -107,9 +105,9 @@ symtable_record_local_t* check_stack(Stack* local_tables, char* identifier){
     for(int i = local_tables->top; i >= 0; i--){
         Stack_Frame* frame = stack_get(local_tables, i);
         local_symtable* table = (local_symtable*)frame->data;
-
+        
         symtable_record_local_t *record = symtable_search(table, identifier, LOCAL_TABLE);
-
+        
         if(record != NULL){
             // we found the identifier in the local table
             return record;
@@ -143,7 +141,6 @@ symtable_record_local_t* get_nth_record(Stack* local_tables, char* identifier, i
     return NULL;
     
 }
-
 
 // this function assumes that the node is an immediate operand
 bool is_datatype_compatible(data_type_t type1, data_type_t type2, bool coal_found){
@@ -296,8 +293,6 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
             }else if(child->type == NODE_IDENTIFIER){
             
                 symtable_record_local_t* record = check_stack(local_tables, child->label);
-                printf("stack size %d\n", local_tables->top);
-               printf("%s identifier\n", child->label);
                 if(same_symbol_assign){
     
                     record = get_nth_record(local_tables, child->label, 1);
@@ -977,8 +972,9 @@ error_code_t semantic_assign(TreeNode* node, Stack* local_tables){
             return ERR_SEMANTIC_NOT_DEFINED;
         }
 
-        // trying to assign to constant
-        if(record_global->data->symbol_type == SYM_CONSTANT && !declaration){
+        // trying to assign to constant or parameter
+        symbol_type_t symbol_type = record_global->data->symbol_type;
+        if((symbol_type == SYM_CONSTANT || symbol_type == SYM_PARAMETER) && !declaration){
             return ERR_SEMANTIC_OTHERS;
         }
 
@@ -1001,9 +997,13 @@ error_code_t semantic_assign(TreeNode* node, Stack* local_tables){
     }else{
         // we found the identifier in the local tables
         // we need to check if the identifier is not read-only
-        if(record->data->symbol_type == SYM_CONSTANT && !declaration){
+        symbol_type_t type_loc = record->data->symbol_type;
+        if((type_loc == SYM_CONSTANT || type_loc == SYM_PARAMETER) && !declaration){
             return ERR_SEMANTIC_OTHERS;
         }
+
+       
+
         type_of_var = record->data->data_type;
         variable_nilable = record->data->nilable;
 
@@ -1261,39 +1261,31 @@ error_code_t semantic(TreeNode *node){
         return ERR_INTERNAL;
     }
     NodeType type = node->type;
-    
-    if(type == NODE_BODY_END && in_body_neterminal){
-        // pop table from the stack
-        in_body_neterminal = false;
-        //stack_pop(stack_of_local_tables);
 
-    }
-    
-    if(type == NODE_FUNCTION_CALL){
+    switch (type)
+    {
+    case NODE_FUNCTION_CALL:
         return semantic_func_call(node, stack_of_local_tables);
-    } else if(type == NODE_BODY){
-        // we hit a noterminal with a body, 
-        // we need to push it to the stack
-       
-        // todo: we need to make sure to pop the table from the stack when we leave the block
-        in_body_neterminal = true;
 
-    }
-    else if(type == NODE_DECLARATION_FUNCTION){
+    case NODE_DECLARATION_FUNCTION:
         return semantic_func_declaration(node);
-    }else if(type == NODE_ASSIGN){
-        return semantic_assign(node, stack_of_local_tables);
-    }else if(type == NODE_IF_STATEMENT){
-       return semantic_if_statement(node, stack_of_local_tables);
-    }
-    else if(type == NODE_DECLARATION){
-        return semantic_declaration(node, stack_of_local_tables);
-    }else if(type == NODE_WHILE){
-        
-        return semantic_while_statement(node, stack_of_local_tables);
-    }
 
-    
+    case NODE_ASSIGN:
+        return semantic_assign(node, stack_of_local_tables);
+
+    case NODE_IF_STATEMENT:
+        return semantic_if_statement(node, stack_of_local_tables);
+
+    case NODE_DECLARATION:
+        return semantic_declaration(node, stack_of_local_tables);
+
+    case NODE_WHILE:
+        return semantic_while_statement(node, stack_of_local_tables);
+
+
+    default:
+        break;
+    }
 
     return ERR_NONE;
 

@@ -20,6 +20,7 @@ Stack *stack_init(int capacity)
     stack->top = -1;
     stack->size = 0;
     stack->frames = malloc(sizeof(Stack_Frame) * capacity);
+    stack->size = 0;
     if (stack->frames == NULL)
     {
         free(stack);
