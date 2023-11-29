@@ -1705,7 +1705,8 @@ bool parseDeclaration(TreeNode *neterminal, bool constant)
 
             if (inBlock)
             {
-                local_symtable *to_insert = stack_get(stack_of_local_tables, inBlock - 1)->data;
+                int index = inFunction ? inBlock : inBlock - 1;
+                local_symtable *to_insert = stack_get(stack_of_local_tables, index)->data;
                 if (symtable_search(to_insert, key, LOCAL_TABLE) != NULL)
                 {
                     error = ERR_SEMANTIC_DEFINITION;
@@ -1809,7 +1810,8 @@ bool parseDeclaration(TreeNode *neterminal, bool constant)
 
     if (inBlock)
     {
-        local_symtable *to_insert = stack_get(stack_of_local_tables, inBlock - 1)->data;
+        int index = inFunction ? inBlock : inBlock - 1;
+        local_symtable *to_insert = stack_get(stack_of_local_tables, index)->data;
         if (symtable_search(to_insert, key, LOCAL_TABLE) != NULL)
         {
             error = ERR_SEMANTIC_DEFINITION;
@@ -2218,7 +2220,7 @@ error_code_t fill_local_params(local_symtable *local_sym_table, parameter_list_t
     while (parameter_list_active(param_list))
     {
         function_parameter_t *param = parameter_list_get_active(param_list);
-        symtable_local_data_t *data = create_local_data(SYM_VAR, param->data_type, param->nilable, true, NULL);
+        symtable_local_data_t *data = create_local_data(SYM_PARAMETER, param->data_type, param->nilable, true, NULL);
         if (data == NULL)
         {
             return ERR_INTERNAL;
@@ -2435,11 +2437,23 @@ bool parseFuncDeclaration(TreeNode *node)
 
     if (l_brace)
     {
+        // need to create one local table for function parameters
+        local_symtable *local_table_params = create_local_symtable(ST_LOCAL_INIT_SIZE);
+        if (local_table_params == NULL)
+        {
+            error = ERR_INTERNAL;
+            return false;
+        }
+
+        fill_local_params(local_table_params, param_list);
+        stack_push(stack_of_local_tables, local_table_params);
+
+
 
         TreeNode *funcBody = createNewNode(node, NODE_BODY, false);
         inBlock++;
         inFunction = true;
-        if (local_table == NULL && stack_get(stack_of_local_tables, inBlock - 1) == NULL)
+        if (local_table == NULL)
         {
             local_table = create_local_symtable(ST_LOCAL_INIT_SIZE);
 
@@ -2450,14 +2464,6 @@ bool parseFuncDeclaration(TreeNode *node)
             }
 
             stack_push(stack_of_local_tables, local_table);
-        }
-
-        local_symtable *loc = stack_get(stack_of_local_tables, inBlock - 1)->data;
-        error_code_t e = fill_local_params(loc, param_list);
-        if (e != ERR_NONE)
-        {
-            error = e;
-            return false;
         }
 
         if (!parse(funcBody))
@@ -2581,7 +2587,8 @@ bool parse(TreeNode *startNeterminal)
         }
     }
 
-    if ((local_table == NULL || inFunction) && inBlock && stack_get(stack_of_local_tables, inBlock - 1) == NULL) // function solves this
+    int index = inFunction ? inBlock : inBlock - 1; // since if we are in function, there is one more block on the stack (block with parameters)
+    if ((local_table == NULL || inFunction) && inBlock && stack_get(stack_of_local_tables, index) == NULL) // function solves this
     {
         local_table = create_local_symtable(ST_LOCAL_INIT_SIZE);
 
@@ -2846,6 +2853,7 @@ bool parse(TreeNode *startNeterminal)
 
             Stack_Frame *top_frame = stack_top(stack_of_local_tables);
             stack_pop(stack_of_local_tables); // pop local table (since we are leaving the function)
+            stack_pop(stack_of_local_tables); // pop one more (since parameters are in a separate block)
             symtable_free(top_frame->data, LOCAL_TABLE);
             local_table = NULL; // set local table to NULL (since we are leaving the function)
 
@@ -3100,7 +3108,7 @@ int main(void)
     // print_stack(stack_of_local_tables);
     bool ar[10] = {true};
     
-    // printTree(startNeterminal, ar, 0, 0);
+    printTree(startNeterminal, ar, 0, 0);
     dispose(startNeterminal);
     symtable_free(global_table, GLOBAL_TABLE);
     stack_free(stack_of_local_tables);
