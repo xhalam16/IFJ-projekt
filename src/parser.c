@@ -1219,9 +1219,9 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
             else
             {
                 // free(inputPtr);
-                // // stack_empty(stack);
-                // // stack_empty(treeStack);
-                // // stack_empty(idTypeStack);
+                stack_empty(stack);
+                stack_empty(treeStack);
+                stack_empty(idTypeStack);
                 stack_free(treeStack);
                 stack_free(idTypeStack);
                 stack_free(identifier_labels_stack);
@@ -1233,9 +1233,9 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
         default:
 
             // free(inputPtr);
-            // stack_empty(stack);
-            // stack_empty(treeStack);
-            // stack_empty(idTypeStack);
+            stack_empty(stack);
+            stack_empty(treeStack);
+            stack_empty(idTypeStack);
             stack_free(treeStack);
             stack_free(idTypeStack);
             stack_free(identifier_labels_stack);
@@ -1245,12 +1245,12 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
 
     } while (tokenType != TOKEN_EOL || *((NodeType *)(stack_top(stack)->data)) != NODE_EXPRESSION || stack_size(stack) != 2);
 
-    // stack_empty(stack);
+    stack_empty(stack);
     stack_free(stack);
 
     buildTree(treeStack, nodeExpression, idTypeStack, identifier_labels_stack, tokenValueStack);
-    // stack_empty(treeStack);
-    // stack_empty(idTypeStack);
+    stack_empty(treeStack);
+    stack_empty(idTypeStack);
 
     stack_free(treeStack);
     stack_free(idTypeStack);
@@ -3068,15 +3068,16 @@ void printTree(TreeNode *x, bool *flag, int depth, int isLast)
     flag[depth] = true;
 }
 
-void print_stack(Stack *stack)
+void print_stack2(Stack *stack)
 {
     // printf("Stack:\n");
     for (int i = 0; i < stack_size(stack); i++)
     {
         Stack_Frame *frame = stack_get(stack, i);
-        print_local_table(frame->data);
+        printf("Data in frame %s\n", (char*)frame->data);
     }
 }
+
 
 int main(void)
 {
@@ -3086,6 +3087,9 @@ int main(void)
         error = ERR_INTERNAL;
         return error;
     }
+
+    
+
 
     error = ERR_SYNTAX_ANALYSIS;
     // file = stdin;
