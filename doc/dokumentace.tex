@@ -85,6 +85,16 @@
 	\par\noindent Tabulka symbolů je implementována v souboru \texttt{symtable.c} s rozhraním v souboru \texttt{symtable.h}.
 	\par\noindent Rozhraní obsahuje funkce pro inicializaci, uvolnění, vložení a vyhledání položky v tabulce symbolů či vytvoření nové položky.
 	\par\noindent Kromě těchto funkcí obsahuje i signaturní \textbf{hashovací funkci}, která je použita při transformaci klíče, na index do tabulky symbolů.
+	\begin{figure}[h]
+		\centering
+		\includegraphics[width=0.5\linewidth]{include/hash_function.png}
+		\caption{Hashovací funkce}
+		\label{fig:hash_function}
+	\end{figure}
+
+	\par\noindent Při vytváření hashovací funkce jsme čerpali informace z předmětů IJC, IAL a zde: citace.
+
+
 	\par\noindent Tabulka se v případě naplnění automaticky \textbf{realokuje} na dvojnásobek své původní kapacity.
 	\par\noindent V programu rozlišujeme mezi \texttt{GLOBÁLNÍ} a \texttt{LOKÁLNÍ} tabulkou symbolů. Globální tabulka symbolů je vytvořena při inicializaci programu a je uvolněna při jeho ukončení. Lokální tabulka symbolů je vytvořena při vstupu do bloku a je uvolněna při jeho opuštění.
 	\par\noindent Tyto typy tabulek se liší mimojiné i v datech, které uchovávají. Funkce pro práci s tabulkou symbolů jsou implementovány tak, aby bylo možné používat stejné funkce pro oba typy tabulek. Docíleno je to pomocí ukazatele typu \texttt{void}, který je přetypován na konkrétní typ tabulky symbolů v závislosti na tom, zda se jedná o \texttt{GLOBÁLNÍ} nebo \texttt{LOKÁLNÍ} tabulku symbolů.
@@ -99,8 +109,20 @@
 
 
 	\subsubsection{Stack}
+	Zásobník je v projektu využíván na více místech, pokaždé pro ukládání jiného typu dat.
+	\par\noindent Proto byl zásobník implementován jako \textbf{obecný zásobník}, který je definován v souboru \texttt{stack.c} s rozhraním v souboru \texttt{stack.h}.
+	\par\noindent Zásobník uchovává položky typu \texttt{Stack\_Frame}, které obsahují ukazatel na data typu \texttt{void}. Tím je umožněno ukládat na zásobník jakýkoliv typ dat.
+	\par\noindent Rozhraní obsahuje známé funkce pro práci se zásobníkem. Tím je definován abstraktní datový typ \texttt{Stack}.
+	\par\noindent Za účelem ulehčení řešení některých problémů, které se vyskytly při implementaci, rozhraní zásobníku poskytuje i funkci \texttt{Stack\_get(stack,index)}, která vrací položku na zadaném indexu.
+	\par\noindent Jelikož struktura ukládá data jako ukazatel, je potřeba dát pozor, nad čím voláme operaci \texttt{free}. Proto byla implementována funkce \texttt{stack\_empty}, která uvolní všechny ukazatele na zásobníku. Funkce předpokládá, že na zásobníku jsou pouze ukazatele na dynamicky alokovanou paměť.
+	\par\noindent Pokud dojde k naplnění zásobníku, je automaticky \textbf{realokován} na dvojnásobek své původní kapacity.
 
 	\subsection{Lexikální analýza} \label{sec:lex}
+	Lexikální analýza je definována v souboru \texttt{scanner.c} s rozhraním v souboru \texttt{scanner.h} a implementována jako \textbf{deterministický konečný automat}. Graf konečného automatu je zobrazen na obrázku ODKAZ.
+	\par\noindent Automat se rozhoduje na základě aktuálního stavu a načteného znaku ze vstupního souboru.
+	\par\noindent V jazyce C je implementován pomocí konstrukce \texttt{if...else if}, kde každá větev odpovídá jednomu stavu automatu. Automat také využívá a nastavuje pomocné statické globální proměnné, které jsou definovány v souboru \texttt{scanner.h}. 
+
+
 	
 	\subsection{Syntaktická analýza}
 
