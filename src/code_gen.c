@@ -16,6 +16,8 @@ TreeNode *is_terminal(TreeNode *node);
 
 char *recognize_type(TreeNode *node, bool local);
 
+void check_local_tables(char *identifier, bool local);
+
 FILE *f = NULL;
 unsigned labelId = 0;
 unsigned retvalId = 0;
@@ -103,6 +105,7 @@ void generateFuncCall(TreeNode *node, bool local)
                 fprintf(f, "MOVE TF@%%%d string@%s\n", i, paramValue->label);
                 break;
             case NODE_IDENTIFIER:
+                check_local_tables(paramValue->label, local);
                 fprintf(f, "MOVE TF@%%%d %s@%s\n", i, frame, paramValue->label);
                 break;
             default:
@@ -239,16 +242,26 @@ void generateReturn(TreeNode *node)
 
     TreeNode *tree = is_terminal(node);
 
-    char *type;
+    char *type = localFunc ? "LF" : "GF";
     char *result;
 
-    if (node->type != NODE_EPSILON)
+    if (node->children[0]->type == NODE_EPSILON)
     {
+        fprintf(f, "RETURN\n");
+        return;
+    }
 
+    if (node->type == NODE_FUNCTION_CALL)
+    {
+        generateFuncCall(node, true);
+        type = "TF";
+        result = "%retval";
+    }
+    else
+    {
         if (tree != NULL)
         {
             type = recognize_type(tree, true);
-            result = tree->label;
         }
         else
         {
@@ -259,13 +272,17 @@ void generateReturn(TreeNode *node)
                 return;
             }
             sprintf(result, "$res_%d", ++res_index);
-            type = "LF";
         }
-
-        fprintf(f, "MOVE LF@%%retval %s@%s\n", type, result);
+        // generateExpression(node, true);
+        // result = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
+        // if (result == NULL) // Kontrola alokace paměti
+        // {
+        //     return;
+        // }
+        // sprintf(result, "$res_%d", ++res_index);
     }
 
-    // případně generateExpression()
+    fprintf(f, "MOVE LF@%%retval %s@%s\n", type, result);
 }
 
 /* Pomocná funkce, která rozezná binární operaci a vrací string odpovídající instrukci dané operace */
@@ -734,7 +751,7 @@ void generateAssign(TreeNode *node, bool local)
         {
             return;
         }
-        result = "%%retval";
+        result = "%retval";
         typeRight = "TF";
     }
     else
