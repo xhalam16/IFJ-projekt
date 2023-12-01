@@ -8,10 +8,15 @@
 \usepackage{verbatim}
 \usepackage{enumitem}
 \usepackage{graphicx}
+\usepackage{pdflscape}
 \usepackage[unicode]{hyperref}
 \usepackage[table,xcdraw]{xcolor}
 \usepackage{upgreek}
+\usepackage{color}
+\usepackage{tabularray}
+
 \parskip=0.2\baselineskip % nastavuje velikost vertikální mezery mezi odstavci
+\newcommand{\cunder}{\underline{\hspace{2.5mm}}}
 
 
 
@@ -315,7 +320,7 @@
 		\item \texttt{<return\_type>  $\rightarrow$ : <datatype>}
 		\item \texttt{<param\_list0>  $\rightarrow$ )}
 		\item \texttt{<param\_list0>  $\rightarrow$ <label> <param> <param\_list0>}
-		\item \texttt{<label>  $\rightarrow$ \textunderscore}
+		\item \texttt{<label>  $\rightarrow$ \rule{3mm}{.5pt}}
 		\item \texttt{<label>  $\rightarrow$ identifier}
 		\item \texttt{<body>  $\rightarrow$ EOL <command> <body>}
 		\item \texttt{<body>  $\rightarrow$ EOL return <return\_value> <body>}
@@ -329,10 +334,54 @@
 		\item \texttt{<while> $\rightarrow$ while <expression> \{ <body>}
 		
 	\end{enumerate}
-		}
+	}
+
+	\newpage
+	\section*{LL -- tabulka}
+	\addcontentsline{toc}{section}{LL -- tabulka}
+	
+
+\definecolor{RegentStBlue}{rgb}{0.611,0.76,0.898}
+% \begin{landscape}
+\renewcommand{\arraystretch}{1.8}
+\begin{table}[!ht]
+	\centering
+	\Huge
+	\setlength{\tabcolsep}{10pt} % Horizontal spacing
+	\resizebox{1\linewidth}{!}{
+    \begin{tabular}{|>{\columncolor{RegentStBlue}}c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+    \hline
+		\rowcolor{RegentStBlue}
+        \textbf{} & \textbf{epsilon} & \textbf{identifier} & \textbf{let} & \textbf{var} & \textbf{func} & \textbf{if} & \textbf{while} & \textbf{EOL} & \textbf{EOF} & \textbf{INT} & \textbf{DOUBLE} & \textbf{STRING} & \textbf{INT?} & \textbf{DOUBLE?} & \textbf{STRING?} & \textbf{int} & \textbf{double} & \textbf{string} & \textbf{nil} & \textbf{)} & \textbf{\cunder} & \textbf{\}} \\ \hline
+        \textbf{\textless{}program\textgreater{}} & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 2 & 3 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
+        \textbf{\textless{}command\textgreater{}} & 4 & 5, 10 & 5, 6 & 5, 6 & 7 & 8 & 9 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
+        \textbf{\textless{}assign\textgreater{}} & ~ & 11 & 11 & 11 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ \\ \hline
+        \textbf{\textless{}left\_value\textgreater{}} & ~ & 12 & 13, 14 & 13, 14 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ \\ \hline
+        \textbf{\textless{}right\_value\textgreater{}} & ~ & 16 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ \\ \hline
+        \textbf{\textless{}declaration\textgreater{}} & ~ & ~ & 17 & 17 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ \\ \hline
+        \textbf{\textless{}declaration\_keyword\textgreater{}} & ~ & ~ & 18 & 19 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ \\ \hline
+        \textbf{\textless{}datatype\textgreater{}} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 20 & 21 & 22 & 23 & 24 & 25 & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
+        \textbf{\textless{}value\textgreater{}} & ~ & 26 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 27 & 28 & 29 & 30 & ~ & ~ & ~ \\ \hline
+        \textbf{\textless{}func\_call\textgreater{}} & ~ & 31 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
+        \textbf{\textless{}param\_list1\textgreater{}} & ~ & 32 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 32 & 32 & 32 & 32 & 33 & ~ & ~  \\ \hline
+        \textbf{\textless{}param\textgreater{}} & ~ & 34, 35 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
+        \textbf{\textless{}func\_declaration\textgreater{}} & ~ & ~ & ~ & ~ & 36 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 34 & 34 & 34 & 34 & ~ & ~ & ~  \\ \hline
+        \textbf{\textless{}return\_type\textgreater{}} & 37 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 38 & 38 & 38 & 38 & 38 & 38 & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
+        \textbf{\textless{}param\_list0\textgreater{}} & ~ & 40 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 39 & 40 & ~  \\ \hline
+        \textbf{\textless{}label\textgreater{}} & ~ & 42 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 41 & ~ \\ \hline
+        \textbf{\textless{}body\textgreater{}} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 43, 44 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 45  \\ \hline
+        \textbf{\textless{}return\_value\textgreater{}} & 46 & 47 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ \\ \hline
+        \textbf{\textless{}if\_statement\textgreater{}} & ~ & ~ & ~ & ~ & ~ & 49 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
+        \textbf{\textless{}condition\textgreater{}} & ~ & ~ & 50 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
+        \textbf{\textless{}while\textgreater{}} & ~ & ~ & ~ & ~ & ~ & ~ & 52 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ \\ \hline
+    \end{tabular}
+	}
+	\caption{LL -- tabulka}
+	\label{tab:ll_table}
+\end{table}
 
 
+% \end{landscape}
 
-    
 
 \end{document}
