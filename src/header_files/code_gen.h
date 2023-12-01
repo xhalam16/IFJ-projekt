@@ -15,17 +15,17 @@
 
 #define MAX_VAR_NAME_LENGTH 75
 
-extern FILE *f;
-extern unsigned labelId;
-extern unsigned retvalId;
-extern unsigned paramId;
-extern unsigned varsId;
-extern int res_index;
-extern bool localFunc;
-extern bool inFunction;
-extern unsigned counter;
-extern Stack *local_tables_stack;
-extern Stack *varsId_stack;
+static FILE *f;
+static unsigned labelId;
+static unsigned retvalId;
+static unsigned paramId;
+static unsigned varsId;
+static int res_index;
+static bool localFunc;
+static bool inFunction;
+static unsigned counter;
+static Stack *local_tables_stack;
+static Stack *varsId_stack;
 
 typedef struct StackItem {
     DynamicArray *array;

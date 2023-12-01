@@ -20,15 +20,15 @@ void check_local_tables(char *identifier, bool local);
 
 bool convert_string(char *string);
 
-FILE *f = NULL;
-unsigned labelId = 0;
-unsigned retvalId = 0;
-unsigned varsId = 0;
-int res_index = 0;
-bool localFunc = false;
-unsigned counter = 0; // počítadlo zanoření
-Stack *local_tables_stack = NULL;
-Stack *varsId_stack = NULL;
+static FILE *f = NULL;
+static unsigned labelId = 0;
+static unsigned retvalId = 0;
+static unsigned varsId = 0;
+static int res_index = 0;
+static bool localFunc = false;
+static unsigned counter = 0; // počítadlo zanoření
+static Stack *local_tables_stack = NULL;
+static Stack *varsId_stack = NULL;
 
 bool setGlobalVars(void)
 {
@@ -104,7 +104,9 @@ void generateFuncCall(TreeNode *node, bool local)
                 fprintf(f, "MOVE TF@%%%d float@%a\n", i, paramValue->token_value.double_value);
                 break;
             case NODE_STRING:
+                printf("STRING1: %s\n", paramValue->label);
                 convert_string(paramValue->label);
+                printf("STRING2: %s\n", paramValue->label);
                 fprintf(f, "MOVE TF@%%%d string@%s\n", i, paramValue->label);
                 
                 break;
@@ -366,6 +368,7 @@ void check_local_tables(char *identifier, bool local)
 
 // }
 
+// kontrola a převod escape sekvencí
 bool convert_string(char *string)
 {
     DynamicBuffer *buffer = malloc(sizeof(DynamicBuffer));
@@ -379,6 +382,7 @@ bool convert_string(char *string)
     {
         if ((string[i] >= 0 && string[i] <= 32) || string[i] == 35 || string[i] == 92)
         {
+
             char escape[5];
             if (string[i] < 10) {
                 sprintf(escape, "\\00%d", string[i]);
@@ -386,22 +390,20 @@ bool convert_string(char *string)
                 sprintf(escape, "\\0%d", string[i]);
             }
             
-            if (buffer_append_string(buffer, escape) != ERR_CODE_OK)
+            if (buffer_append_string(buffer, escape) != ERR_CODE_OK) // Kontrola alokace paměti
             {
                 return false;
             }
             continue;
         }
         
-        if (buffer_append_char(buffer, string[i]) != ERR_CODE_OK)
+        if (buffer_append_char(buffer, string[i]) != ERR_CODE_OK) // Kontrola alokace paměti
         {
             return false;
         }
     }
     
     move_buffer(&string, buffer);
-
-    free_buffer(buffer);
 
     return true;
 }

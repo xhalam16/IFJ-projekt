@@ -160,9 +160,9 @@ void stack_empty(Stack *stack)
         return;
     }
 
-    for (int i = 0; i < stack->size; i++)
+    for(int i = stack->top; i >= 0; i--)
     {
-        free(stack_top(stack)->data);
+        free(stack->frames[i].data);
         stack_pop(stack);
     }
 }

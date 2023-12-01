@@ -1231,4 +1231,34 @@ func xd(_ a : Int, with param : String) -> Int {
 }
 a = xd(101, with: "XD")' 0 "function call with arguments 1"
 
+
+run_test 'func foo(_ a : Int){
+a = 8
+}' 9 "assign into parameter"
+
+
+run_test '
+func foo(_ x : Int) -> Int{
+    return x
+}
+
+var x : Int
+foo(x)
+' 5 "function call with uninitialized variable"
+
+
+run_test '
+func foo(_ x : Int) -> Int{
+    return x
+}
+
+var x : Int
+write("abcd", 3, 3.3, x)
+' 5 "write call with uninitialized variable"
+
+run_test '
+write(str1, "xd", str2, "\n")
+' 5 "write call with undeclared variable"
+
+
 generate_test_summary

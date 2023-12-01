@@ -10,3 +10,11 @@ composer.lock
 *.map
 *.exp
 *.txt
+*.tec
+*.log
+*.fls
+*.aux
+*.out
+*.synctex.gz
+*.fdb_latexmk
+*.toc

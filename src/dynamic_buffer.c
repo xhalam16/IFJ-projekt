@@ -7,16 +7,22 @@
 
 #include "header_files/dynamic_buffer.h"
 
-int init_buffer(DynamicBuffer *buffer, size_t capacity)
-{
+void terminate_buffer(DynamicBuffer* buffer){
+    buffer->buffer[buffer->size] = '\0';
+}
+
+
+int init_buffer(DynamicBuffer* buffer, size_t capacity){
     buffer->capacity = capacity;
     buffer->size = 0;
     buffer->buffer = calloc(capacity, sizeof(char)); // zatemňování: -5 bodů standardní ceník už dlouhá léta
 
-    if (buffer->buffer == NULL)
-    {
+    
+    if(buffer->buffer == NULL){
         return ERR_CODE_ALLOC;
     }
+
+    terminate_buffer(buffer);
 
     return ERR_CODE_OK;
 }
@@ -39,6 +45,7 @@ void free_buffer(DynamicBuffer *buffer)
 {
     free(buffer->buffer);
     free(buffer);
+    buffer = NULL;
 }
 
 int buffer_append_char(DynamicBuffer *buffer, char data)
@@ -54,7 +61,8 @@ int buffer_append_char(DynamicBuffer *buffer, char data)
     buffer->buffer[buffer->size] = data;
     buffer->size += 1;
 
-    // buffer->buffer[buffer->size] = '\0';
+    //buffer->buffer[buffer->size] = '\0';
+    terminate_buffer(buffer);
 
     return ERR_CODE_OK;
 }
@@ -65,7 +73,9 @@ int buffer_append_string(DynamicBuffer *buffer, const char *data)
 
     if (buffer->size + data_size > buffer->capacity)
     {
-        if (resize_buffer(buffer, buffer->capacity * 2) != ERR_CODE_OK)
+        int quotient = ceil((buffer->size + data_size) / buffer->capacity);
+
+        if (resize_buffer(buffer, buffer->capacity * quotient) != ERR_CODE_OK)
         {
             return ERR_CODE_ALLOC;
         }
@@ -73,7 +83,8 @@ int buffer_append_string(DynamicBuffer *buffer, const char *data)
 
     // data are already null terminated
     memcpy(buffer->buffer + buffer->size, data, data_size);
-    buffer->size += data_size;
+
+    buffer->size += data_size - 1;
     return ERR_CODE_OK;
 }
 
@@ -109,8 +120,7 @@ int move_buffer(char **dest, DynamicBuffer *src)
 
     if (*dest == NULL)
     {
-
-        *dest = malloc(200 * sizeof(char) + 1);
+        *dest = malloc(src->size * sizeof(char) + 1);
         if (*dest == NULL)
         {
             return ERR_CODE_ALLOC;
@@ -128,11 +138,6 @@ int move_buffer(char **dest, DynamicBuffer *src)
             }
         }
     }
-
-    // src->buffer[src->size] = '\0';
-    // memset(*dest, 0, src->size);
-    //*dest = realloc(*dest, 1000 * sizeof(char) + 1);
-    // src->buffer[src->size] = '\0';
     strcpy(*dest, src->buffer);
     buffer_clear(src);
     return ERR_CODE_OK;
