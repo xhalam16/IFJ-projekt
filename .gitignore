@@ -14,3 +14,7 @@ composer.lock
 *.log
 *.fls
 *.aux
+*.out
+*.synctex.gz
+*.fdb_latexmk
+*.toc
