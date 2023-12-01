@@ -16,6 +16,10 @@ TreeNode *is_terminal(TreeNode *node);
 
 char *recognize_type(TreeNode *node, bool local);
 
+void check_local_tables(char *identifier, bool left_value);
+
+char *convert_string(char *string);
+
 static FILE *f = NULL;
 static unsigned labelId = 0;
 static unsigned retvalId = 0;
@@ -65,9 +69,52 @@ bool setGlobalVars(void)
     return true;
 }
 
+void generateRead(char *type, char *left_value)
+{
+    if (!setGlobalVars())
+    {
+        return;
+    }
+
+    char *frame = localFunc ? "LF" : "GF";
+
+    if (left_value == NULL)
+    {
+        fprintf(f, "DEFVAR %s@$$temp%d\n", frame, retvalId);
+        fprintf(f, "READ %s@$$temp%d %s\n", frame, retvalId++, type);
+        return;
+    }
+
+    check_local_tables(left_value, false);
+
+    fprintf(f, "READ %s@%s %s\n", frame, left_value, type);
+}
+
+bool is_built_in_function(char *name, char *left_value)
+{
+    if (strcmp(name, "readInt") == 0) {
+        generateRead("int", left_value);
+        return true;
+    }
+    else if (strcmp(name, "readDouble") == 0) {
+        generateRead("float", left_value);
+        return true;
+    }
+    else if (strcmp(name, "readString") == 0) {
+        generateRead("string", left_value);
+        return true;
+    }
+    return false;
+}
+
 void generateFuncCall(TreeNode *node, bool local)
 {
     if (!setGlobalVars())
+    {
+        return;
+    }
+
+    if (is_built_in_function(node->children[0]->label, NULL))
     {
         return;
     }
@@ -100,9 +147,12 @@ void generateFuncCall(TreeNode *node, bool local)
                 fprintf(f, "MOVE TF@%%%d float@%a\n", i, paramValue->token_value.double_value);
                 break;
             case NODE_STRING:
+                paramValue->label = convert_string(paramValue->label);
                 fprintf(f, "MOVE TF@%%%d string@%s\n", i, paramValue->label);
+
                 break;
             case NODE_IDENTIFIER:
+                check_local_tables(paramValue->label, false);
                 fprintf(f, "MOVE TF@%%%d %s@%s\n", i, frame, paramValue->label);
                 break;
             default:
@@ -112,14 +162,6 @@ void generateFuncCall(TreeNode *node, bool local)
     }
 
     fprintf(f, "CALL %s\n", node->children[0]->label);
-
-    // if (node->children[3]->type != NODE_EPSILON) {
-    //     if (local) {
-    //         fprintf(f, "MOVE LF@%s TF@%%retval\n", node->children[2]->label);
-    //     } else {
-    //         fprintf(f, "MOVE GF@%s TF@%%retval\n", node->children[2]->label);
-    //     }
-    // }
 }
 
 void generateCommand(TreeNode *node)
@@ -197,8 +239,8 @@ void generateFuncDeclaration(TreeNode *node, bool local)
     {
         for (unsigned i = 0; i < node->children[2]->numChildren; i++)
         {
-            fprintf(f, "DEFVAR LF@param%d\n", i);
-            fprintf(f, "MOVE LF@param%d TF@%%%d\n", i, i);
+            fprintf(f, "DEFVAR LF@param_%d\n", i);
+            fprintf(f, "MOVE LF@param_%d LF@%%%d\n", i, i);
         }
     }
 
@@ -239,12 +281,27 @@ void generateReturn(TreeNode *node)
 
     TreeNode *tree = is_terminal(node);
 
-    char *type;
+    char *type = localFunc ? "LF" : "GF";
     char *result;
 
-    if (node->type != NODE_EPSILON)
+    if (node->children[0]->type == NODE_EPSILON)
     {
+        fprintf(f, "RETURN\n");
+        return;
+    }
 
+    if (node->type == NODE_FUNCTION_CALL)
+    {
+        if (is_built_in_function(node->children[0]->label, "%retval"))
+        {
+            return;
+        }
+        generateFuncCall(node, true);
+        type = "TF";
+        result = "%retval";
+    }
+    else
+    {
         if (tree != NULL)
         {
             type = recognize_type(tree, true);
@@ -258,14 +315,18 @@ void generateReturn(TreeNode *node)
             {
                 return;
             }
-            sprintf(result, "$res_%d", ++res_index);
-            type = "LF";
+            sprintf(result, "$res_%d", res_index);
         }
-
-        fprintf(f, "MOVE LF@%%retval %s@%s\n", type, result);
+        // generateExpression(node, true);
+        // result = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
+        // if (result == NULL) // Kontrola alokace paměti
+        // {
+        //     return;
+        // }
+        // sprintf(result, "$res_%d", ++res_index);
     }
 
-    // případně generateExpression()
+    fprintf(f, "MOVE LF@%%retval %s@%s\n", type, result);
 }
 
 /* Pomocná funkce, která rozezná binární operaci a vrací string odpovídající instrukci dané operace */
@@ -313,7 +374,7 @@ int recognize_bin_operation(TreeNode *node, char **operation_string)
     return 0;
 }
 
-void check_local_tables(char *identifier, bool local)
+void check_local_tables(char *identifier, bool left_value)
 {
     if (stack_size(local_tables_stack) > 0)
     {
@@ -322,15 +383,78 @@ void check_local_tables(char *identifier, bool local)
 
             for (unsigned j = 0; j < arraySize(((StackItem *)stack_get(local_tables_stack, i)->data)->array); j++)
             {
-                if (strcmp(identifier, (((DynamicArray *)((StackItem *)(stack_get(local_tables_stack, i)->data))->array)->items[j].data)) == 0)
+
+                if (strcmp(identifier, ((ArrayData *)(((DynamicArray *)((StackItem *)(stack_get(local_tables_stack, i)->data))->array)->items[j].data))->label) == 0)
                 {
                     char *newLabel = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
-                    sprintf(newLabel, "%s$%d", identifier, ((StackItem *)stack_get(local_tables_stack, i)->data)->index);
-                    strcpy(identifier, newLabel);
+                    bool defined = ((ArrayData *)((StackItem *)stack_get(local_tables_stack, i)->data)->array->items[j].data)->defined;
+                    if (!defined && !left_value)
+                    {
+                        ((ArrayData *)((StackItem *)stack_get(local_tables_stack, i)->data)->array->items[j].data)->defined = true;
+                    }
+
+                    if (defined || (!defined && left_value))
+                    {
+
+                        sprintf(newLabel, "%s$%d", identifier, ((StackItem *)stack_get(local_tables_stack, i)->data)->index);
+                        strcpy(identifier, newLabel);
+                    }
                 }
             }
         }
     }
+}
+
+// unsigned hex_to_decimal(const char* hex_string)
+// {
+//     unsigned result = 0;
+//     for (unsigned i = 0; hex_string[i] != '\0'; i++)
+//     {
+//         result = result * 16 + hex_string[i];
+//     }
+//     return result;
+
+// }
+
+// kontrola a převod escape sekvencí
+char *convert_string(char *string)
+{
+    DynamicBuffer *buffer = malloc(sizeof(DynamicBuffer));
+
+    if (init_buffer(buffer, BUFFER_INIT_CAPACITY) != ERR_CODE_OK) // Kontrola alokace paměti
+    {
+        return NULL;
+    }
+
+    for (unsigned i = 0; string[i] != '\0'; i++)
+    {
+        if ((string[i] >= 0 && string[i] <= 32) || string[i] == 35 || string[i] == 92)
+        {
+
+            char escape[5];
+            if (string[i] < 10)
+            {
+                sprintf(escape, "\\00%d", string[i]);
+            }
+            else
+            {
+                sprintf(escape, "\\0%d", string[i]);
+            }
+
+            if (buffer_append_string(buffer, escape) != ERR_CODE_OK) // Kontrola alokace paměti
+            {
+                return NULL;
+            }
+            continue;
+        }
+
+        if (buffer_append_char(buffer, string[i]) != ERR_CODE_OK) // Kontrola alokace paměti
+        {
+            return NULL;
+        }
+    }
+
+    return buffer->buffer;
 }
 
 char *recognize_type(TreeNode *node, bool local)
@@ -357,13 +481,14 @@ char *recognize_type(TreeNode *node, bool local)
             sprintf(node->label, "%a", node->token_value.double_value);
             return "float";
         case NODE_STRING:
+            node->label = convert_string(node->label);
             return "string"; // hodnota literálu je už uložena v atributu label díky jiné funkci, takže není potřeba ji přesoubvat
         case NODE_NIL:
             node->label = "nil";
             return "nil";
         case NODE_IDENTIFIER:;
 
-            check_local_tables(node->label, local);
+            check_local_tables(node->label, false);
             break;
         default:
             break;
@@ -576,7 +701,7 @@ void generateIf(TreeNode *node, bool local)
     generateExpression(node->children[0], local);
 
     unsigned ifId = labelId++;
-    fprintf(f, "JUMPIFNEQ $else$%d %s@res_%d bool@true\n", ifId, frame, res_index);
+    fprintf(f, "JUMPIFNEQ $else$%d %s@$res_%d bool@true\n", ifId, frame, res_index);
 
     counter++;
 
@@ -692,12 +817,22 @@ void generateDeclaration(TreeNode *node, bool local)
         return;
     }
 
+    ArrayData *data = malloc(sizeof(ArrayData));
+
+    if (data == NULL)
+    {
+        return;
+    }
+
     char *frame = localFunc ? "LF" : "GF";
     char *label = (node->type == NODE_ASSIGN) ? node->children[0]->children[0]->label : node->children[0]->label;
 
+    data->label = label;
+    data->defined = false;
+
     if (stack_size(local_tables_stack) > 0)
     {
-        arrayInsert(((StackItem *)((stack_top(local_tables_stack)->data)))->array, label);
+        arrayInsert(((StackItem *)((stack_top(local_tables_stack)->data)))->array, data);
     }
 
     if (!inFunction && counter > 0)
@@ -722,19 +857,31 @@ void generateAssign(TreeNode *node, bool local)
 
     char *frame = localFunc ? "LF" : "GF";
 
-    char *typeLeft = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
     char *typeRight;
     char *result;
+    char *label;
+
+    if (node->children[0]->type == NODE_DECLARATION)
+    {
+        label = node->children[0]->children[0]->label;
+    }
+    else
+    {
+        label = node->children[0]->label;
+    }
 
     if (node->children[1]->type == NODE_FUNCTION_CALL)
     {
+        if (is_built_in_function(node->children[1]->children[0]->label, label)) {
+            return;
+        }
         generateFuncCall(node->children[1], local);
         result = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
         if (result == NULL) // Kontrola alokace paměti
         {
             return;
         }
-        result = "%%retval";
+        result = "%retval";
         typeRight = "TF";
     }
     else
@@ -759,17 +906,8 @@ void generateAssign(TreeNode *node, bool local)
         }
     }
 
-    if (node->children[0]->type == NODE_DECLARATION)
-    {
-        strcpy(typeLeft, node->children[0]->children[0]->label);
-    }
-    else
-    {
-        strcpy(typeLeft, node->children[0]->label);
-    }
-
     if (!inFunction)
-        check_local_tables(typeLeft, local);
-    fprintf(f, "MOVE %s@%s %s@%s\n", frame, typeLeft, typeRight, result);
-    free(typeLeft);
+        check_local_tables(label, true);
+
+    fprintf(f, "MOVE %s@%s %s@%s\n", frame, label, typeRight, result);
 }

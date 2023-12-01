@@ -1260,5 +1260,21 @@ run_test '
 write(str1, "xd", str2, "\n")
 ' 5 "write call with undeclared variable"
 
+run_test '
+let x = "abcd\u{}"
+' 1 "invalid unicode escape sequence"
+
+run_test '
+let x = "abcd\u{123456789}"
+' 1 "invalid unicode escape sequence"
+
+run_test '
+let x = "abcd\u{1234}"
+' 0 "valid unicode escape sequence"
+
+run_test '
+let x = "abcd\u{1234G}abcd"
+' 1 "invalid unicode escape sequence"
+
 
 generate_test_summary

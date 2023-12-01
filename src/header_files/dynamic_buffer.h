@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <math.h>
 
 #define ERR_CODE_OK 0
 #define ERR_CODE_ALLOC 1
@@ -20,7 +21,7 @@
 
 typedef struct dynamic_buffer {
     char* buffer;
-    size_t size;
+    size_t size; // without '\0'
     size_t capacity;
 } DynamicBuffer;
 
@@ -38,5 +39,8 @@ int move_buffer(char** dest, DynamicBuffer* src);
 
 int move_buffer_to_buffer(DynamicBuffer* dest, DynamicBuffer* src);
 
+void print_buffer(DynamicBuffer* buffer);
+
+void buffer_print_into_file(DynamicBuffer *buffer, FILE *file);
 
 

@@ -553,14 +553,19 @@ token_t get_token(FILE *source_file)
                                 return token;
                             }
                         }
+                        // if there is no hex digits, it is invalid unicode escape sequence
+                        if(hex_digits_count == 0){
+                            token.type = TOKEN_UNKNOWN;
+                            return token;
+                        }
+
 
                         // now we have \u{XXXXXXXX loaded
 
                         buffer_append_char(raw_buffer, c);
                         // now we have \u{XXXXXXXX} loaded
-                        // TODO convert to unicode character
                         unsigned int unicode_number = (unsigned int)strtol(hex_number->buffer, NULL, 16);
-                        char unicode_c = (char)unicode_number;
+                        unsigned char unicode_c = (unsigned char)unicode_number;
                         buffer_append_char(buffer, unicode_c);
                         free_buffer(hex_number);
                     }

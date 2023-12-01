@@ -3068,16 +3068,6 @@ void printTree(TreeNode *x, bool *flag, int depth, int isLast)
     flag[depth] = true;
 }
 
-void print_stack2(Stack *stack)
-{
-    // printf("Stack:\n");
-    for (int i = 0; i < stack_size(stack); i++)
-    {
-        Stack_Frame *frame = stack_get(stack, i);
-        printf("Data in frame %s\n", (char*)frame->data);
-    }
-}
-
 
 int main(void)
 {
@@ -3087,9 +3077,6 @@ int main(void)
         error = ERR_INTERNAL;
         return error;
     }
-
-    
-
 
     error = ERR_SYNTAX_ANALYSIS;
     // file = stdin;
@@ -3106,13 +3093,13 @@ int main(void)
     {
         error = ERR_NONE;
     }
-
+    
     // print_global_table(global_table);
 
     // print_stack(stack_of_local_tables);
     bool ar[10] = {true};
     
-    printTree(startNeterminal, ar, 0, 0);
+    // printTree(startNeterminal, ar, 0, 0);
     dispose(startNeterminal);
     symtable_free(global_table, GLOBAL_TABLE);
     stack_free(stack_of_local_tables);
