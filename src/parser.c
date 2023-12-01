@@ -3068,16 +3068,6 @@ void printTree(TreeNode *x, bool *flag, int depth, int isLast)
     flag[depth] = true;
 }
 
-void print_stack2(Stack *stack)
-{
-    // printf("Stack:\n");
-    for (int i = 0; i < stack_size(stack); i++)
-    {
-        Stack_Frame *frame = stack_get(stack, i);
-        printf("Data in frame %s\n", (char*)frame->data);
-    }
-}
-
 
 int main(void)
 {
@@ -3087,8 +3077,6 @@ int main(void)
         error = ERR_INTERNAL;
         return error;
     }
-
-    
 
 
     error = ERR_SYNTAX_ANALYSIS;
