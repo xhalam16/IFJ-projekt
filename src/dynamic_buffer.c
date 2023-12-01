@@ -70,17 +70,15 @@ int buffer_append_char(DynamicBuffer *buffer, char data)
 int buffer_append_string(DynamicBuffer *buffer, const char *data)
 {
     int data_size = strlen(data) + 1;
-
-    if (buffer->size + data_size > buffer->capacity)
-    {
+        
+    if(buffer->size + data_size > buffer->capacity){
         int quotient = ceil((buffer->size + data_size) / buffer->capacity);
-
-        if (resize_buffer(buffer, buffer->capacity * quotient) != ERR_CODE_OK)
-        {
+        if(resize_buffer(buffer, buffer->capacity * quotient) != ERR_CODE_OK){
             return ERR_CODE_ALLOC;
         }
     }
-
+   
+    
     // data are already null terminated
     memcpy(buffer->buffer + buffer->size, data, data_size);
 
