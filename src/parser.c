@@ -3078,19 +3078,6 @@ int main(void)
         return error;
     }
 
-    char* str = "Toto toto toto tototototototototototot fdds fds fstrtotk ok tokot kotk ok tok to";
-    char* str2 = "\\032";
-
-    DynamicBuffer* buff = malloc(sizeof(DynamicBuffer));
-    init_buffer(buff, 32);
-    buffer_append_string(buff, str);
-    buffer_append_string(buff, str2);
-
-    printf("%s\n", buff->buffer);
-
-
-
-
     error = ERR_SYNTAX_ANALYSIS;
     // file = stdin;
     file = fopen("test.txt", "r");
@@ -3106,13 +3093,13 @@ int main(void)
     {
         error = ERR_NONE;
     }
-
+    
     // print_global_table(global_table);
 
     // print_stack(stack_of_local_tables);
     bool ar[10] = {true};
     
-    printTree(startNeterminal, ar, 0, 0);
+    // printTree(startNeterminal, ar, 0, 0);
     dispose(startNeterminal);
     symtable_free(global_table, GLOBAL_TABLE);
     stack_free(stack_of_local_tables);

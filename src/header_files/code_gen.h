@@ -32,6 +32,11 @@ typedef struct StackItem {
     unsigned index;
 } StackItem;
 
+typedef struct ArrayData {
+    char *label;
+    bool defined;
+} ArrayData;
+
 void generateFuncCall(TreeNode *node, bool local);
 
 void generateFuncDeclaration(TreeNode *node, bool local);
