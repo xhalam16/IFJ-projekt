@@ -3078,6 +3078,18 @@ int main(void)
         return error;
     }
 
+    char* str = "Toto toto toto tototototototototototot fdds fds fstrtotk ok tokot kotk ok tok to";
+    char* str2 = "\\032";
+
+    DynamicBuffer* buff = malloc(sizeof(DynamicBuffer));
+    init_buffer(buff, 32);
+    buffer_append_string(buff, str);
+    buffer_append_string(buff, str2);
+
+    printf("%s\n", buff->buffer);
+
+
+
 
     error = ERR_SYNTAX_ANALYSIS;
     // file = stdin;
