@@ -20,7 +20,7 @@
 
 typedef struct dynamic_buffer {
     char* buffer;
-    size_t size;
+    size_t size; // without '\0'
     size_t capacity;
 } DynamicBuffer;
 
