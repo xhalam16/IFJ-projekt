@@ -18,6 +18,8 @@ char *recognize_type(TreeNode *node, bool local);
 
 void check_local_tables(char *identifier, bool local);
 
+bool convert_string(char *string);
+
 FILE *f = NULL;
 unsigned labelId = 0;
 unsigned retvalId = 0;
@@ -102,7 +104,9 @@ void generateFuncCall(TreeNode *node, bool local)
                 fprintf(f, "MOVE TF@%%%d float@%a\n", i, paramValue->token_value.double_value);
                 break;
             case NODE_STRING:
+                convert_string(paramValue->label);
                 fprintf(f, "MOVE TF@%%%d string@%s\n", i, paramValue->label);
+                
                 break;
             case NODE_IDENTIFIER:
                 check_local_tables(paramValue->label, local);
@@ -200,8 +204,8 @@ void generateFuncDeclaration(TreeNode *node, bool local)
     {
         for (unsigned i = 0; i < node->children[2]->numChildren; i++)
         {
-            fprintf(f, "DEFVAR LF@param%d\n", i);
-            fprintf(f, "MOVE LF@param%d TF@%%%d\n", i, i);
+            fprintf(f, "DEFVAR LF@param_%d\n", i);
+            fprintf(f, "MOVE LF@param_%d LF@%%%d\n", i, i);
         }
     }
 
@@ -262,6 +266,7 @@ void generateReturn(TreeNode *node)
         if (tree != NULL)
         {
             type = recognize_type(tree, true);
+            result = tree->label;
         }
         else
         {
@@ -271,7 +276,7 @@ void generateReturn(TreeNode *node)
             {
                 return;
             }
-            sprintf(result, "$res_%d", ++res_index);
+            sprintf(result, "$res_%d", res_index);
         }
         // generateExpression(node, true);
         // result = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
@@ -350,6 +355,57 @@ void check_local_tables(char *identifier, bool local)
     }
 }
 
+// unsigned hex_to_decimal(const char* hex_string)
+// {
+//     unsigned result = 0;
+//     for (unsigned i = 0; hex_string[i] != '\0'; i++)
+//     {
+//         result = result * 16 + hex_string[i];
+//     }
+//     return result;
+
+// }
+
+bool convert_string(char *string)
+{
+    DynamicBuffer *buffer = malloc(sizeof(DynamicBuffer));
+
+    if (init_buffer(buffer, BUFFER_INIT_CAPACITY) != ERR_CODE_OK) // Kontrola alokace paměti
+    {
+        return false;
+    }
+
+    for (unsigned i = 0; string[i] != '\0'; i++)
+    {
+        if ((string[i] >= 0 && string[i] <= 32) || string[i] == 35 || string[i] == 92)
+        {
+            char escape[5];
+            if (string[i] < 10) {
+                sprintf(escape, "\\00%d", string[i]);
+            } else {
+                sprintf(escape, "\\0%d", string[i]);
+            }
+            
+            if (buffer_append_string(buffer, escape) != ERR_CODE_OK)
+            {
+                return false;
+            }
+            continue;
+        }
+        
+        if (buffer_append_char(buffer, string[i]) != ERR_CODE_OK)
+        {
+            return false;
+        }
+    }
+    
+    move_buffer(&string, buffer);
+
+    free_buffer(buffer);
+
+    return true;
+}
+
 char *recognize_type(TreeNode *node, bool local)
 {
     /* Pokud není uzel NULL, urči pro terminál, zda se jedná o konstantu, eventuálně o jakou a vrať její typ ve formě stringu*/
@@ -374,6 +430,7 @@ char *recognize_type(TreeNode *node, bool local)
             sprintf(node->label, "%a", node->token_value.double_value);
             return "float";
         case NODE_STRING:
+            convert_string(node->label);
             return "string"; // hodnota literálu je už uložena v atributu label díky jiné funkci, takže není potřeba ji přesoubvat
         case NODE_NIL:
             node->label = "nil";

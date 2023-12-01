@@ -38,5 +38,8 @@ int move_buffer(char** dest, DynamicBuffer* src);
 
 int move_buffer_to_buffer(DynamicBuffer* dest, DynamicBuffer* src);
 
+void print_buffer(DynamicBuffer* buffer);
+
+void buffer_print_into_file(DynamicBuffer *buffer, FILE *file);
 
 
