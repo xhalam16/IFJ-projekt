@@ -542,18 +542,36 @@ error_code_t semantic_relation_expression(TreeNode* node, bool *result, Stack* l
     return ERR_NONE;
 }
 
-bool is_term(NodeType type){
-    switch (type)
+error_code_t is_term(TreeNode* node, Stack* stack_of_local_tables){
+    switch (node->type)
     {
     case NODE_INT:
     case NODE_DOUBLE:
     case NODE_STRING:
-    case NODE_IDENTIFIER:
     case NODE_NIL:
-        return true;
+        return ERR_NONE;
     
+
+    case NODE_IDENTIFIER:;
+        char* label = node->label;
+        symtable_record_local_t* record = check_stack(stack_of_local_tables, label);
+
+        if(record == NULL){
+            symtable_record_global_t* glob_record = symtable_search(global_table, label, GLOBAL_TABLE);
+            if(glob_record == NULL){
+                return ERR_SEMANTIC_NOT_DEFINED;
+            }
+
+            return glob_record->data->defined ? ERR_NONE : ERR_SEMANTIC_NOT_DEFINED;
+        }else{
+            return record->data->defined ? ERR_NONE : ERR_SEMANTIC_NOT_DEFINED;
+        }
+
+
+
+
     default:
-        return false;
+        return ERR_SEMANTIC_FUNC;
         break;
     }
 }
@@ -598,9 +616,11 @@ error_code_t semantic_func_call(TreeNode* node, Stack* local_tables){
 
         for(int i = 0; i < param_list->numChildren; i++){
             TreeNode* param = param_list->children[i];
-            if(!is_term(param->children[0]->type)){
-                return ERR_SEMANTIC_FUNC;
+            error_code_t err = is_term(param->children[0], local_tables);
+            if(err != ERR_NONE){
+                return err;
             }
+
         }
 
         return ERR_NONE;
@@ -682,12 +702,24 @@ error_code_t semantic_func_call(TreeNode* node, Stack* local_tables){
                         first(param_list_table);
                         return ERR_SEMANTIC_FUNC;
                     }
+
+                    if(!record_global->data->defined){
+                        first(param_list_table);
+                        return ERR_SEMANTIC_NOT_DEFINED;
+                    }
+
                 }else{
 
                     if(record->data->data_type != param_table_type){
                         first(param_list_table);
                         return ERR_SEMANTIC_FUNC;
                     }
+
+                    if(!record->data->defined){
+                        first(param_list_table);
+                        return ERR_SEMANTIC_NOT_DEFINED;
+                    }
+
                 }
                     
 
@@ -705,7 +737,7 @@ error_code_t semantic_func_call(TreeNode* node, Stack* local_tables){
                     return ERR_SEMANTIC_FUNC;
                 }
             }else{
-
+                // else we need to check if the types match
                 if(param_table_type != param_tree_type){
                     first(param_list_table);
                     return ERR_SEMANTIC_FUNC;

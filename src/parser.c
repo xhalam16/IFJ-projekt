@@ -416,7 +416,7 @@ TreeNode *createNewNode(TreeNode *parent, NodeType type, bool isTerminal)
     newNode->type = type;
     newNode->terminal = isTerminal;
     newNode->label = NULL;
-    newNode->local_symtable = NULL;
+   // newNode->local_symtable = NULL;
     newNode->token_value.string_value = NULL;
 
     if (!addNode(parent, newNode))

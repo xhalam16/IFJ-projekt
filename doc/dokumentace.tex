@@ -9,6 +9,8 @@
 \usepackage{enumitem}
 \usepackage{graphicx}
 \usepackage[unicode]{hyperref}
+\usepackage[table,xcdraw]{xcolor}
+\usepackage{upgreek}
 \parskip=0.2\baselineskip % nastavuje velikost vertikální mezery mezi odstavci
 
 
@@ -33,17 +35,18 @@
 		\begin{minipage}[r]{0.6 \textwidth}
 			\Large
 			\begin{tabular}{l l l}
-				\textbf{Marek Halamka} & \textbf{(xhalam16)} & \quad TBA,\% \\
+				\textbf{Marek Halamka} & \textbf{(xhalam16)} & \quad TBA\,\% \\
 				Šimon Motl & (xmotls00) & \quad TBA\,\% \\
 				Richard Juřica & (xjuric31) & \quad TBA\,\% \\
 				Jan Kroutil & (xkrout04) & \quad TBA\,\% \\
 			\end{tabular}
 		\end{minipage}
 	\end{titlepage}
-
+	\thispagestyle{empty}
 	\tableofcontents
 
 	\newpage
+	\setcounter{page}{1}
 	\section{Úvod}
 	Překladač jazyka IFJ23 je projekt vytvořený v rámci předmětů IFJ a IAL na FIT VUT v Brně. 
 	\par\noindent Cílem projektu je vytvořit překladač jazyka IFJ23, který bude překládat zdrojový kód napsaný v tomto jazyce do cílového jazyka IFJcode23 a vrací příslušný návratový kód.
@@ -67,11 +70,17 @@
 	\par\noindent Modul obsahuje funkce pro inicializaci, uvolnění, realokaci a práci s řetězci. Buffer se v případě naplění automaticky realokuje na dvojnásobek své původní kapacity.
 	\par\noindent Pomocí výše zmíněných funkcí jsme definovali abstraktní datový typ \texttt{DynamicBuffer}, který je využíván v dalších částech projektu.
 
+
+	\subsubsection{DynamicArray}
+	Na stejném principu jako \texttt{DynamicBuffer} je implementován i ADT \texttt{DynamicArray}, který je definován v souboru \texttt{dynamic\_array.c} s rozhraním v souboru \texttt{dynamic\_array.h}.
+	\par\noindent Struktura definující tento typ obsahuje \textbf{ukazatel} na alokovanou paměť, \textbf{kapacitu} alokované paměti a \textbf{velikost} obsazené paměti. Pole uchovává proměnný počet struktury typu \texttt{ArrayItem}, které obsahují ukazatel na typ \texttt{void}. Tím jsme docílili toho, že do pole můžeme ukládat jakýkoliv typ dat.
+	\par\noindent Používá se především v generování cílového kódu, více o tom v sekci \ref{sec:gen}.
+
 	\newpage
 	\subsubsection{Token}
 	Hlavičkový soubor \texttt{token.h} obsahuje definici struktury \texttt{token}, která reprezentuje token.
 	\par\noindent Struktura obsahuje typ tokenu, hodnotu tokenu a textovou reprezentaci tokenu ve zdrojovém souboru. 
-	\par\noindent \textbf{Typ tokenu} je definován výčtovým typem \texttt{token\_type}, který obsahuje všechny typy tokenů jazyka IFJ23. 
+	\par\noindent \textbf{Typ tokenu} je definován výčtovým typem \texttt{token\_type}, který obsahuje všechny typy tokenů jazyka IFJ23. Může nabývat i speciálních hodnot jako \texttt{TOKEN\_UNKNOWN} signalizující lexikální chybu, \texttt{TOKEN\_ERROR}, který dává najevo výskyt nějaké interní chyby, \texttt{TOKEN\_EOF} a \texttt{TOKEN\_NONE} použitý pro komentáře.
 	\par\noindent \textbf{Hodnota tokenu} je typu \texttt{union}, a nabývá buď hodnoty odpovídající číslené hodnotě tokenu, nebo ukazatele na dříve definovanou strukturu \texttt{DynamicBuffer}, která reprezentuje řetězec.
 	Typ union byl zvolen z důvodu úspory paměti, protože token může obsahovat pouze jednu z těchto hodnot.
 	\par\noindent \textbf{Textová reprezentace tokenu} ve zdrojovém souboru je uložena jako ukazatel na strukturu \texttt{DynamicBuffer}, který obsahuje řetězec.
@@ -121,19 +130,206 @@
 	Lexikální analýza je definována v souboru \texttt{scanner.c} s rozhraním v souboru \texttt{scanner.h} a implementována jako \textbf{deterministický konečný automat}. Graf konečného automatu je zobrazen na obrázku ODKAZ.
 	\par\noindent Automat se rozhoduje na základě aktuálního stavu a načteného znaku ze vstupního souboru.
 	\par\noindent V jazyce C je implementován pomocí konstrukce \texttt{if...else if}, kde každá větev odpovídá jednomu stavu automatu. Automat také využívá a nastavuje pomocné statické globální proměnné, které jsou definovány v souboru \texttt{scanner.h}. 
+	\par\noindent Hlavní funkce, kterou analýza implementuje je \texttt{get\_token}, která vrací dříve popsaný \texttt{token} načtený ze vstupního souboru. Postupně načítá znaky ze vstupního souboru a předává je automatu, který na základě aktuálního stavu a načteného znaku rozhodne o dalším postupu. Pokud načtený znak neodpovídá žádnému stavu, vrátí funkce token s typem \texttt{TOKEN\_UNKNOWN}, který signalizuje lexikální chybu.
+	Načtené znaky jsou ukládány do datového typu \texttt{DynamicBuffer}, který automat postupně kontroluje, zda neodpovída některému z klíčových slov jazyka IFJ23. Pokud ano, je vrácen token s odpovídajícím typem klíčového slova.
+	\par\noindent Je-li některý z načtených tokenů typu číslo nebo řetězec, je do unie \texttt{token\_value} uložena i korespondující hodnota tohoto tokenu. Pokud se jedná o desetinné číslo typu Double zadané ve speciální notaci, jako např. \texttt{1.0e-10}, je hodnota scannerem převedena na desetinné číslo. Podobně je to tak i u řetězců obsahující escape sekvence, které jsou převedeny na odpovídající znaky.
+	\par\noindent Scanner také implementuje funkci \texttt{peek\_token}, která vrací následující token ze vstupního souboru, ale nečte ho. Tato funkce je využívána v syntaktické analýze pro predikci následujícího tokenu. Pro implementaci této funkce byla za potřebí implementovat pomocná funkce \texttt{unget\_token}, která vrátí znaky uložené v \texttt{DynamicBuffer} zpět do vstupního souboru.
 
 
 	
 	\subsection{Syntaktická analýza}
+	Jelikož je překladač implementován pomocí metody syntaxí řízeného překladu, je syntaktická analýza nej\-důležitější částí celého projektu.
+	Je implementována v souboru \texttt{parser.c} s rozhraním v souboru \texttt{parser.h}. Toto rozhraní poskytuje funkci \texttt{parse}, která je volána z hlavní funkce programu.
+	\par\noindent Syntaktická analýza se řídí LL -- gramatikou předem definovanou pro jazyk IFJ23. Využívá metodiky \textbf{rekurzivního sestupu} podle pravidel v LL -- tabulce, kterou můžete nalézt v příloze ODKAZ.
+	Dále využívá metodu \textbf{precedenční syntaktické analýzy} pro zpracování výrazů, více o této metodě v sekci ODKAZ.
+	\par\noindent Po dobu syntaktické analýzy je volána funkce \texttt{get\_token} z modulu \texttt{scanner}. Na základě typu vráceného tokenu se rozhoduje o syntaktické validitě zdrojového kódu. Funkce \texttt{parse} si volá pomocné funkce podle typu neterminálu na pravé straně aplikovaného pravidla.
+
+	\subsubsection{Syntaktický strom}
+	Definici struktury \texttt{TreeNode}, reprezentující uzel syntaktického stromu, najdeme v rozhraní. Tato struktura obsahuje typ uzlu, který je definován výčtovým typem \texttt{node\_type} a pole proměnné délky ukazatelů na potomky uzlu. 
+	Dále uzel může uchovávát informace o tokenech, jako například hodnotu konstanty nebo název identifikátoru proměnné či funkce.
+	\par\noindent Při aplikování pravidel LL -- gramatiky jsou vytvářeny uzly syntaktického stromu nebo v případě neúspěchu při aplikování některého z pravidel je signalizována syntaktická chyba a program je ukončen.
+	Pro tvorbu stromu jsme využili datovou strukturu \textbf{obecného stromu}, který je zakořeněn v uzlu \texttt{root} s typem \texttt{NODE\_PROGRAM} a tvoří se \textbf{shora dolů}.
+	\par\noindent Při tvorbě stromu jsou jednotlivé podstromy postupně kontrolovány sémantickou analýzou a následně generován cílový kód. Bližší popis volání sémantic\-kých akcí je zde \ref{sec:sem}.
+	\subsubsection{Práce s tabulkami symbolů}
+	Parser se stará o vytvoření a naplnění tabulek symbolů. V jazyce IFJ23 existují dva typy tabulek symbolů, \texttt{GLOBÁLNÍ} a \texttt{LOKÁLNÍ}.
+	Globální tabulka je právě jedna a je vytvořena při inicializaci programu. Do globální tabulky jsou ukládány informace o funkcích a globálních proměnných.
+	\par\noindent Lokální tabulka symbolů je vytvářena při vstupu do bloku a je uvolněna při jeho opuštění. Do lokální tabulky jsou ukládány informace o lokálních proměnných.
+	\par\noindent Syntaktická analýza také vytváří zásobník lokálních tabulek symbolů, který je využíván sémantickými akcemi. Parser zajišťuje správné přidání a odebírání lokálních tabulek symbolů ze zásobníku. 
+
+	\subsubsection{Zpracování výrazů pomocí precedenční syntaktické analýzy}
+	\label{sec:precedence}
+	Postup zpracování výrazů je založen na precedenční tabulce, kterou naleznete zde ODKAZ. V jazyce C byla implementována jako dvourozměrné pole znaků, kde každý typ znak určuje akci, která se má dál provést. 
+	\par\noindent K implementaci analýzy byl využit dříve definovaný ADT \texttt{Stack}. Výrazy jsou zpracovávány \textbf{zdola nahoru} a výsledný strom je vytvářen \textbf{shora dolů}. K tomu je využit další zásobík \texttt{Stack}, kam se ukládájí jednotlivá pravidla LL -- gramatiky.
+
+
+	\subsubsection{Volání sémantických akcí a generování cílového kódu}
+	\label{sec:sem}
+	Sémantické akce jsou volány při vytváření syntaktického stromu. Parser volá funkci \texttt{semantic} z modulu \texttt{semantic.c} s rozhraním v souboru \texttt{semantic.h}. Tato funkce přijímá ukazatel na uzel syntaktického stromu a ukazatel na zásobník lokálních tabulek symbolů.
+	Na základě výsledku sémantické analýzy je vygenerován cílový kód. V případě, že došlo k chybě, je program ukončen s odpovídajícím návratovým kódem.
+
 
 	\subsection{Sémantická analýza}
+	Sémantická analýza je implementována v souboru \texttt{semantic.c} s rozhraním v souboru \texttt{semantic.h}. Toto rozhraní poskytuje funkci \texttt{semantic}, která je volána z hlavní funkce programu. Jelikož naše implementace využívá jednoprůchodový překlad, je sémantická analýza prováděna při vytváření syntaktického stromu.
+	\par\noindent Ve funkci \texttt{semantic} se rozhodne, jaká sémantická akce se má provést na základě typu uzlu syntaktického stromu a zavolá se příslušná pomocná funkce. Jednotlivé funkce poté navigují v syntaktickém stromu podle předem stanovených pravidel a provádí sémantickou kontrolu. Pokud nastane chyba, vrátí funkce odpovídající chybový kód.
+	\par\noindent Sémanticka analýza ke kontrole využívá naplněné tabulky symbolů a zásobník lokálních tabulek symbolů předaný z parseru.
+	\subsubsection{Hledání v tabulkách symbolů}
+	Vždy když sémantická analýza potřebuje vyhledat položku, začne od lokální tabulky symbolů na vrcholu zásobníku lokálních tabulek symbolů a postupně se prochází všechny tabulky symbolů na zásobníku. V případě, že položka není nalezena ani v jedné z tabulek na zásobníku, podívá se sémantika do globální tabulky symbolů.
+	Pokud položka není nalezena ani v globální tabulce symbolů, je vrácen chybový kód.
+	\par\noindent V případě, že se jedná o funkci, hledá sémantická analýza rovnou v globální tabulce symbolů. 
 
 	\subsection{Generování cílového kódu}
+	\label{sec:gen}
+
+	\newpage
+	\section{Práce v týmu}
+
+	\subsection{Komunikace a verzovací systém}
+	V týmu jsme komunikovali buď osobně, nebo vzdáleně pomocí aplikace Discord. Na této platformě jsme si vytvořili vlastní server, kde jsme si vytvořili kanály pro komunikaci a sdílení souborů. 
+	\par\noindent Pro verzování projektu jsme zvolili verzovací systém Git se správou repozitářů pomocí služby GitHub. Náš repozitář je dostupný na adrese \url{https://github.com/xhalam16/IFJ-projekt}.
+
+
+	\subsection{Prvotní rozdělení práce}
+	Prvotní rozdělení bylo domluveno všemi členy týmu následovně:
+	\begin{itemize}
+		\item \textbf{Marek Halamka} -- Lexikální analýza, tabulky symbolů  -- 25\,\%
+		\item Šimon Motl -- Syntaktická analýza -- 25\,\%
+		\item Richard Juřica -- Sémantická analýza -- 25\,\%
+		\item Jan Kroutil -- Generování cílového kódu -- 25\,\% 
+		\item Společně -- ADT Stack, ADT DynamicBuffer, ADT DynamicArray, dokumentace
+	\end{itemize}
+
+	\subsection{Finální rozdělení práce}
+	Ovšem kvůli nerovnoměrné práci na projektu některých členů týmu muselo být rozdělení práce změněno na: \\
+	\begin{table}[ht]
+		\centering
+		\renewcommand{\arraystretch}{1.3}
+		\begin{tabular}{|l|l|l|}
+			\hline
+			\textbf{Člen} & \begin{tabular}{l} \textbf{Implementované části} \end{tabular} & \textbf{Body} \\ \hline
+			\textbf{Marek Halamka} & \begin{tabular}{l} Lexikální analýza, ADT Stack a ADT DynamicBuffer,\\ tabulky symbolů, sémantická analýza, dokumentace \end{tabular} & TBA\,\% \\ \hline
+			Šimon Motl & \begin{tabular}{l} Syntaktická analýza, generování kódu, ADT DynamicArray, dokumentace \end{tabular} & TBA\,\% \\ \hline
+			Richard Juřica & \begin{tabular}{l} Generování kódu \end{tabular} & TBA\,\% \\ \hline
+			Jan Kroutil &  & 0\,\% \\ \hline
+		\end{tabular}
+		\caption{Finální rozdělení práce}
+	\end{table}
+
+	\subsection{Zdůvodnění odchylek od rovnoměrného rozdělení}
+	Někteří členové týmu se neúčastnili na projektu vůbec, nebo se účastnili minimálně. Proto bylo nutné práci rozdělit mezi zbylé členy týmu, aby se projekt stihl včas dokončit. 
+	To vedlo k nerovnoměrnému rozdělení práce (viz. tabulka výše) a tím pádem i k nerovnoměrnému rozdělení bodů.
+	
 
 
 
 
+	\newpage
+	\section*{Precedenční tabulka}
+	\addcontentsline{toc}{section}{Precedenční tabulka}
+\begin{table}[h]
+	\centering
+	\resizebox{0.7\linewidth}{!}{
+	\begin{tabular}{|
+	>{\columncolor[HTML]{9CC2E5}}c |c|c|c|c|c|c|c|c|}
+	\hline
+	\multicolumn{1}{|l|}{\cellcolor[HTML]{9CC2E5}{\color[HTML]{FFFFFF} }} & \cellcolor[HTML]{9CC2E5}\textbf{2} & \cellcolor[HTML]{9CC2E5}\textbf{1} & \cellcolor[HTML]{9CC2E5}\textbf{(} & \cellcolor[HTML]{9CC2E5}\textbf{)} & \cellcolor[HTML]{9CC2E5}\textbf{id} & \cellcolor[HTML]{9CC2E5}\textbf{0} & \cellcolor[HTML]{9CC2E5}\textbf{4} & \cellcolor[HTML]{9CC2E5}\textbf{END} \\ \hline
+	\textbf{2}                                                            & \textgreater{}                     & \textless{}                        & \textless{}                        & \textgreater{}                     & \textless{}                         & \textless{}                        & \textgreater{}                     & \textgreater{}                       \\ \hline
+	\textbf{1}                                                            & \textgreater{}                     & \textgreater{}                     & \textless{}                        & \textgreater{}                     & \textless{}                         & \textless{}                        & \textgreater{}                     & \textgreater{}                       \\ \hline
+	\textbf{(}                                                            & \textless{}                        & \textless{}                        & \textless{}                        & =                                  & \textless{}                         & \textless{}                        & \textless{}                        &                                      \\ \hline
+	\textbf{)}                                                            & \textgreater{}                     & \textgreater{}                     &                                    & \textgreater{}                     &                                     & \textgreater{}                     & \textgreater{}                     & \textgreater{}                       \\ \hline
+	\textbf{id}                                                           & \textgreater{}                     & \textgreater{}                     &                                    & \textgreater{}                     &                                     & \textgreater{}                     & \textgreater{}                     & \textgreater{}                       \\ \hline
+	\textbf{0}                                                            & \textgreater{}                     & \textgreater{}                     &                                    & \textgreater{}                     &                                     & \textgreater{}                     & \textgreater{}                     & \textgreater{}                       \\ \hline
+	\textbf{4}                                                            & \textless{}                        & \textless{}                        & \textless{}                        & \textgreater{}                     & \textless{}                         & \textless{}                        & \textless{}                        & \textgreater{}                       \\ \hline
+	\textbf{END}                                                          & \textless{}                        & \textless{}                        & \textless{}                        &                                    & \textless{}                         & \textless{}                        & \textless{}                        &                                      \\ \hline
+	\end{tabular}
+	}
+	\caption{Precedenční tabulka}
+	\label{tab:precedence_table}
+	\end{table}
 
+	Vysvětlivky k tabulce:
+	\begin{itemize}
+		\item \textbf{0} -- Operátor s prioritou 0, tedy \texttt{!}
+		\item \textbf{1} -- Operátor s prioritou 1, tedy \texttt{*} a \texttt{/}
+		\item \textbf{2} -- Operátor s prioritou 2, tedy \texttt{+} a \texttt{-}
+		\item \textbf{3} -- Operátor s prioritou 3, tedy \texttt{<}, \texttt{<=}, \texttt{>}, \texttt{>=}, \texttt{==} a \texttt{!=}
+		\item \textbf{4} -- Operátor s prioritou 4, tedy \texttt{??}
+		\item \textbf{id} -- Identifikátor
+		\item \textbf{END} -- Konec výrazu
+	\end{itemize}
+
+
+	\newpage
+	\section*{LL -- gramatika}
+	\addcontentsline{toc}{section}{LL -- gramatika}
+	{ \fontsize{10}{10}\selectfont 
+	\begin{enumerate}[noitemsep]
+		
+		\item \texttt{<program> $\rightarrow$ <command> <program>}
+		\item \texttt{<program> $\rightarrow$ EOL <command> <program>}
+		\item \texttt{<program> $\rightarrow$ EOF}
+		\item \texttt{<command> $\rightarrow\,\,\upvarepsilon$}
+		\item \texttt{<command> $\rightarrow$ <assign>}
+		\item \texttt{<command> $\rightarrow$ <declaration>}
+		\item \texttt{<command> $\rightarrow$ <func\_declaration>}
+		\item \texttt{<command> $\rightarrow$ <if\_statement>}
+		\item \texttt{<command> $\rightarrow$ <while>}
+		\item \texttt{<command> $\rightarrow$ <func\_call>}
+		\item \texttt{<assign> $\rightarrow$ <left\_value> = <right\_value>}
+		\item \texttt{<left\_value> $\rightarrow$ identifier}
+		\item \texttt{<left\_value> $\rightarrow$ <declaration>}
+		\item \texttt{<left\_value> $\rightarrow$ <declaration\_keyword> identifier}
+		\item \texttt{<right\_value> $\rightarrow$ <expression>}
+		\item \texttt{<right\_value> $\rightarrow$ <func\_call>}
+		\item \texttt{<declaration> $\rightarrow$ <declaration\_keyword> identifier : <datatype>}
+		\item \texttt{<declaration\_keyword> $\rightarrow$ let}
+		\item \texttt{<declaration\_keyword> $\rightarrow$ var}
+		\item \texttt{<datatype> $\rightarrow$ INT}
+		\item \texttt{<datatype> $\rightarrow$ DOUBLE}
+		\item \texttt{<datatype> $\rightarrow$ STRING}
+		\item \texttt{<datatype> $\rightarrow$ INT?}
+		\item \texttt{<datatype> $\rightarrow$ DOUBLE?}
+		\item \texttt{<datatype> $\rightarrow$ STRING?}
+		\item \texttt{<value> $\rightarrow$ identifier}
+		\item \texttt{<value> $\rightarrow$ int}
+		\item \texttt{<value> $\rightarrow$ double}
+		\item \texttt{<value> $\rightarrow$ string}
+		\item \texttt{<value> $\rightarrow$ nil}
+		\item \texttt{<operator> $\rightarrow$ +}
+		\item \texttt{<operator> $\rightarrow$ -}
+		\item \texttt{<operator> $\rightarrow$ *}
+		\item \texttt{<operator> $\rightarrow$ /}
+		\item \texttt{<operator> $\rightarrow$ <}
+		\item \texttt{<operator> $\rightarrow$ >}
+		\item \texttt{<operator> $\rightarrow$ ==}
+		\item \texttt{<operator> $\rightarrow$ <=}
+		\item \texttt{<operator> $\rightarrow$ >=}
+		\item \texttt{<operator> $\rightarrow$ !=}
+		\item \texttt{<operator> $\rightarrow$ ??}
+		\item \texttt{<func\_call> $\rightarrow$ identifier ( <param\_list1>}
+		\item \texttt{<param\_list1> $\rightarrow$ <param> , <param\_list1>}
+		\item \texttt{<param\_list1> $\rightarrow$ )}
+		\item \texttt{<param> $\rightarrow$ <value>}
+		\item \texttt{<param> $\rightarrow$ identifier : <value>}
+		\item \texttt{<func\_declaration> $\rightarrow$ func identifier ( <param\_list0> <return\_type> \{ <body> }
+		\item \texttt{<return\_type>  $\rightarrow\,\,\upvarepsilon$}
+		\item \texttt{<return\_type>  $\rightarrow$ : <datatype>}
+		\item \texttt{<param\_list0>  $\rightarrow$ )}
+		\item \texttt{<param\_list0>  $\rightarrow$ <label> <param> <param\_list0>}
+		\item \texttt{<label>  $\rightarrow$ \textunderscore}
+		\item \texttt{<label>  $\rightarrow$ identifier}
+		\item \texttt{<body>  $\rightarrow$ EOL <command> <body>}
+		\item \texttt{<body>  $\rightarrow$ EOL return <return\_value> <body>}
+		\item \texttt{<body>  $\rightarrow$ \}}
+		\item \texttt{<return\_value>  $\rightarrow\,\,\upvarepsilon$}
+		\item \texttt{<return\_value>  $\rightarrow$ <func\_call>}
+		\item \texttt{<return\_value>  $\rightarrow$ <expression>}
+		\item \texttt{<if\_statement>  $\rightarrow$ if ( <condition>  \{ <body> else \{ <body>}
+		\item \texttt{<condition> $\rightarrow$ let identifier}
+		\item \texttt{<condition> $\rightarrow$ <expression>}
+		\item \texttt{<while> $\rightarrow$ while <expression> \{ <body>}
+		
+	\end{enumerate}
+		}
 
 
 

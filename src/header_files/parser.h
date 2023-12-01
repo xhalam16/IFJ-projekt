@@ -134,7 +134,6 @@ typedef struct TreeNode
     struct TreeNode **children;
     unsigned numChildren;
     char *label;
-    local_symtable *local_symtable;
     token_value_t token_value;
 } TreeNode;
 
