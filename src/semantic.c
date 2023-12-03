@@ -628,6 +628,7 @@ error_code_t semantic_func_call(TreeNode* node, Stack* local_tables){
 
 
     if(get_num_children(param_list) != param_count){
+        
         return ERR_SEMANTIC_FUNC;
     }
 
@@ -646,6 +647,7 @@ error_code_t semantic_func_call(TreeNode* node, Stack* local_tables){
         // param - 1 or 2 children, if 1, then its name is underscore, if 2, then it has a name
         if(param_label_from_table == NULL && param_tree->numChildren != 1){
             first(param_list_table);
+            
             return ERR_SEMANTIC_FUNC;
         }
 
@@ -673,6 +675,7 @@ error_code_t semantic_func_call(TreeNode* node, Stack* local_tables){
 
                     if(func_record->data->data_type != param_table_type){
                         first(param_list_table);
+                        
                         return ERR_SEMANTIC_FUNC;
                     }
 
@@ -700,6 +703,7 @@ error_code_t semantic_func_call(TreeNode* node, Stack* local_tables){
                     
                     if(record_global->data->data_type != param_table_type){
                         first(param_list_table);
+                        
                         return ERR_SEMANTIC_FUNC;
                     }
 
@@ -712,6 +716,7 @@ error_code_t semantic_func_call(TreeNode* node, Stack* local_tables){
 
                     if(record->data->data_type != param_table_type){
                         first(param_list_table);
+                        
                         return ERR_SEMANTIC_FUNC;
                     }
 
@@ -734,11 +739,13 @@ error_code_t semantic_func_call(TreeNode* node, Stack* local_tables){
                 // thats ok if the param in the table has nilable set to true
                 if(!param_table->nilable){
                     first(param_list_table);
+                    
                     return ERR_SEMANTIC_FUNC;
                 }
             }else{
                 // else we need to check if the types match
                 if(param_table_type != param_tree_type){
+                    
                     first(param_list_table);
                     return ERR_SEMANTIC_FUNC;
                 }
@@ -883,7 +890,6 @@ error_code_t semantic_func_declaration(TreeNode* node){
         }
     }else{
         // the function is not in the global table, there must be an error from the parser
-
         return ERR_INTERNAL;
     }
 
