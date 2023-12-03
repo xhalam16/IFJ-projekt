@@ -759,7 +759,6 @@ error_code_t semantic_func_call(TreeNode* node, Stack* local_tables){
                 TreeNode *param_name = param_tree->children[0];
                 if(strcmp(param_label_from_table, param_name->label) != 0){
                     first(param_list_table); // we reset the list
-                    printf("func call %s\n", param_name->label);
                     return ERR_SEMANTIC_FUNC;
                 }
             }

@@ -155,7 +155,7 @@ int move_buffer_to_buffer(DynamicBuffer *dest, DynamicBuffer *src)
         if (resize_buffer(dest, src->size) != ERR_CODE_OK)
         {
             return ERR_CODE_ALLOC;
-        }/**/
+        }
     }
 
     memcpy(dest->buffer, src->buffer, src->size + 1);
