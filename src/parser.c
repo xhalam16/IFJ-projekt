@@ -938,7 +938,6 @@ TreeNode *buildTree(Stack *treeStack, TreeNode *nodeExpression, Stack *idTypeSta
 
 bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition)
 {
-
     NodeType *endMarkerPtr = malloc(sizeof(NodeType));
     if (endMarkerPtr == NULL)
     {
@@ -1300,8 +1299,11 @@ bool parseParameters(TreeNode *funcParams)
 
             if (token.type == TOKEN_STRING)
             {
-                move_buffer(&funcParamValue->label, token.value.string_value);
+                
+                move_buffer(&funcParamRight->label, token.value.string_value);
             }
+
+           
 
             if (!skipEmptyLines(&token))
             {
@@ -2200,7 +2202,6 @@ bool parseFuncDeclaration(TreeNode *node)
     }
 
     DynamicBuffer *bf = token.source_value;
-
     if (move_buffer(&funcName->label, bf) != ERR_CODE_OK)
     {
         return false;
@@ -2213,11 +2214,12 @@ bool parseFuncDeclaration(TreeNode *node)
         return false;
     }
 
+    
+
     free_token(token);
 
     if (!skipEmptyLines(&token))
     {
-
         return false;
     }
 
@@ -2319,8 +2321,10 @@ bool parseFuncDeclaration(TreeNode *node)
         error = ERR_SEMANTIC_DEFINITION;
         return false;
     }
-
+    printf("key: %s\n", key);
     int ret = symtable_insert(global_table, key, data, GLOBAL_TABLE);
+
+    printf("ret: %d\n", ret);
 
     if (ret != ERR_CODE_ST_OK)
     {
@@ -2378,6 +2382,7 @@ bool parseFuncDeclaration(TreeNode *node)
 
 bool parseReturn(TreeNode *node)
 {
+    
     token_t token;
     token = get_token(file);
 
@@ -2457,7 +2462,6 @@ bool parseReturn(TreeNode *node)
             return false;
         }
     }
-
     return true;
 }
 
@@ -2512,6 +2516,7 @@ bool parse(TreeNode *startNeterminal)
             return false;
         }
 
+            
         switch (token.type)
         {
         case TOKEN_RIGHT_BRACE:
@@ -2727,18 +2732,18 @@ bool parse(TreeNode *startNeterminal)
             {
                 return false;
             }
-
+    
             nextNeterminal->type = NODE_DECLARATION_FUNCTION;
 
             semantic_result = semantic(nextNeterminal);
-
+            
             // printf("semantic result func_decl: %d\n", semantic_result);
             if (semantic_result != ERR_NONE)
             {
                 error = semantic_result;
                 return false;
             }
-
+            
             Stack_Frame *top_frame = stack_top(stack_of_local_tables);
             stack_pop(stack_of_local_tables); // pop local table (since we are leaving the function)
             stack_pop(stack_of_local_tables); // pop one more (since parameters are in a separate block)
@@ -2759,7 +2764,7 @@ bool parse(TreeNode *startNeterminal)
             {
                 return false;
             }
-
+            
             generateFuncDeclaration(nextNeterminal, inBlock);
 
             break;

@@ -403,6 +403,7 @@ token_t get_token(FILE *source_file)
         bool multiline_string = false;
         int consequitive_quotes = 0;
         bool first_new_line = true;
+        bool end = false;
         // we need to check for 2 other consecutive " to determine if it is multiline string
         int potential_quote = get_char(source_file);
         if (potential_quote == '"')
@@ -421,7 +422,7 @@ token_t get_token(FILE *source_file)
                 ungetc(potential_quote2, source_file);
 
             }
-            //ungetc(potential_quote, source_file);
+            ungetc(potential_quote, source_file);
         }
         else
         {
@@ -456,14 +457,16 @@ token_t get_token(FILE *source_file)
 
         while ((c = get_char(source_file)) != till_char)
         {
-            
-                
-            
 
             if(c == '"')
                 consequitive_quotes++;
             else
                 consequitive_quotes = 0;
+
+            if(consequitive_quotes == 3){
+                buffer_append_char(raw_buffer, c);
+                return token;
+            }
 
             if (c == EOF || (c == '\n' && !multiline_string))
             {
@@ -619,15 +622,12 @@ token_t get_token(FILE *source_file)
             buffer_clear(buffer);
             buffer_clear(raw_buffer);
        }
-
        // ungetc(c, source_file);
         return token;
     }
 
     // if (in_string_global)
     // {
-    //     /* allowed escape sequences: \n, \t, \", \\
-    //      */
     //     // todo solve escape sequences \u{XXXXXXXX}
     //     // raw_buffer should contain the string in source code
     //     // while buffer should contain the string value (meaning escape sequences should be expanded)
@@ -1157,7 +1157,7 @@ token_t peek_token(FILE *source_file)
 
 // int main(void){
 //     token_t token;
-//     FILE *file = fopen("../test.txt", "r");
+//     FILE *file = fopen("t.txt", "r");
 //     if (file == NULL)
 //     {
 //         return 1;
@@ -1168,10 +1168,6 @@ token_t peek_token(FILE *source_file)
         
 
 //         printf("%d\n", token.type);
-//         if(token.value.string_value != NULL){
-//             printf("%s\n", token.value.string_value->buffer);
-//         }
-//         printf("%s\n", token.source_value->buffer);
 
 //         if(token.type == TOKEN_UNKNOWN){
 //             break;

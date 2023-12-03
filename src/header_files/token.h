@@ -55,8 +55,8 @@ enum token_type
     TOKEN_ARROW,                // ->
     TOKEN_UNDERSCORE,           // _
     // TOKEN_SEMICOLON, 
-    TOKEN_DOUBLE_QUOTE,         // "
-    TOKEN_TRIPLE_DOUBLE_QUOTE,  // """
+    // TOKEN_DOUBLE_QUOTE,         // "
+    // TOKEN_TRIPLE_DOUBLE_QUOTE,  // """
 
     TOKEN_UNKNOWN, // neznámý token (lex error)
     TOKEN_ERROR, // chyba (např. malloc)
