@@ -563,20 +563,28 @@ bool load_string(TreeNode **node, bool multi_line)
         return false;
     }
 
-    if (multi_line)
+    token_type_t expected_type = multi_line ? TOKEN_TRIPLE_DOUBLE_QUOTE : TOKEN_DOUBLE_QUOTE;
+
+    if (final_token.type != expected_type)
     {
-        if (final_token.type != TOKEN_TRIPLE_DOUBLE_QUOTE)
-        {
-            return false;
-        }
+        error = ERR_LEX_ANALYSIS;
+        return false;
     }
-    else
-    {
-        if (final_token.type != TOKEN_DOUBLE_QUOTE)
-        {
-            return false;
-        }
-    }
+
+    // if (multi_line)
+    // {
+    //     if (final_token.type != TOKEN_TRIPLE_DOUBLE_QUOTE)
+    //     {
+    //         return false;
+    //     }
+    // }
+    // else
+    // {
+    //     if (final_token.type != TOKEN_DOUBLE_QUOTE)
+    //     {
+    //         return false;
+    //     }
+    // }
 
     (*node)->type = NODE_STRING;
 
@@ -772,7 +780,6 @@ token_type_t checkForImmediateOperands(token_type_t tokenType, TreeNode *nodeExp
 
         skip_comments(&token);
 
-
         if(token.type == TOKEN_UNKNOWN){
             error = ERR_LEX_ANALYSIS;
             return -1;
@@ -788,8 +795,9 @@ token_type_t checkForImmediateOperands(token_type_t tokenType, TreeNode *nodeExp
 
         if (buffer == NULL)
         {
-            return false;
+            return -1;
         }
+
         init_buffer(buffer, BUFFER_INIT_CAPACITY);
 
         if (token.type == TOKEN_DOUBLE_QUOTE)
@@ -819,6 +827,7 @@ token_type_t checkForImmediateOperands(token_type_t tokenType, TreeNode *nodeExp
 
         if (token.type != TOKEN_DOUBLE_QUOTE)
         {
+          //  error = ERR_LEX_ANALYSIS;
             return -1;
         }
 
@@ -1839,15 +1848,6 @@ bool parseDeclaration(TreeNode *neterminal, bool constant)
         }
     }
 
-    // if (push && inBlock)
-    // {
-    //     printf("Pushing local table declaration second part\n");
-    //     if (stack_push(stack_of_local_tables, local_table) != STACK_SUCCESS)
-    //     {
-    //         error = ERR_INTERNAL;
-    //         return false;
-    //     }
-    // }
 
     token_t prevToken = token;
     if (token.type == TOKEN_IDENTIFIER)
@@ -2608,6 +2608,7 @@ bool parse(TreeNode *startNeterminal)
         return false;
     }
 
+
     while (token.type != TOKEN_EOF)
     {
 
@@ -3099,7 +3100,7 @@ int main(void)
     // print_stack(stack_of_local_tables);
     bool ar[10] = {true};
     
-    // printTree(startNeterminal, ar, 0, 0);
+    printTree(startNeterminal, ar, 0, 0);
     dispose(startNeterminal);
     symtable_free(global_table, GLOBAL_TABLE);
     stack_free(stack_of_local_tables);
