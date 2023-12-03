@@ -616,6 +616,9 @@ error_code_t semantic_func_call(TreeNode* node, Stack* local_tables){
 
         for(int i = 0; i < param_list->numChildren; i++){
             TreeNode* param = param_list->children[i];
+            if(param->type == NODE_EPSILON){
+                break;
+            }
             error_code_t err = is_term(param->children[0], local_tables);
             if(err != ERR_NONE){
                 return err;
