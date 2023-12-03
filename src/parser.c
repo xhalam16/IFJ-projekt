@@ -2675,12 +2675,15 @@ bool parse(TreeNode *startNeterminal)
             {
             case TOKEN_LEFT_PARENTHESIS: // func call
 
+                
                 if (!parseFuncCall(nextNeterminal, buff_copy))
                 {
                     return false;
                 }
                 
+                
                 semantic_result = semantic(nextNeterminal);
+                
                 // printf("semantic result func_call: %d\n", semantic_result);
                 if (semantic_result != ERR_NONE)
                 {
@@ -2705,7 +2708,9 @@ bool parse(TreeNode *startNeterminal)
                 
 
                 if (!inBlock) {
+                    
                     generateFuncCall(nextNeterminal, inBlock);
+                    
                 }
                     
                 break;
@@ -2797,12 +2802,11 @@ bool parse(TreeNode *startNeterminal)
             }
 
             
-
+            
             if (!inBlock) {
                 generateWhile(nextNeterminal, inBlock);
             }
                 
-
             break;
         case TOKEN_KEYWORD_LET:
         case TOKEN_KEYWORD_VAR:;
@@ -2824,7 +2828,7 @@ bool parse(TreeNode *startNeterminal)
             }
 
             
-
+            
             if (!inBlock) {
                 generateDeclaration(nextNeterminal, inBlock);
             }
