@@ -122,3 +122,5 @@ ArrayItem *arrayGet(DynamicArray *array, unsigned index) {
 
     return &array->items[index];
 }
+
+

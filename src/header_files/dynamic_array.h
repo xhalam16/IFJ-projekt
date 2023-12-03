@@ -30,3 +30,6 @@ unsigned arraySize(DynamicArray *array);
 void arrayReverse(DynamicArray *array);
 
 ArrayItem *arrayGet(DynamicArray *array, unsigned index);
+
+
+

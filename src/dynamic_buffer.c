@@ -180,3 +180,6 @@ void buffer_print_into_file(DynamicBuffer *buffer, FILE *file)
         fprintf(file, "%c", buffer->buffer[i]);
     }
 }
+
+
+
