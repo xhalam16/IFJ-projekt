@@ -1276,5 +1276,18 @@ run_test '
 let x = "abcd\u{1234G}abcd"
 ' 1 "invalid unicode escape sequence"
 
+run_test 'write()' 0 "write call with no arguments"
+
+run_test 'var x = 5
+x = readInt()' 7 "readInt call wrong"
+
+run_test 'var x : String
+x = readString()' 7 "readString call"
+
+run_test 'var x : Double
+x = readDouble()' 7 "readDouble call"
+
+run_test 'var x : Int?
+x = readInt()' 0 "readInt call correct"
 
 generate_test_summary
