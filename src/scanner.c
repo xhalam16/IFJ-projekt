@@ -411,7 +411,7 @@ token_t get_token(FILE *source_file)
             int potential_quote2 = get_char(source_file);
             if (potential_quote2 == '"')
             {
-                token.type = TOKEN_TRIPLE_DOUBLE_QUOTE;
+                // token.type = TOKEN_TRIPLE_DOUBLE_QUOTE;
                 buffer_append_string(raw_buffer, "\"\"\"");
                 //in_multi_line_string_global = !in_multi_line_string_global;
                 multiline_string = true;

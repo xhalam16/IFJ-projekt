@@ -529,74 +529,74 @@ int skipEmptyLines(token_t *token)
     return 1 + numEols;
 }
 
-bool load_string(TreeNode **node, bool multi_line)
-{
-    // loading another token
-    token_t token;
-    if (!skipEmptyLines(&token))
-    {
-        return false;
-    }
+// bool load_string(TreeNode **node, bool multi_line)
+// {
+//     // loading another token
+//     token_t token;
+//     if (!skipEmptyLines(&token))
+//     {
+//         return false;
+//     }
 
-    // prev_token == double quote
-    // token == string (or double quote == empty string)
-    // final_token == double quote or error
+//     // prev_token == double quote
+//     // token == string (or double quote == empty string)
+//     // final_token == double quote or error
 
-    if (multi_line && token.type == TOKEN_TRIPLE_DOUBLE_QUOTE)
-    {
-        // empty multi line string
-        (*node)->type = NODE_STRING;
-        return true;
-    }
-    else if (!multi_line && token.type == TOKEN_DOUBLE_QUOTE)
-    {
-        // empty string
-        (*node)->type = NODE_STRING;
-        return true;
-    }
+//     if (multi_line && token.type == TOKEN_TRIPLE_DOUBLE_QUOTE)
+//     {
+//         // empty multi line string
+//         (*node)->type = NODE_STRING;
+//         return true;
+//     }
+//     else if (!multi_line && token.type == TOKEN_DOUBLE_QUOTE)
+//     {
+//         // empty string
+//         (*node)->type = NODE_STRING;
+//         return true;
+//     }
 
-    token_t final_token;
-    if (!skipEmptyLines(&final_token))
-    {
-        return false;
-    }
+//     token_t final_token;
+//     if (!skipEmptyLines(&final_token))
+//     {
+//         return false;
+//     }
 
-    token_type_t expected_type = multi_line ? TOKEN_TRIPLE_DOUBLE_QUOTE : TOKEN_DOUBLE_QUOTE;
+//     token_type_t expected_type = multi_line ? TOKEN_TRIPLE_DOUBLE_QUOTE : TOKEN_DOUBLE_QUOTE;
 
-    if (final_token.type != expected_type)
-    {
-        error = ERR_LEX_ANALYSIS;
-        return false;
-    }
+//     if (final_token.type != expected_type)
+//     {
+//         error = ERR_LEX_ANALYSIS;
+//         return false;
+//     }
 
-    // if (multi_line)
-    // {
-    //     if (final_token.type != TOKEN_TRIPLE_DOUBLE_QUOTE)
-    //     {
-    //         return false;
-    //     }
-    // }
-    // else
-    // {
-    //     if (final_token.type != TOKEN_DOUBLE_QUOTE)
-    //     {
-    //         return false;
-    //     }
-    // }
+//     // if (multi_line)
+//     // {
+//     //     if (final_token.type != TOKEN_TRIPLE_DOUBLE_QUOTE)
+//     //     {
+//     //         return false;
+//     //     }
+//     // }
+//     // else
+//     // {
+//     //     if (final_token.type != TOKEN_DOUBLE_QUOTE)
+//     //     {
+//     //         return false;
+//     //     }
+//     // }
 
-    (*node)->type = NODE_STRING;
+//     (*node)->type = NODE_STRING;
 
-    (*node)->label = NULL;
-    (*node)->label = malloc(sizeof(char) * (token.value.string_value->size + 1));
-    token.value.string_value->buffer[token.value.string_value->size] = '\0';
-    strcpy((*node)->label, token.value.string_value->buffer);
-    // if (move_buffer(&(*node)->label, token.value.string_value) != ERR_CODE_OK)
-    // {
-    //     return false;
-    // }
+//     (*node)->label = NULL;
+//     (*node)->label = malloc(sizeof(char) * (token.value.string_value->size + 1));
+//     token.value.string_value->buffer[token.value.string_value->size] = '\0';
+//     strcpy((*node)->label, token.value.string_value->buffer);
+//     // if (move_buffer(&(*node)->label, token.value.string_value) != ERR_CODE_OK)
+//     // {
+//     //     return false;
+//     // }
 
-    return true;
-}
+//     return true;
+// }
 
 NodeType topTerminal(Stack *stack, int *topTerminalIndex)
 {
