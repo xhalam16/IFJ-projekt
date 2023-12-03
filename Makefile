@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-g -std=c11 -pedantic -Wall -Wno-unused-variable -fno-stack-protector -Wno-newline-eof -Wno-unused-command-line-argument #-fsanitize=address
+CFLAGS=-g -std=c11 -pedantic -Wall -Wno-unused-variable -fno-stack-protector #-fsanitize=address
 #CFLAGS+= -Wextra
 LDLIBS=-lm
 DIRSOURCE=src

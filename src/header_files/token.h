@@ -40,8 +40,6 @@ enum token_type
     TOKEN_OPERATOR_AEQ,    // >=
     TOKEN_OPERATOR_EQUAL,  // ==
     TOKEN_OPERATOR_NEQ,    // !=
-    // TOKEN_OPERATOR_AND,    // &&
-    // TOKEN_OPERATOR_OR,     // ||
     TOKEN_OPERATOR_NIL_COALESCING, // ??
     TOKEN_OPERATOR_ASSIGN, // =
     TOKEN_OPERATOR_UNARY,  // !
@@ -57,8 +55,8 @@ enum token_type
     TOKEN_ARROW,                // ->
     TOKEN_UNDERSCORE,           // _
     // TOKEN_SEMICOLON, 
-    TOKEN_DOUBLE_QUOTE,         // "
-    TOKEN_TRIPLE_DOUBLE_QUOTE,  // """
+    // TOKEN_DOUBLE_QUOTE,         // "
+    // TOKEN_TRIPLE_DOUBLE_QUOTE,  // """
 
     TOKEN_UNKNOWN, // neznámý token (lex error)
     TOKEN_ERROR, // chyba (např. malloc)

@@ -617,7 +617,7 @@ if let value  {
     print("Value is nil")
 }' 5 "if let"
 
-run_test 'let message = "Chybný řetězec' 2 "wrong string"
+run_test 'let message = "Chybný řetězec' 1 "wrong string"
 
 run_test 'let sum = (5 + 3' 2 "wrong parentheses"
 
@@ -1289,5 +1289,51 @@ x = readDouble()' 7 "readDouble call"
 
 run_test 'var x : Int?
 x = readInt()' 0 "readInt call correct"
+
+run_test '
+let x = "abc
+' 1 "invalid string"
+
+
+run_test '
+let x = "abc
+"
+' 1 "invalid string"
+
+
+run_test '
+let x = "abc
+
+"
+' 1 "invalid string"
+
+run_test '
+let x = "abc
+
+
+' 1 "invalid string"
+
+run_test '
+let x = """ abc
+' 1 "invalid string"
+
+run_test '
+let x = """ abc
+"""' 0 "lex valid string"
+
+run_test '
+let x = """ abc "
+' 1 "invalid string"
+
+run_test '
+let x = """ abc ""
+' 1 "invalid string"
+
+run_test '
+let x = """ abc """
+' 0 "lex valid string"
+
+
+
 
 generate_test_summary

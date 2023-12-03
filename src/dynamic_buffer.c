@@ -43,9 +43,11 @@ int resize_buffer(DynamicBuffer *buffer, size_t new_capacity)
 
 void free_buffer(DynamicBuffer *buffer)
 {
-    free(buffer->buffer);
-    free(buffer);
-    buffer = NULL;
+    if(buffer->buffer != NULL)
+        free(buffer->buffer);
+
+    if(buffer != NULL)
+        free(buffer);
 }
 
 int buffer_append_char(DynamicBuffer *buffer, char data)
@@ -88,7 +90,11 @@ int buffer_append_string(DynamicBuffer *buffer, const char *data)
 
 void buffer_clear(DynamicBuffer *buffer)
 {
+
+    strcpy(buffer->buffer, "");
+
     buffer->size = 0;
+
 }
 
 int buffer_insert_char_beggining(DynamicBuffer *buffer, char data)
@@ -137,7 +143,7 @@ int move_buffer(char **dest, DynamicBuffer *src)
         }
     }
     strcpy(*dest, src->buffer);
-    buffer_clear(src);
+    // buffer_clear(src);
     return ERR_CODE_OK;
 }
 
