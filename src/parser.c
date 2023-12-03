@@ -561,20 +561,28 @@ bool load_string(TreeNode **node, bool multi_line)
         return false;
     }
 
-    if (multi_line)
+    token_type_t expected_type = multi_line ? TOKEN_TRIPLE_DOUBLE_QUOTE : TOKEN_DOUBLE_QUOTE;
+
+    if (final_token.type != expected_type)
     {
-        if (final_token.type != TOKEN_TRIPLE_DOUBLE_QUOTE)
-        {
-            return false;
-        }
+        error = ERR_LEX_ANALYSIS;
+        return false;
     }
-    else
-    {
-        if (final_token.type != TOKEN_DOUBLE_QUOTE)
-        {
-            return false;
-        }
-    }
+
+    // if (multi_line)
+    // {
+    //     if (final_token.type != TOKEN_TRIPLE_DOUBLE_QUOTE)
+    //     {
+    //         return false;
+    //     }
+    // }
+    // else
+    // {
+    //     if (final_token.type != TOKEN_DOUBLE_QUOTE)
+    //     {
+    //         return false;
+    //     }
+    // }
 
     (*node)->type = NODE_STRING;
 
@@ -1730,15 +1738,6 @@ bool parseDeclaration(TreeNode *neterminal, bool constant)
         }
     }
 
-    // if (push && inBlock)
-    // {
-    //     printf("Pushing local table declaration second part\n");
-    //     if (stack_push(stack_of_local_tables, local_table) != STACK_SUCCESS)
-    //     {
-    //         error = ERR_INTERNAL;
-    //         return false;
-    //     }
-    // }
 
     token_t prevToken = token;
     if (token.type == TOKEN_IDENTIFIER)
@@ -2502,6 +2501,7 @@ bool parse(TreeNode *startNeterminal)
     {
         return false;
     }
+
 
     while (token.type != TOKEN_EOF)
     {
