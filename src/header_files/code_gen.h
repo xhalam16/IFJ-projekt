@@ -47,8 +47,6 @@ void generateAssign(TreeNode *node, bool local);
 
 void generateIf(TreeNode *node, bool local);
 
-void generateLabel(char *label);
-
 void generateWhile(TreeNode *node, bool local);
 
 int generateExpression(TreeNode *node, bool local);
