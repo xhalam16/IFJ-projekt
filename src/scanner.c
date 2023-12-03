@@ -103,21 +103,18 @@ int skip_block_comment(FILE *source_file)
     return 1;
 }
 
-int skip_line_comment(FILE *source_file)
+bool skip_line_comment(FILE *source_file)
 {
     int c;
-    while ((c = get_char(source_file)) != EOF)
+    while ((c = get_char(source_file)))
     {
-        if (c == '\n')
+        if (c == '\n' || c == EOF)
         {
-            return 0;
+            return true;
         }
     }
 
-    if (c == EOF)
-        return EOF;
-
-    return 1;
+    return false;
 }
 
 bool word_is_keyword(char *word)
@@ -135,6 +132,13 @@ bool word_is_keyword(char *word)
 
 bool word_is_identifier(char *word)
 {
+    // we also need to check for ? since it is NOT valid identifier and it was loaded into buffer because of keyword Int?, Double? and String?
+    for(int i = 0; i < strlen(word); i++){
+        if(word[i] == '?'){
+            return false;
+        }
+    }
+
     if (isalpha(word[0]) || word[0] == '_')
     {
         if (strlen(word) == 1 && word[0] == '_')
@@ -307,7 +311,7 @@ int get_char(FILE *source_file)
 token_t get_token(FILE *source_file)
 {
     token_t token;
-    bool next_number_negative = false;
+   // bool next_number_negative = false;
 
     DynamicBuffer *buffer = malloc(sizeof(DynamicBuffer));
     DynamicBuffer *raw_buffer = malloc(sizeof(DynamicBuffer));
@@ -343,6 +347,7 @@ token_t get_token(FILE *source_file)
         
         if(!in_multi_line_string_global){
             token.type = TOKEN_EOL;
+
             return token;
         }else{
             buffer_append_char(raw_buffer, c);
@@ -353,6 +358,12 @@ token_t get_token(FILE *source_file)
     if (c == EOF)
     {
         token.type = TOKEN_EOF;
+
+        // if(in_string_global || in_multi_line_string_global){ // -- if we are still in string, at the end, it must be error since it was not closed
+        //     token.type = TOKEN_UNKNOWN;
+        // }
+
+
         return token;
     }
 
@@ -364,7 +375,6 @@ token_t get_token(FILE *source_file)
         c = get_char(source_file);
         if (isdigit(c))
         {
-          // next_number_negative = true;
             // ungetc(c, source_file);
             token.type = TOKEN_OPERATOR_SUB;
             buffer_append_string(raw_buffer, "-");
@@ -390,7 +400,9 @@ token_t get_token(FILE *source_file)
     if (c == '"')
     {
         // this branch either sets that string is being loaded (string literal)
-
+        bool multiline_string = false;
+        int consequitive_quotes = 0;
+        bool first_new_line = true;
         // we need to check for 2 other consecutive " to determine if it is multiline string
         int potential_quote = get_char(source_file);
         if (potential_quote == '"')
@@ -400,15 +412,16 @@ token_t get_token(FILE *source_file)
             {
                 token.type = TOKEN_TRIPLE_DOUBLE_QUOTE;
                 buffer_append_string(raw_buffer, "\"\"\"");
-                in_multi_line_string_global = !in_multi_line_string_global;
-                return token;
+                //in_multi_line_string_global = !in_multi_line_string_global;
+                multiline_string = true;
+                //return token;
             }
             else
             {
                 ungetc(potential_quote2, source_file);
 
             }
-            ungetc(potential_quote, source_file);
+            //ungetc(potential_quote, source_file);
         }
         else
         {
@@ -416,59 +429,61 @@ token_t get_token(FILE *source_file)
         }
        
 
-        token.type = TOKEN_DOUBLE_QUOTE;
-        buffer_append_string(raw_buffer, "\"");
-        if (in_string_global)
-        {
-            // this is the end of string
-            in_string_global = false;
-            return token;
-        }
-
-        // c = get_char(source_file);
-        // if (c != '"')
-        // {
-
-        //     in_string_global = true;
-        //     ungetc(c, source_file);
-        // }
-        // else
-        // {
-        //     ungetc(c, source_file);
-        // }
-
-        in_string_global = true;
-        return token;
-    }
-
-    if (in_string_global)
-    {
-        /* allowed escape sequences: \n, \t, \", \\
-         */
-        // todo solve escape sequences \u{XXXXXXXX}
-        // raw_buffer should contain the string in source code
-        // while buffer should contain the string value (meaning escape sequences should be expanded)
-
-        buffer_clear(buffer);
-        ungetc(c, source_file);
-
         token.type = TOKEN_STRING;
 
-        while ((c = get_char(source_file)) != '"')
+
+        if(!multiline_string)
+            buffer_append_string(raw_buffer, "\"");
+
+
+        
+        // if (in_string_global)
+        // {
+        //     // this is the end of string
+        //     in_string_global = false;
+        //    // return token;
+        // }
+
+
+        // in_string_global = true;
+        // buffer_clear(buffer);
+      //  ungetc(c, source_file);
+
+      //  token.type = TOKEN_STRING;
+        in_string_global = false;
+        int till_char = multiline_string ? EOF : '"';
+
+
+        while ((c = get_char(source_file)) != till_char)
         {
-            if (c == EOF)
+            
+                
+            
+
+            if(c == '"')
+                consequitive_quotes++;
+            else
+                consequitive_quotes = 0;
+
+            if (c == EOF || (c == '\n' && !multiline_string))
             {
+                token.type = TOKEN_UNKNOWN;
+                buffer_clear(buffer);
+                buffer_clear(raw_buffer);
                 ungetc(c, source_file);
                 return token;
+            }else if(c == '\n' && multiline_string){
+                if(first_new_line){
+                    buffer_append_char(raw_buffer, c);
+                    first_new_line = false;
+                    continue;
+                }
+
+                buffer_append_char(buffer, c);
+                buffer_append_char(raw_buffer, c);
+                continue;
             }
 
-            if (c == '\n')
-            {
-                // invalid string, cant throw lex error because it is syntax error
-                in_string_global = false;
-                ungetc(c, source_file);
-                return token;
-            }
 
             if (c == '\\')
             {
@@ -588,204 +603,226 @@ token_t get_token(FILE *source_file)
             }
             else
             {
-                buffer_append_char(buffer, c);
+                if(c != '"')
+                    buffer_append_char(buffer, c);
                 buffer_append_char(raw_buffer, c);
 
                 token.type = TOKEN_STRING;
             }
         }
 
-        ungetc(c, source_file);
+        
+       if(!multiline_string) buffer_append_string(raw_buffer, "\"");
+
+       if(multiline_string && consequitive_quotes != 3){
+            token.type = TOKEN_UNKNOWN;
+            buffer_clear(buffer);
+            buffer_clear(raw_buffer);
+       }
+
+       // ungetc(c, source_file);
+        return token;
     }
 
-    if (in_multi_line_string_global)
-    {
-        // this branch handles multiline string
-        // multiline string is ended by 3 consecutive " (""")
-        // multiline string can contain any character except for 3 consecutive "
+    // if (in_string_global)
+    // {
+    //     /* allowed escape sequences: \n, \t, \", \\
+    //      */
+    //     // todo solve escape sequences \u{XXXXXXXX}
+    //     // raw_buffer should contain the string in source code
+    //     // while buffer should contain the string value (meaning escape sequences should be expanded)
 
-        buffer_clear(buffer);
-        if(c != '\n')
-            ungetc(c, source_file);
+        
+    // }
 
-        token.type = TOKEN_STRING;
+    // if (in_multi_line_string_global)
+    // {
+    //     // this branch handles multiline string
+    //     // multiline string is ended by 3 consecutive " (""")
+    //     // multiline string can contain any character except for 3 consecutive "
 
-        while ((c = get_char(source_file)) != EOF)
-        {
-            // everytime we hit a " we need to check if it is followed by 2 other "
-            // if so, its not apart of the string
+    //     buffer_clear(buffer);
+    //     if(c != '\n')
+    //         ungetc(c, source_file);
+
+    //     token.type = TOKEN_STRING;
+
+    //     while ((c = get_char(source_file)) != EOF)
+    //     {
+    //         // everytime we hit a " we need to check if it is followed by 2 other "
+    //         // if so, its not apart of the string
 
            
 
-            if (c == '"' || c == '\n')
-            {
-                int next_char = get_char(source_file);
-                if (next_char == '"')
-                {
-                    int next_char2 = get_char(source_file);
-                    if (next_char2 == '"')
-                    {
-                        // this is the end of multiline string
-                        // we return all 3 " to the stream (so the next token load will recognize it as triple double quote)
-                        ungetc(next_char2, source_file);
-                        ungetc(next_char, source_file);
+    //         if (c == '"' || c == '\n')
+    //         {
+    //             int next_char = get_char(source_file);
+    //             if (next_char == '"')
+    //             {
+    //                 int next_char2 = get_char(source_file);
+    //                 if (next_char2 == '"')
+    //                 {
+    //                     // this is the end of multiline string
+    //                     // we return all 3 " to the stream (so the next token load will recognize it as triple double quote)
+    //                     ungetc(next_char2, source_file);
+    //                     ungetc(next_char, source_file);
 
-                        // there is either 3 quotes (if the initial char was ") or 2 quotes (if the initial char was \n)
-                        // if the initial char was \n we need to look for one more quote to determine if the new line character shuold be included in the string
+    //                     // there is either 3 quotes (if the initial char was ") or 2 quotes (if the initial char was \n)
+    //                     // if the initial char was \n we need to look for one more quote to determine if the new line character shuold be included in the string
 
-                        if(c == '"'){
-                            ungetc(c, source_file);
-                            return token;
-                        }else {
-                            int next_char3 = get_char(source_file);
-                            if(next_char3 == '"'){
-                                // the newline is right before 3 quotes, hence it is not part of the string
-                                buffer_append_char(raw_buffer, c);
-                            }
+    //                     if(c == '"'){
+    //                         ungetc(c, source_file);
+    //                         return token;
+    //                     }else {
+    //                         int next_char3 = get_char(source_file);
+    //                         if(next_char3 == '"'){
+    //                             // the newline is right before 3 quotes, hence it is not part of the string
+    //                             buffer_append_char(raw_buffer, c);
+    //                         }
 
-                            ungetc(next_char3, source_file);
-                            return token;
-                        }
+    //                         ungetc(next_char3, source_file);
+    //                         return token;
+    //                     }
                         
-                    }
-                    else
-                    {
-                        ungetc(next_char2, source_file);
-                    }
-                }
-                else
-                {
-                    ungetc(next_char, source_file);
-                }
-                buffer_append_char(buffer, c);
-                buffer_append_char(raw_buffer, c);
-            }
-            else
-            { // not a "
-                // buffer_append_char(buffer, c);
-                // buffer_append_char(raw_buffer, c);
+    //                 }
+    //                 else
+    //                 {
+    //                     ungetc(next_char2, source_file);
+    //                 }
+    //             }
+    //             else
+    //             {
+    //                 ungetc(next_char, source_file);
+    //             }
+    //             buffer_append_char(buffer, c);
+    //             buffer_append_char(raw_buffer, c);
+    //         }
+    //         else
+    //         { // not a "
+    //             // buffer_append_char(buffer, c);
+    //             // buffer_append_char(raw_buffer, c);
 
-                if (c == '\\')
-                {
-                    // possible escape sequence
-                    c = get_char(source_file);
-                    if (c == EOF)
-                    {
-                        ungetc(c, source_file);
-                        return token;
-                    }
+    //             if (c == '\\')
+    //             {
+    //                 // possible escape sequence
+    //                 c = get_char(source_file);
+    //                 if (c == EOF)
+    //                 {
+    //                     ungetc(c, source_file);
+    //                     return token;
+    //                 }
 
-                    if (is_escape_sequence(c))
-                    {
+    //                 if (is_escape_sequence(c))
+    //                 {
 
-                        buffer_append_char(raw_buffer, '\\');
-                        buffer_append_char(raw_buffer, c);
+    //                     buffer_append_char(raw_buffer, '\\');
+    //                     buffer_append_char(raw_buffer, c);
 
-                        int escape_sequence = create_escape_sequence(c);
-                        if (escape_sequence == -1)
-                        {
-                            token.type = TOKEN_UNKNOWN;
-                            free_buffer(buffer);
-                            free_buffer(raw_buffer);
-                            return token;
-                        }
+    //                     int escape_sequence = create_escape_sequence(c);
+    //                     if (escape_sequence == -1)
+    //                     {
+    //                         token.type = TOKEN_UNKNOWN;
+    //                         free_buffer(buffer);
+    //                         free_buffer(raw_buffer);
+    //                         return token;
+    //                     }
 
-                        buffer_append_char(buffer, escape_sequence);
-                    }
-                    else if (is_unicode_escape(c))
-                    {
-                        // now we have \u loaded
-                        // need to check for { and 8 hexadecimal digits and }
-                        // else throw error
+    //                     buffer_append_char(buffer, escape_sequence);
+    //                 }
+    //                 else if (is_unicode_escape(c))
+    //                 {
+    //                     // now we have \u loaded
+    //                     // need to check for { and 8 hexadecimal digits and }
+    //                     // else throw error
 
-                        buffer_append_char(raw_buffer, '\\');
-                        buffer_append_char(raw_buffer, c);
-                        c = get_char(source_file);
-                        if (c == EOF)
-                        {
-                            token.type = TOKEN_EOF;
-                            return token;
-                        }
+    //                     buffer_append_char(raw_buffer, '\\');
+    //                     buffer_append_char(raw_buffer, c);
+    //                     c = get_char(source_file);
+    //                     if (c == EOF)
+    //                     {
+    //                         token.type = TOKEN_EOF;
+    //                         return token;
+    //                     }
 
-                        if (c == '{')
-                        {
-                            // now we have \u{ loaded, need to scan for up to 8 hexadecimal digits
-                            const int max_hex_digits = 8;
-                            int hex_digits_count = 0;
-                            DynamicBuffer *hex_number = malloc(sizeof(DynamicBuffer));
-                            if (init_buffer(hex_number, BUFFER_INIT_CAPACITY) != ERR_CODE_OK)
-                            {
-                                token.type = TOKEN_ERROR;
-                                free_buffer(buffer);
-                                free_buffer(raw_buffer);
-                                return token;
-                            }
+    //                     if (c == '{')
+    //                     {
+    //                         // now we have \u{ loaded, need to scan for up to 8 hexadecimal digits
+    //                         const int max_hex_digits = 8;
+    //                         int hex_digits_count = 0;
+    //                         DynamicBuffer *hex_number = malloc(sizeof(DynamicBuffer));
+    //                         if (init_buffer(hex_number, BUFFER_INIT_CAPACITY) != ERR_CODE_OK)
+    //                         {
+    //                             token.type = TOKEN_ERROR;
+    //                             free_buffer(buffer);
+    //                             free_buffer(raw_buffer);
+    //                             return token;
+    //                         }
 
-                            buffer_append_char(raw_buffer, c);
+    //                         buffer_append_char(raw_buffer, c);
 
-                            while ((c = get_char(source_file)) != '}')
-                            {
-                                if (c == EOF)
-                                {
-                                    token.type = TOKEN_EOF;
-                                    return token;
-                                }
-                                if (!isxdigit(c))
-                                {
-                                    // invalid unicode escape sequence
-                                    token.type = TOKEN_UNKNOWN;
-                                    return token;
-                                }
-                                buffer_append_char(raw_buffer, c);
-                                hex_digits_count++;
-                                buffer_append_char(hex_number, c);
+    //                         while ((c = get_char(source_file)) != '}')
+    //                         {
+    //                             if (c == EOF)
+    //                             {
+    //                                 token.type = TOKEN_EOF;
+    //                                 return token;
+    //                             }
+    //                             if (!isxdigit(c))
+    //                             {
+    //                                 // invalid unicode escape sequence
+    //                                 token.type = TOKEN_UNKNOWN;
+    //                                 return token;
+    //                             }
+    //                             buffer_append_char(raw_buffer, c);
+    //                             hex_digits_count++;
+    //                             buffer_append_char(hex_number, c);
 
-                                if (hex_digits_count > max_hex_digits)
-                                {
-                                    // invalid unicode escape sequence
+    //                             if (hex_digits_count > max_hex_digits)
+    //                             {
+    //                                 // invalid unicode escape sequence
 
-                                    token.type = TOKEN_UNKNOWN;
-                                    return token;
-                                }
-                            }
+    //                                 token.type = TOKEN_UNKNOWN;
+    //                                 return token;
+    //                             }
+    //                         }
 
-                            // now we have \u{XXXXXXXX loaded
+    //                         // now we have \u{XXXXXXXX loaded
 
-                            buffer_append_char(raw_buffer, c);
-                            // now we have \u{XXXXXXXX} loaded
-                            // TODO convert to unicode character
-                            unsigned int unicode_number = (unsigned int)strtol(hex_number->buffer, NULL, 16);
-                            char unicode_c = (char)unicode_number;
-                            buffer_append_char(buffer, unicode_c);
-                            free_buffer(hex_number);
-                        }
-                        else
-                        {
+    //                         buffer_append_char(raw_buffer, c);
+    //                         // now we have \u{XXXXXXXX} loaded
+    //                         // TODO convert to unicode character
+    //                         unsigned int unicode_number = (unsigned int)strtol(hex_number->buffer, NULL, 16);
+    //                         char unicode_c = (char)unicode_number;
+    //                         buffer_append_char(buffer, unicode_c);
+    //                         free_buffer(hex_number);
+    //                     }
+    //                     else
+    //                     {
 
-                            token.type = TOKEN_UNKNOWN;
-                            return token;
-                        }
-                    }
+    //                         token.type = TOKEN_UNKNOWN;
+    //                         return token;
+    //                     }
+    //                 }
 
-                    else
-                    {
+    //                 else
+    //                 {
 
-                        buffer_append_char(raw_buffer, '\\');
-                        buffer_append_char(raw_buffer, c);
-                        token.type = TOKEN_UNKNOWN;
-                        return token;
-                    }
-                }
-                else
-                {
-                    buffer_append_char(buffer, c);
-                    buffer_append_char(raw_buffer, c);
+    //                     buffer_append_char(raw_buffer, '\\');
+    //                     buffer_append_char(raw_buffer, c);
+    //                     token.type = TOKEN_UNKNOWN;
+    //                     return token;
+    //                 }
+    //             }
+    //             else
+    //             {
+    //                 buffer_append_char(buffer, c);
+    //                 buffer_append_char(raw_buffer, c);
 
-                    token.type = TOKEN_STRING;
-                }
-            }
-        }
-    }
+    //                 token.type = TOKEN_STRING;
+    //             }
+    //         }
+    //     }
+    // }
 
     if (isdigit(c))
     {
@@ -843,24 +880,12 @@ token_t get_token(FILE *source_file)
             // buffer now contains the whole number
             double v = string_to_double(raw_buffer->buffer, positve_exponent);
 
-            if (next_number_negative)
-            {
-                v *= -1;
-                buffer_insert_char_beggining(raw_buffer, '-');
-            }
-
             token.value.double_value = v;
         }
         else
         {
             token.type = TOKEN_INT;
             int v = (int)strtol(raw_buffer->buffer, NULL, 10);
-
-            if (next_number_negative)
-            {
-                v *= -1;
-                buffer_insert_char_beggining(raw_buffer, '-');
-            }
 
             token.value.int_value = v;
         }
@@ -872,7 +897,6 @@ token_t get_token(FILE *source_file)
         buffer_clear(raw_buffer);
         while (isalnum(c) || c == '_' || c == '?')
         {
-            // todo ošetřit realloc fail => err_code_internal
             buffer_append_char(raw_buffer, c);
             c = get_char(source_file);
         }
@@ -892,6 +916,10 @@ token_t get_token(FILE *source_file)
         {
             // this covers the case of _ being used as a placeholder in function declaration
             token.type = TOKEN_UNDERSCORE;
+
+        }else{
+
+            token.type = TOKEN_UNKNOWN;
         }
         ungetc(c, source_file);
     }
@@ -951,17 +979,7 @@ token_t get_token(FILE *source_file)
         {
             // comment
             // skip until end of line
-            int res = skip_line_comment(source_file);
-            if (res == EOF)
-            {
-                token.type = TOKEN_EOF;
-            }
-            else if (res == 1)
-            {
-                token.type = TOKEN_ERROR;
-            }
-            else
-            {
+            if(skip_line_comment(source_file)){
                 token.type = TOKEN_NONE;
             }
         }
@@ -1139,7 +1157,7 @@ token_t peek_token(FILE *source_file)
 
 // int main(void){
 //     token_t token;
-//     FILE *file = fopen("t.txt", "r");
+//     FILE *file = fopen("../test.txt", "r");
 //     if (file == NULL)
 //     {
 //         return 1;
@@ -1147,11 +1165,21 @@ token_t peek_token(FILE *source_file)
 
 //     while ((token = get_token(file)).type != TOKEN_EOF)
 //     {
-//         printf("%s\n", token_type_string_values[token.type]);
-//         free_token(token);
+        
+
+//         printf("%d\n", token.type);
+//         if(token.value.string_value != NULL){
+//             printf("%s\n", token.value.string_value->buffer);
+//         }
+//         printf("%s\n", token.source_value->buffer);
+
+//         if(token.type == TOKEN_UNKNOWN){
+//             break;
+//         }
+//         //free_token(token);
 //     }
 
-//     free_token(token);
+//     //free_token(token);
 
 
 
