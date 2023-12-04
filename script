@@ -965,7 +965,7 @@ y(lol : x, XD : 10)' 0 "function call with labels"
 run_test '
 var a = 10
 a = Int2Double(a)
-a = a + 4' 0 "function call correct param"
+a = a + 4' 7 "function call correct param"
 
 run_test '
 var a = Int2Double(a)
@@ -1334,6 +1334,76 @@ let x = """ abc """
 ' 0 "lex valid string"
 
 
+run_test '
+var x : Double = 3
+' 0 "correct type declaration"
 
+
+run_test '
+var x : Double = 3.3
+' 0 "correct type declaration"
+
+run_test '
+var y : Int = 4
+
+var x : Double = y' 7 "incorrect type declaration"
+
+run_test '
+var x : Int = 3.3
+' 7 "incorrect type declaration"
+
+run_test '
+var y : Double? = 4.4
+
+var x : Double = y' 7 "incorrect type declaration"
+
+run_test '
+var y : Double? = 4.4
+
+var x : Double = y!' 0 "correct type declaration"
+
+run_test '
+var y : Double? = 4.4
+
+var x : Double = y ?? 8.8' 0 "correct type declaration"
+
+run_test '
+var y : Double? = 4.4
+
+var x : Double = y ?? 8' 0 "correct type declaration"
+
+run_test '
+var y = 4
+
+var x : Double = y
+' 7 "incorrect type declaration"
+
+run_test '
+var y = 4.4
+
+var x : Double = y' 0 "correct type declaration"
+
+
+run_test '
+var a = 10
+var x : Double = a + 3
+' 7 "incorrect type declaration"
+
+run_test '
+var a = 10
+var x : Double = 3 + 3.4
+' 0 "correct type declaration"
+
+run_test '
+var a = 10
+var x : Double = 3 + a
+
+var xx : Double = 3' 7 "incorrect type declaration"
+
+run_test '
+var a = 10
+var x : Int =  a
+
+var xx : Double = 3' 0 "correct type declaration"
 
 generate_test_summary

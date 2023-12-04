@@ -19,6 +19,7 @@ bool coal_found = false;
 static bool expression_nilable_bool = false;
 static bool same_symbol_assign = false;
 static bool sem_ret = false;
+static bool expression_immediate = true;
 
 bool is_neterminal(TreeNode *node){
     return !node->terminal;
@@ -169,6 +170,35 @@ bool is_datatype_compatible(data_type_t type1, data_type_t type2, bool coal_foun
     return false;
 }
 
+bool is_assign_compatible(data_type_t l_type, data_type_t r_type, bool r_value_immediate, bool coal_found, bool l_type_nilable, bool r_type_nilable){
+
+    printf("l_type = %d, r_type = %d\n", l_type, r_type);
+    printf("l_type_nilable = %d, r_type_nilable = %d\n", l_type_nilable, r_type_nilable);
+    printf("r_value_immediate = %d, coal_found = %d\n", r_value_immediate, coal_found);
+
+
+    if(l_type == r_type){
+        return true;
+    }
+
+    if(l_type == DATA_DOUBLE && r_type == DATA_INT && r_value_immediate){
+        return true;
+    }
+
+    if(!l_type_nilable && r_type_nilable && coal_found){
+        return true;
+    }
+
+    if(l_type_nilable && r_type == DATA_NIL){
+        return true;
+    }
+
+
+    return false;
+}
+
+
+
 bool types_compatible_relation(data_type_t type1, data_type_t type2, bool type1_immediate, bool type2_immediate){
     if (type1_immediate && type2_immediate) {
     // if both sides are immediate, double and int are compatible
@@ -228,6 +258,7 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
     if(reset) first_run = true;
 
     if(first_run){
+       expression_immediate = true;
 
         if(is_not_arithmetic(node)){
             return sem_ret ? ERR_SEMANTIC_FUNC : ERR_SEMANTIC_TYPE_COMPATIBILITY;
@@ -291,7 +322,8 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
                 return ERR_NONE;
 
             }else if(child->type == NODE_IDENTIFIER){
-            
+                expression_immediate = false;
+                
                 symtable_record_local_t* record = check_stack(local_tables, child->label);
                 if(same_symbol_assign){
     
@@ -1118,6 +1150,7 @@ error_code_t semantic_assign(TreeNode* node, Stack* local_tables){
 
     }else{
         // its an assign or declaration with type
+
         if(type_of_r_value == DATA_NIL){
             if(!variable_nilable){
                 return ERR_SEMANTIC_TYPE_COMPATIBILITY;
@@ -1140,7 +1173,11 @@ error_code_t semantic_assign(TreeNode* node, Stack* local_tables){
             return ERR_SEMANTIC_TYPE_COMPATIBILITY;
         }
 
-        if(!is_datatype_compatible(type_of_var, type_of_r_value, coal_found)){
+        // if(!is_datatype_compatible(type_of_var, type_of_r_value, coal_found)){
+        //     return ERR_SEMANTIC_TYPE_COMPATIBILITY;
+        // }
+
+        if(!is_assign_compatible(type_of_var, type_of_r_value, expression_immediate, coal_found, variable_nilable, r_value_nilable)){
             return ERR_SEMANTIC_TYPE_COMPATIBILITY;
         }
 
