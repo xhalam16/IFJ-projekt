@@ -185,6 +185,16 @@
 	\subsection{Generování cílového kódu}
 	\label{sec:gen}
 
+	Generování cílového kódu je implementováno v souboru \texttt{code\_gen.c} s rozhraním v souboru \texttt{code\_gen.h}. Toto rozhraní poskytuje spoustí funkcí pro generování cílového kódu, které je obvykle volány z hlavní funkce programu. Jelikož naše implementace využívá jednoprůchodový překlad, je generování cílového kódu prováděno při vytváření syntaktického stromu.
+	Využívá struktur ADT \texttt{DynamicBuffer}, ADT \texttt{DynamicArray} a především ADT \texttt{Stack} pro práci s lokálními proměnnými. 
+	\subsection{Generování výrazů}
+	\label{sec:gen_expr}
+	Je implementováno pomocí rekurzivního volání funkce \texttt{generateExpression}, která příjmá ukazatel na uzel syntaktického stromu, na zákldě jehož struktury se rozhoduje, jaká akce se má provést.
+	\par\noindent Klíčovým faktorem při generování je vlastnost předáného uzlu, a to konkrétně počet jeho potomků. Relační operátory, které se nenachází v instrukční sadě cílového jazyka \texttt{IFJcode23}, jsou převedeny na ekvivalentní operátory, které se v instrukční sadě nachází.
+	\subsection{Generování vestavěných funkcí}
+	\label{sec:gen_builtin}
+	Každá vestavěná funkce má svou vlastní funkci pro generování kódu, která na základě informací o funkci vygeneruje odpovídající instrukci z instrukční sady cílového jazyka \texttt{IFJcode23}. \\Výjimkou je funkce \texttt{substring}, která nemá v instrukční sadě ekvivalentní instrukci. Proto je tato funkce implementována na základě známých algoritmů pro hledání v řetězcích.
+
 	\newpage
 	\section{Práce v týmu}
 
@@ -222,6 +232,12 @@
 	\subsection{Zdůvodnění odchylek od rovnoměrného rozdělení}
 	Někteří členové týmu se neúčastnili na projektu vůbec, nebo se účastnili minimálně. Proto bylo nutné práci rozdělit mezi zbylé členy týmu, aby se projekt stihl včas dokončit. 
 	To vedlo k nerovnoměrnému rozdělení práce (viz. tabulka výše) a tím pádem i k nerovnoměrnému rozdělení bodů.
+
+	\newpage
+	\section{Závěr}
+	Díky projektu jsme se naučili pracovat v týmu a využívat verzovací systém Git. Dále jsme si osvojili znalosti o tom jak překladač funguje a jaké fáze překladu musí projít zdrojový kód, než je spuštěn.
+	\par\noindent I přes některé komplikace, které jsme museli řešit, jsme s výsledkem spokojeni. Jsme si vědomi, že některé části projektu jsme mohli implementovat lépe, ale vzhledem k časové tísni jsme se rozhodli, že je lepší projekt dokončit včas, než se zdržovat a riskovat, že projekt nestihneme včas dokončit.
+	\par\noindent Naše řešení se místy může trošku odchýlit od oficiálních materiálů, převážně z důvodu, že jsme s implementací začali s předstihem než byla témata detailně vysvětlena, ale \textbf{závazné metody} jsme samozřejmě \textbf{dodrželi}.
 	
 
 
@@ -369,8 +385,6 @@
 	\label{tab:ll_table}
 \end{table}
 
-
-% \end{landscape}
 
 
 \end{document}
