@@ -6,8 +6,14 @@ DIRSOURCE=src
 DIRH=$(DIRSOURCE)/header_files
 
 
-parser: scanner.o dynamic_buffer.o parser.o symtable.o semantic.o stack.o code_gen.o dynamic_array.o
-	$(CC) $(CFLAGS) $^ -o $@ $(LDLIBS)
+compiler: main.o parser.o scanner.o dynamic_buffer.o symtable.o semantic.o stack.o code_gen.o dynamic_array.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LDLIBS)
+
+main.o: $(DIRSOURCE)/main.c
+	$(CC) $(CFLAGS) -c $< $(LDLIBS)
+
+parser.o: $(DIRSOURCE)/parser.c $(DIRH)/parser.h $(DIRH)/scanner.h $(DIRH)/dynamic_buffer.h $(DIRH)/symtable.h $(DIRH)/dynamic_array.h 
+	$(CC) $(CFLAGS) -c $< $(LDLIBS)
 
 scanner.o: $(DIRSOURCE)/scanner.c $(DIRH)/scanner.h dynamic_buffer.o
 	$(CC) $(CFLAGS) -c $< $(LDLIBS)
@@ -17,9 +23,6 @@ dynamic_buffer.o: $(DIRSOURCE)/dynamic_buffer.c $(DIRH)/dynamic_buffer.h
 
 symtable.o: $(DIRSOURCE)/symtable.c $(DIRH)/symtable.h
 	$(CC) $(CFLAGS) -c $<
-
-semantic: parser.o semantic.o symtable.o dynamic_buffer.o scanner.o stack.o
-	$(CC) $(CFLAGS) $^ -o $@ $(LDLIBS)
 
 semantic.o: $(DIRSOURCE)/semantic.c
 	$(CC) $(CFLAGS) -c $<
@@ -38,4 +41,4 @@ dynamic_array.o: $(DIRSOURCE)/dynamic_array.c $(DIRH)/dynamic_array.h
 	$(CC) $(CFLAGS) -c $<
 
 clean:
-	rm -f *.o parser semantic
+	rm -f *.o compiler

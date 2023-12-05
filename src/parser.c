@@ -11,10 +11,9 @@
 
 bool parseFuncCall(TreeNode *node, DynamicBuffer *func_name);
 
-FILE *file;
+FILE *file = NULL;
 global_symtable *global_table = NULL;
-
-static error_code_t error;
+error_code_t error;
 static unsigned inBlock = 0;
 static bool inFunction = false;
 static local_symtable *local_table = NULL;
@@ -2321,10 +2320,8 @@ bool parseFuncDeclaration(TreeNode *node)
         error = ERR_SEMANTIC_DEFINITION;
         return false;
     }
-    printf("key: %s\n", key);
     int ret = symtable_insert(global_table, key, data, GLOBAL_TABLE);
 
-    printf("ret: %d\n", ret);
 
     if (ret != ERR_CODE_ST_OK)
     {
@@ -2961,46 +2958,46 @@ void printTree(TreeNode *x, bool *flag, int depth, int isLast)
     flag[depth] = true;
 }
 
-int main(void)
-{
-    stack_of_local_tables = stack_init(STACK_INIT_CAPACITY);
-    if (stack_of_local_tables == NULL)
-    {
-        error = ERR_INTERNAL;
-        return error;
-    }
+// int main(void)
+// {
+//     stack_of_local_tables = stack_init(STACK_INIT_CAPACITY);
+//     if (stack_of_local_tables == NULL)
+//     {
+//         error = ERR_INTERNAL;
+//         return error;
+//     }
 
-    error = ERR_SYNTAX_ANALYSIS;
-    // file = stdin;
-    file = fopen("test.txt", "r");
-    if (file == NULL)
-    {
-        error = ERR_INTERNAL;
-        return error;
-    }
+//     error = ERR_SYNTAX_ANALYSIS;
+//     // file = stdin;
+//     file = fopen("test.txt", "r");
+//     if (file == NULL)
+//     {
+//         error = ERR_INTERNAL;
+//         return error;
+//     }
 
-    TreeNode *startNeterminal = createNewNode(NULL, NODE_PROGRAM, false);
+//     TreeNode *startNeterminal = createNewNode(NULL, NODE_PROGRAM, false);
 
-    if (parse(startNeterminal))
-    {
-        error = ERR_NONE;
-    }
+//     if (parse(startNeterminal))
+//     {
+//         error = ERR_NONE;
+//     }
 
-    // print_global_table(global_table);
+//     // print_global_table(global_table);
 
-    // print_stack(stack_of_local_tables);
-    bool ar[10] = {true};
+//     // print_stack(stack_of_local_tables);
+//     bool ar[10] = {true};
 
-    // printTree(startNeterminal, ar, 0, 0);
-    dispose(startNeterminal);
-    symtable_free(global_table, GLOBAL_TABLE);
-    stack_free(stack_of_local_tables);
+//     // printTree(startNeterminal, ar, 0, 0);
+//     dispose(startNeterminal);
+//     symtable_free(global_table, GLOBAL_TABLE);
+//     stack_free(stack_of_local_tables);
 
-    if (fclose(file) == EOF)
-    {
-        error = ERR_INTERNAL;
-    }
+//     if (fclose(file) == EOF)
+//     {
+//         error = ERR_INTERNAL;
+//     }
 
-    printf("%d\n", error);
-    return error;
-}
+//     printf("%d\n", error);
+//     return error;
+// }
