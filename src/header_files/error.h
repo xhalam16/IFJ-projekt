@@ -8,6 +8,10 @@
 
 #pragma once
 
+
+/**
+ * @brief Enum for error codes returned by the compiler
+*/
 enum error_codes {
     ERR_NONE = 0,
 
@@ -33,4 +37,7 @@ enum error_codes {
 
 };
 
+/**
+ * @typedef error_code_t
+*/
 typedef enum error_codes error_code_t;

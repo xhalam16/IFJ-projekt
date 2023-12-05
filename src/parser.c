@@ -1190,7 +1190,7 @@ bool parseParameters(TreeNode *funcParams)
             // store constant value to node
             if (token.type == TOKEN_INT || token.type == TOKEN_DOUBLE)
             {
-                funcParamValue->token_value = token.value;
+                funcParamRight->token_value = token.value;
             }
 
             if (token.type == TOKEN_STRING)
@@ -1967,6 +1967,8 @@ bool parseParameter(TreeNode *funcParamList, parameter_list_t *param_list)
         return false;
     }
 
+    paramName->label = param->name;
+
     if (!skipEmptyLines(&token))
     {
         return false;
@@ -2627,7 +2629,7 @@ bool parse(TreeNode *startNeterminal)
             }
 
             semantic_result = semantic(nextNeterminal);
-            // printf("semantic result declaration: %d\n", semantic_result);
+            printf("semantic result declaration: %d\n", semantic_result);
             if (semantic_result != ERR_NONE)
             {
                 error = semantic_result;

@@ -211,7 +211,7 @@ typedef struct {
 // Type of table needs to be specified in parameter table_type_t type
 
 /**
- * Hash function for symtable (license: //http://www.cse.yorku.ca/~oz/hash.html - varianta sdbm)
+ * Hash function for symtable
  * @param const key - key of record
  * @return index corresponding to key (!resulting index is not necessarily in range of table!)
  */
@@ -362,5 +362,6 @@ void symtable_delete(void *table, char *key, table_type_t type);
 /**
  * Frees symtable pointed to by table
  * @param table - pointer to table
+ * @param type - type of table (GLOBAL_TABLE or LOCAL_TABLE)
  */
 void symtable_free(void *table, table_type_t type);
