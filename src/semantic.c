@@ -172,9 +172,6 @@ bool is_datatype_compatible(data_type_t type1, data_type_t type2, bool coal_foun
 
 bool is_assign_compatible(data_type_t l_type, data_type_t r_type, bool r_value_immediate, bool coal_found, bool l_type_nilable, bool r_type_nilable){
 
-    printf("l_type = %d, r_type = %d\n", l_type, r_type);
-    printf("l_type_nilable = %d, r_type_nilable = %d\n", l_type_nilable, r_type_nilable);
-    printf("r_value_immediate = %d, coal_found = %d\n", r_value_immediate, coal_found);
 
 
     if(l_type == r_type){

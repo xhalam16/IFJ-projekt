@@ -83,6 +83,11 @@ void generateWrite(TreeNode *parameters)
     }
 
     char *type;
+    
+    if (parameters->children[0]->type == NODE_EPSILON)
+    {
+        return;
+    }
 
     for (unsigned i = 0; i < parameters->numChildren; i++)
     {
