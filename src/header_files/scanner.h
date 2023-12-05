@@ -22,7 +22,7 @@
  * @brief Private global variable for the scanner
  * @param in_block_comment_global Whether the scanner is currently in a block comment
 */
-static bool in_block_comment_global;;
+static bool in_block_comment_global;
 
 
 /**
