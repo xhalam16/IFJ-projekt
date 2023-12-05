@@ -1294,7 +1294,7 @@ bool parseParameters(TreeNode *funcParams)
 
             if (token.type == TOKEN_INT || token.type == TOKEN_DOUBLE)
             {
-                funcParamValue->token_value = token.value;
+                funcParamRight->token_value = token.value;
             }
 
             if (token.type == TOKEN_STRING)
@@ -2044,6 +2044,8 @@ bool parseParameter(TreeNode *funcParamList, parameter_list_t *param_list)
         return false;
     }
 
+    paramName->label = param->name;
+
     if (!skipEmptyLines(&token))
     {
         return false;
@@ -2619,7 +2621,7 @@ bool parse(TreeNode *startNeterminal)
                     return false;
                 }
 
-                //semantic_result = semantic(nextNeterminal);
+                semantic_result = semantic(nextNeterminal);
                 // printf("semantic result assign: %d\n", semantic_result);
                 if (semantic_result != ERR_NONE)
                 {
@@ -2985,13 +2987,13 @@ int main(void)
     {
         error = ERR_NONE;
     }
-
+    
     // print_global_table(global_table);
 
     // print_stack(stack_of_local_tables);
     bool ar[10] = {true};
 
-    // printTree(startNeterminal, ar, 0, 0);
+    printTree(startNeterminal, ar, 0, 0);
     dispose(startNeterminal);
     symtable_free(global_table, GLOBAL_TABLE);
     stack_free(stack_of_local_tables);

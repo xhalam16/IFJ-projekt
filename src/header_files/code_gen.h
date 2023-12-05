@@ -17,15 +17,13 @@
 
 static FILE *f;
 static unsigned labelId;
-static unsigned retvalId;
-static unsigned paramId;
 static unsigned varsId;
 static int res_index;
 static bool localFunc;
-static bool inFunction;
 static unsigned counter;
 static Stack *local_tables_stack;
-static Stack *varsId_stack;
+static unsigned loop_counter_index;
+static unsigned help_var_index;
 
 typedef struct StackItem {
     DynamicArray *array;
