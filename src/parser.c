@@ -2321,10 +2321,8 @@ bool parseFuncDeclaration(TreeNode *node)
         error = ERR_SEMANTIC_DEFINITION;
         return false;
     }
-    printf("key: %s\n", key);
     int ret = symtable_insert(global_table, key, data, GLOBAL_TABLE);
 
-    printf("ret: %d\n", ret);
 
     if (ret != ERR_CODE_ST_OK)
     {
