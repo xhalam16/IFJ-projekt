@@ -8,6 +8,10 @@
 #pragma once
 #include "dynamic_buffer.h"
 
+
+/**
+ * @brief Enum pro typ tokenu
+*/
 enum token_type
 {
     TOKEN_IDENTIFIER, // id
@@ -54,9 +58,6 @@ enum token_type
     TOKEN_COMMA,                // ,
     TOKEN_ARROW,                // ->
     TOKEN_UNDERSCORE,           // _
-    // TOKEN_SEMICOLON, 
-    // TOKEN_DOUBLE_QUOTE,         // "
-    // TOKEN_TRIPLE_DOUBLE_QUOTE,  // """
 
     TOKEN_UNKNOWN, // neznámý token (lex error)
     TOKEN_ERROR, // chyba (např. malloc)
@@ -64,14 +65,16 @@ enum token_type
 };
 
 
-// ONLY FOR DEBUGGING, WILL BE DELETED
-extern const char * token_type_string_values[];
-
-// END OF DEBUGGING
-
 typedef enum token_type token_type_t;
 
 
+/**
+ * @brief Union pro uložení hodnoty tokenu
+ * @param int_value hodnota tokenu typu int
+ * @param double_value hodnota tokenu typu double
+ * @param string_value hodnota tokenu typu string
+ * @typedef token_value_t
+*/
 typedef union token_value
 {
     int int_value;
@@ -79,6 +82,14 @@ typedef union token_value
     DynamicBuffer* string_value;
 } token_value_t;
 
+
+/**
+ * @brief Struktura tokenu
+ * @param type typ tokenu
+ * @param value hodnota tokenu
+ * @param source_value hodnota tokenu ve zdrojovém kódu
+ * @typedef token_t
+*/
 typedef struct token
 {
     token_type_t type;

@@ -18,6 +18,8 @@
 
 /**
  * @brief A frame in the stack
+ * @param data The data stored in the frame, its typing is determined by the user
+ * @typedef Stack_Frame
 */
 typedef struct stack_frame {
     void* data;
@@ -30,6 +32,7 @@ typedef struct stack_frame {
  * @param size The size of the stack
  * @param capacity The capacity of the stack
  * @param top The index of the top element in the stack (top is -1 if the stack is empty)
+ * @typedef Stack
 */
 typedef struct stack {
     Stack_Frame* frames;
@@ -91,11 +94,37 @@ bool stack_is_full(Stack* stack);
 */
 void stack_free(Stack* stack);
 
+
+/**
+ * @brief Checks if the stack is empty
+ * @param stack The stack to check
+ * @return true if the stack is empty, false otherwise
+*/
 bool stack_is_empty(Stack* stack);
 
+
+/**
+ * @brief Gets the element at the given index
+ * @param stack The stack to get the element from
+ * @param index The index of the element to get
+ * @return The element at the given index
+*/
 Stack_Frame* stack_get(Stack* stack, int index);
 
+
+/**
+ * @brief Gets the size of the stack
+ * @param stack The stack to get the size of
+ * @return The size of the stack
+*/
 int stack_size(Stack* stack);
 
+
+/**
+ * @brief Empties the stack
+ * @param stack The stack to empty
+ * @warning This function assumes that the pointers stored in the stack are pointers to allocated memory
+ * @warning This function does not free the stack itself
+*/
 void stack_empty(Stack* stack);
 
