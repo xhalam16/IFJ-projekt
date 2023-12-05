@@ -136,3 +136,5 @@ void buffer_print_into_file(DynamicBuffer *buffer, FILE *file);
  * @param buffer The buffer to free
 */
 void free_buffer(DynamicBuffer* buffer);
+
+

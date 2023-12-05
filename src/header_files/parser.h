@@ -39,7 +39,7 @@ static unsigned inBlockCounter;
  * @param global_table The global symbol table
  * @param stack_of_local_tables The stack of local symbol tables
 */
-*/
+
 extern error_code_t error;
 extern FILE *file;
 extern global_symtable *global_table;
