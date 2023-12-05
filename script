@@ -1406,4 +1406,11 @@ var x : Int =  a
 
 var xx : Double = 3' 0 "correct type declaration"
 
+run_test 'func fibonacci(_ n: Int) -> Int {
+    while n < 10 {
+        var a = 10
+        return a
+    }
+}' 0 "correct while statement fibonacci"
+
 generate_test_summary
