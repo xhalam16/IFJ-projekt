@@ -22,7 +22,7 @@ run_test() {
 
     echo "$input_content" >test.txt
 
-    ./parser >o.txt
+    ./compiler >o.txt
     actual_error_code=$?
     echo actual_error_code: $actual_error_code
     if [ "$actual_error_code" -eq "$expected_error_code" ]; then

@@ -19,12 +19,12 @@
 #include "dynamic_array.h"
 
 
-static error_code_t error;
 static unsigned inBlock;
 static bool inFunction;
 static local_symtable *local_table;
 static unsigned inBlockCounter;
 
+extern error_code_t error;
 extern FILE *file;
 extern global_symtable *global_table;
 extern Stack *stack_of_local_tables;
