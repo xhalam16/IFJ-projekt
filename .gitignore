@@ -18,3 +18,7 @@ composer.lock
 *.synctex.gz
 *.fdb_latexmk
 *.toc
+*.bbl
+*.blg
+rozdeleni
+out.ifjcode
