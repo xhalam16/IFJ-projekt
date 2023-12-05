@@ -94,6 +94,11 @@ void generateWrite(TreeNode *parameters)
     }
 
     char *type;
+    
+    if (parameters->children[0]->type == NODE_EPSILON)
+    {
+        return;
+    }
 
     for (unsigned i = 0; i < parameters->numChildren; i++)
     {
@@ -383,7 +388,7 @@ void generateFuncDeclaration(TreeNode *node, bool local)
     fprintf(f, "LABEL %s\n", node->children[1]->label);
     fprintf(f, "PUSHFRAME\n");
 
-    if (node->children[3]->type != NODE_EPSILON) /**/
+    if (node->children[3]->type != NODE_EPSILON) 
         fprintf(f, "DEFVAR LF@%%retval\n");
 
     if (node->children[2]->children[0]->type != NODE_EPSILON)
