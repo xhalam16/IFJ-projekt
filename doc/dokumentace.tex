@@ -384,33 +384,34 @@
 	\Huge
 	\setlength{\tabcolsep}{10pt} % Horizontal spacing
 	\resizebox{1\linewidth}{!}{
-    \begin{tabular}{|>{\columncolor{RegentStBlue}}c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+    \begin{tabular}{|>{\columncolor{RegentStBlue}}c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
     \hline
 		\rowcolor{RegentStBlue}
-        \textbf{} & \vcen{\textbf{\lt program \gt}} & \vcen{\textbf{\lt command \gt}} &  \vcen{\textbf{\lt assign \gt}}& \vcen{\textbf{\lt left\_value \gt}} & \vcen{\textbf{\lt right\_value \gt}} & \vcen{\textbf{\lt declaration \gt}} &  \rotatebox{90}{\textbf{\lt declaration\_keyword \gt}} & \vcen{\textbf{\lt datatype \gt}} &  \vcen{\textbf{\lt value \gt}} & \vcen{\textbf{\lt func\_call \gt}} & \vcen{\textbf{\lt param\_list1 \gt}} & \vcen{\textbf{\lt param \gt}} & \vcen{\textbf{\lt func\_declaration \gt}} &  \vcen{\textbf{\lt return\_type \gt}} & \vcen{\textbf{\lt param\_list0 \gt}} & \vcen{\textbf{\lt label \gt}} & \vcen{\textbf{\lt body \gt}} & \vcen{\textbf{\lt return\_value \gt}} & \vcen{\textbf{\lt if\_statement \gt}} &  \vcen{\textbf{\lt condition \gt}} &  \vcen{\textbf{\lt while \gt}} \\ \hline
-        \textbf{epsilon} & 1 & 4 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 37 & ~ & ~ & ~ & 46 & ~ & ~ & ~   \\ \hline
-        \textbf{identifier} & 1 & 5, 10 & 11 & 12 & 16 & ~ & ~ & ~ & 26 & 31 & 32 & 34, 35 & ~ & ~ & 40 & 42 & ~ & 47 & ~ & ~ & ~ \\ \hline
-        \textbf{let} & 1 & 5, 6 & 11 & 13, 14 & ~ & 17 & 18 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 50 & ~  \\ \hline
-        \textbf{var} & 1 & 5, 6 & 11 & 13, 14 & ~ & 17 & 19 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
-        \textbf{func} & 1 & 7 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 36 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
-        \textbf{if} & 1 & 8 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 49 & ~ & ~ \\ \hline
-        \textbf{while} & 1 & 9 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 52  \\ \hline
-        \textbf{EOL} & 2 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 43, 44 & ~ & ~ & ~ & ~   \\ \hline
-        \textbf{EOF} & 3 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ \\ \hline
-        \textbf{INT} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 20 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
-        \textbf{DOUBLE} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 21 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
-        \textbf{STRING} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 22 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
-        \textbf{INT?} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 23 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
-        \textbf{DOUBLE?} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 24 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
-        \textbf{STRING?} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 25 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
-        \textbf{int} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 27 & ~ & 32 & ~ & 34 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
-        \textbf{double} & ~ & ~ & ~ & ~ & ~ & ~ & ~ &  & 28 & ~ & 32 & ~ & 34 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~   \\ \hline
-        \textbf{string} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 29 & ~ & 32 & ~ & 34 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
-        \textbf{nil} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 30 & ~ & 32 & ~ & 34 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
-        \textbf{)} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 33 & ~ & ~ & ~ & 39 & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
-        \textbf{\cunder} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 40 & 41 & ~ & ~ & ~ & ~ & ~  \\ \hline
-		\textbf{\}} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 45 & ~ & ~ & ~ & ~  \\ \hline
-		\textbf{:} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 38 & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
+        \textbf{} & \vcen{\textbf{\lt program \gt}} & \vcen{\textbf{\lt command \gt}} &  \vcen{\textbf{\lt assign \gt}}& \vcen{\textbf{\lt left\_value \gt}} & \vcen{\textbf{\lt right\_value \gt}} & \vcen{\textbf{\lt declaration \gt}} &  \rotatebox{90}{\textbf{\lt declaration\_keyword \gt}} & \vcen{\textbf{\lt datatype \gt}} &  \vcen{\textbf{\lt value \gt}} & \vcen{\textbf{\lt func\_call \gt}} & \vcen{\textbf{\lt param\_list1 \gt}} & \vcen{\textbf{\lt param\_list1\_next \gt}}  & \vcen{\textbf{\lt param \gt}} & \vcen{\textbf{\lt func\_declaration \gt}} &  \vcen{\textbf{\lt return\_type \gt}} & \vcen{\textbf{\lt param\_list0 \gt}} & \vcen{\textbf{\lt label \gt}} & \vcen{\textbf{\lt body \gt}} & \vcen{\textbf{\lt return\_value \gt}} & \vcen{\textbf{\lt if\_statement \gt}} &  \vcen{\textbf{\lt condition \gt}} &  \vcen{\textbf{\lt while \gt}} \\ \hline
+        \textbf{epsilon} & 1 & 3 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 32 & 34 & ~ & ~ & 38 & ~ & ~ & 44 & 47 & ~ & ~ & ~   \\ \hline
+        \textbf{identifier} & 1 & 4, 9 & 10 & 11 & 15 & ~ & ~ & ~ & 25 & 30 & 31 & ~ & 35, 36 & ~ & ~ & ~ & 43 & 44 & 48 & ~ & ~ & ~ \\ \hline
+        \textbf{let} & 1 & 4, 5 & 10 & 12, 13 & ~ & 16 & 17 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 44 & ~ & ~ & 51 & ~  \\ \hline
+        \textbf{var} & 1 & 4, 5 & 10 & 12, 13 & ~ & 16 & 18 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 44 & ~ & ~ & ~ & ~  \\ \hline
+        \textbf{func} & 1 & 6 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 37 & ~ & ~ & ~ & 44 & ~ & ~ & ~ & ~  \\ \hline
+        \textbf{if} & 1 & 7 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 44 & ~ & 50 & ~& ~  \\ \hline
+        \textbf{while} & 1 & 8 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 44 & ~ & ~ & ~ & 53  \\ \hline
+		\textbf{,} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 33 & ~ & ~ & ~ & 41 & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
+        \textbf{EOF} & 2 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ \\ \hline
+        \textbf{INT} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 19 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
+        \textbf{DOUBLE} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 20 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
+        \textbf{STRING} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 21 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
+        \textbf{INT?} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 22 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~& ~   \\ \hline
+        \textbf{DOUBLE?} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 23 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
+        \textbf{STRING?} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 24 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
+        \textbf{int} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 26 & ~ & 31 & ~ & 35 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
+        \textbf{double} & ~ & ~ & ~ & ~ & ~ & ~ & ~ &  & 27 & ~ & 31 & ~ & 35 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~   \\ \hline
+        \textbf{string} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 28 & ~ & 31 & ~ & 35 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
+        \textbf{nil} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 29 & ~ & 31 & ~ & 35 & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
+        \textbf{)} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 40 & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
+        \textbf{\cunder} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 42 & ~ & ~ & ~ & ~ & ~  \\ \hline
+		\textbf{\}} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 46 & ~ & ~ & ~ & ~  \\ \hline
+		\textbf{$\rightarrow$} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 39 & ~ & ~ & ~ & ~ & ~ & ~ & ~  \\ \hline
+		\textbf{return} & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & ~ & 45 & ~ & ~ & ~ & ~  \\ \hline
     \end{tabular}
 	}
 	\caption{LL -- tabulka}
