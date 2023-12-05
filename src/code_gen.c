@@ -29,6 +29,8 @@ static bool localFunc = false;
 static unsigned counter = 0; // počítadlo zanoření
 static Stack *local_tables_stack = NULL;
 static Stack *varsId_stack = NULL;
+static unsigned loop_counter_index = 0; 
+static unsigned help_var_index = 0;
 
 bool setGlobalVars(void)
 {
@@ -150,14 +152,6 @@ void generateLength(TreeNode *paramValue, char *left_value)
         fprintf(f, "STRLEN %s@%s %s@%s\n", frame, left_value, type, paramValue->label);
 }
 
-void generateSubString(TreeNode *parameters, char *left_value)
-{
-    if (!setGlobalVars())
-    {
-        return;
-    }
-}
-
 void generateOrd(TreeNode *paramValue, char *left_value)
 {
     if (!setGlobalVars())
@@ -197,6 +191,63 @@ void generateChr(TreeNode *paramValue, char *left_value)
 
     if (left_value)
         fprintf(f, "INT2CHAR %s@%s %s@%s\n", frame, left_value, type, paramValue->label);
+}
+
+// func substring(of 𝑠 : String, startingAt 𝑖 : Int, endingBefore 𝑗 : Int) -> String?
+void generateSubString(TreeNode *parameters, char *left_value)
+{
+    if (!setGlobalVars())
+    {
+        return;
+    }
+
+    char *frame = localFunc ? "LF" : "GF";
+
+    // /* Pomoci dalsi  */
+    generateLength(parameters->children[0], left_value);
+    
+    /* ulozime si index na kterem zacneme substring generovat - druhy parametr funkce */
+    int start_index = parameters->children[1]->children[0]->token_value.int_value;
+
+    /* ulozime si index na kterem koncime substring generovat - treti parametr funkce */
+    int end_index = parameters->children[2]->children[0]->token_value.int_value;
+
+    if(start_index < 0 || end_index < 0 || start_index > end_index)
+    {
+        
+    }
+
+    check_local_tables(left_value, false);
+
+    if (left_value) {
+        fprintf(f, "SUBSTR %s@%s %s@%s int@%d int@%d\n", frame, left_value, frame, parameters->children[0]->children[0]->label, start_index, end_index);
+        /* jsou ty parametru takto o jedno dite dal??? otazka na simona */
+        char *type_start_index = recognize_type(parameters->children[1]->children[0], true);
+        char *type_end_index = recognize_type(parameters->children[2]->children[0], true);
+        char *type_string_param = recognize_type(parameters->children[0]->children[0], true);
+
+        fprintf(f, "DEFVAR %s@$cnt_%d\n", frame, loop_counter_index);
+        fprintf(f, "DEFVAR %s@$tmp_%d\n", frame, help_var_index);
+
+        fprintf(f, "MOVE %s@$cnt_%d %s@%s \n", frame, loop_counter_index, type_start_index, parameters->children[1]->children[0]->label); // do cnt ulozime start index
+
+        fprintf(f, "LABEL $start_loop$%d\n", labelId);
+        fprintf(f, "JUMPIFEQ $end_loop$%d %s@$cnt_%d %s@%s\n", labelId, frame, loop_counter_index, type_end_index, parameters->children[2]->children[0]->label);
+
+        fprintf(f, "GETCHAR %s@tmp_%d %s@%s %s@$cnt_%d\n", frame, help_var_index, type_string_param, parameters->children[0]->children[0]->label, frame, loop_counter_index);
+        fprintf(f, "CONCAT %s@%s %s@%s %s@tmp_%d\n", frame, left_value, frame, left_value, frame, help_var_index);
+
+        fprintf(f, "ADD %s@$cnt_%d %s@$cnt_%d int@1\n", frame, loop_counter_index, frame, loop_counter_index);
+
+        fprintf(f, "JUMP $start_loop$%d\n", labelId);
+
+        fprintf(f, "LABEL $end_loop$%d\n", labelId);
+
+        loop_counter_index++;
+        labelId++;
+        help_var_index++;
+    }
+
 }
 
 bool is_built_in_function(TreeNode *funcCall, char *left_value)
@@ -676,10 +727,19 @@ TreeNode *is_terminal(TreeNode *node)
         return is_terminal(node->children[1]);
     }
 
-    /**-*/ return NULL;
+    return NULL;
 }
 
-/* DŮLEŽITÉ - VELMI DŮLEŽITÉ */
+// bool is_double(TreeNode *node)
+// {
+//     if (node->type == NODE_DOUBLE)
+//     {
+//         return true;
+//     }
+//     return false;
+// }
+
+
 int generateExpression(TreeNode *node, bool local)
 {
 
@@ -726,13 +786,10 @@ int generateExpression(TreeNode *node, bool local)
                 int left_index = generateExpression(node->children[0], local);
                 int right_index = generateExpression(node->children[2], local);
 
-                /* Zvyš index counteru pro identifikátory pomocných proměnných pro mezivýsledky */
-                res_index++;
+                TreeNode *leftTree = is_terminal(node->children[0]); // vrací ukazatel na levý potomek, pokud je to terminál, jinak NULL
+                TreeNode *rightTree = is_terminal(node->children[2]); // vrací ukazatel na pravý potomek, pokud je to terminál, jinak NULL
 
-                TreeNode *leftTree = is_terminal(node->children[0]);
-                TreeNode *rightTree = is_terminal(node->children[2]);
-
-                char *left_child_type = recognize_type(leftTree, local);
+                char *left_child_type = recognize_type(leftTree, local); //
 
                 if (left_child_type == NULL)
                 {
@@ -780,8 +837,12 @@ int generateExpression(TreeNode *node, bool local)
                     right_child_varname = rightTree->label;
                 }
 
+                /* Zvyš index counteru pro identifikátory pomocných proměnných pro mezivýsledky */
+                res_index++;
+
                 fprintf(f, "DEFVAR %s@$res_%d\n", frame, res_index);
 
+                /* Operace NOT EQUAL */
                 if (operation_id == NODE_OPERATOR_NEQ)
                 {
                     fprintf(f, "EQ %s@$res_%d %s@%s %s@%s\n", frame, res_index, left_child_type, left_child_varname, right_child_type, right_child_varname);
@@ -790,24 +851,60 @@ int generateExpression(TreeNode *node, bool local)
                     fprintf(f, "DEFVAR %s@$res_%d\n", frame, res_index);
                     fprintf(f, "NOT %s@$res_%d %s@$res_%d\n", frame, res_index, frame, res_index - 1); // teoreticky by to mozna slo ulozit do stejne promenne idk
                 }
+                /* Konkatenace stringů */
+                else if (operation_id == NODE_OPERATOR_ADD && (node->children[0]->type == NODE_STRING || node->children[0]->type == NODE_STRING_NILABLE)) { // nevim, jestli i String?
+                    fprintf(f, "CONCAT %s@$res_%d %s@%s %s@%s\n", frame, res_index, left_child_type, left_child_varname, right_child_type, right_child_varname);
+                }
+                /* Operátor ?? */
+                else if (operation_id == NODE_OPERATOR_NIL_COALESCING) {
+                    /* TYPE dynamicky zjistí hodnotu symbolu a do res zapíše string odpovídající jeho typu - (int, bool, float, string nebo nil) */
+                    fprintf(f, "TYPE %s@$res_%d %s@%s\n", frame, res_index, left_child_type, left_child_varname);
+                    res_index++;
+
+                    fprintf(f, "JUMPIFNEQ $else$%d %s@$res_%d %s@$res_%d, string@nil\n", labelId, frame, res_index, frame, res_index - 1);
+                    res_index++;
+
+                    /* Větev, pokud má levý operand hodnotu nil - výsledkem je pravá hodnota */
+                    fprintf(f, "MOVE %s@$res_%d %s@%s\n", frame, res_index, left_child_type, left_child_varname);
+                    fprintf(f, "JUMP $else$end$%d\n", labelId);
+
+                    /* vetev, pokud nemá levý operand hodnotu nil - výsledkem je levá hodnota */
+                    fprintf(f, "LABEL $else$%d\n", labelId);
+                    fprintf(f, "MOVE %s@$res_%d %s@%s\n", frame, res_index, left_child_type, left_child_varname);
+
+                    fprintf(f, "LABEL $else$end$%d\n", labelId);
+                    labelId++;
+                }
+                /* Neostré nerovnosti */
                 else if (operation_id == NODE_OPERATOR_AEQ || operation_id == NODE_OPERATOR_BEQ)
                 {
-                    printf("MESSI\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
-                    if (operation_id == NODE_OPERATOR_AEQ)
-                    {
-                        operation = "LT";
+                    // if (operation_id == NODE_OPERATOR_AEQ)
+                    // {
+                    //     operation = "LT";
+                    // }
+                    // else
+                    // {
+                    //     operation = "GT";
+                    // }
+                    switch (operation_id) {
+                        case NODE_OPERATOR_AEQ:
+                            operation = "LT";
+                            break;
+
+                        case NODE_OPERATOR_BEQ:
+                            operation = "GT";
+                            break;
                     }
-                    else
-                    {
-                        operation = "GT";
-                    }
+
                     fprintf(f, "%s %s@$res_%d %s@%s %s@%s\n", operation, frame, res_index, left_child_type, left_child_varname, right_child_type, right_child_varname);
                     res_index++;
 
+                    fprintf(f, "DEFVAR %s@$res_%d\n", frame, res_index);
                     fprintf(f, "NOT %s@$res_%d %s@res_%d\n", frame, res_index, frame, res_index - 1);
                 }
                 else
                 { // pokud jde o jinou operaci
+                    if (node->children[0]->type == NODE_DATATYPE_INT && node->children[2]->type == NODE_DATATYPE_DOUBLE)
                     fprintf(f, "%s %s@$res_%d %s@%s %s@%s\n", operation, frame, res_index, left_child_type, left_child_varname, right_child_type, right_child_varname);
                 }
             }

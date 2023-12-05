@@ -2619,7 +2619,7 @@ bool parse(TreeNode *startNeterminal)
                     return false;
                 }
 
-                semantic_result = semantic(nextNeterminal);
+                //semantic_result = semantic(nextNeterminal);
                 // printf("semantic result assign: %d\n", semantic_result);
                 if (semantic_result != ERR_NONE)
                 {
@@ -2713,7 +2713,7 @@ bool parse(TreeNode *startNeterminal)
             }
 
             semantic_result = semantic(nextNeterminal);
-            // printf("semantic result declaration: %d\n", semantic_result);
+            printf("semantic result declaration: %d\n", semantic_result);
             if (semantic_result != ERR_NONE)
             {
                 error = semantic_result;
