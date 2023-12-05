@@ -35,6 +35,8 @@ static int res_index;
 static bool localFunc;
 static unsigned counter;
 static Stack *local_tables_stack;
+static unsigned loop_counter_index;
+static unsigned help_var_index;
 
 
 /**

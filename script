@@ -1406,4 +1406,22 @@ var x : Int =  a
 
 var xx : Double = 3' 0 "correct type declaration"
 
+run_test '
+func fibonacci(_ n: Int) -> Int {
+    if n == 1 {
+        return 1
+    } else {
+        var a = n - 1
+        var b = n - 2
+        var c = 1
+        var d = 1 
+        return c + d
+    }
+}
+
+// Testování funkce pro několik hodnot
+let result = fibonacci(6)
+
+write(result)' 0 "correct fibonacci"
+
 generate_test_summary
