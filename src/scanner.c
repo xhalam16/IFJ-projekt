@@ -9,9 +9,7 @@
 #include "header_files/scanner.h"
 #include "header_files/dynamic_buffer.h"
 
-static bool in_string_global = false;
 static bool in_block_comment_global = false;
-static bool in_multi_line_string_global = false;
 
 const keyword_token_type_t keywords_map[] = {
     {"func", TOKEN_KEYWORD_FUNC},
@@ -338,20 +336,15 @@ token_t get_token(FILE *source_file)
     token.value.string_value = buffer;
     token.source_value = raw_buffer;
 
-    if(!in_string_global && !in_multi_line_string_global)
-        skip_whitespace(source_file);
+    skip_whitespace(source_file);
     int c = get_char(source_file);
 
     if (c == '\n' && !in_block_comment_global)
     {
-        
-        if(!in_multi_line_string_global){
-            token.type = TOKEN_EOL;
+        token.type = TOKEN_EOL;
 
-            return token;
-        }else{
-            buffer_append_char(raw_buffer, c);
-        }
+        return token;
+        
         
     }
     // TODO throw error?
@@ -451,7 +444,7 @@ token_t get_token(FILE *source_file)
       //  ungetc(c, source_file);
 
       //  token.type = TOKEN_STRING;
-        in_string_global = false;
+       // in_string_global = false;
         int till_char = multiline_string ? EOF : '"';
 
 

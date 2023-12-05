@@ -164,14 +164,6 @@ int move_buffer_to_buffer(DynamicBuffer *dest, DynamicBuffer *src)
     return ERR_CODE_OK;
 }
 
-void print_buffer(DynamicBuffer *buffer)
-{
-    for (int i = 0; i < buffer->size; i++)
-    {
-        printf("%c", buffer->buffer[i]);
-    }
-    printf("\n");
-}
 
 void buffer_print_into_file(DynamicBuffer *buffer, FILE *file)
 {

@@ -22,7 +22,6 @@ char *convert_string(char *string);
 
 static FILE *f = NULL;
 static unsigned labelId = 0;
-static unsigned retvalId = 0;
 static unsigned varsId = 0;
 static int res_index = 0;
 static bool localFunc = false;
