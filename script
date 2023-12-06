@@ -1471,7 +1471,12 @@ var var2 : Int = 20
 var output = var1 ?? var2
 let z = output + 3' 0 "coallescing correct"
 
+run_test 'var a : String = "MessijelepsinezRonaldo"
+var c : Int =  0 +3
 
+var b = substring(of : a, startingAt : c, endingBefore : 8)
+
+write(b)' 0 "substring test"
 
 
 generate_test_summary
