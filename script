@@ -1573,5 +1573,16 @@ var b = substring(of : a, startingAt : c, endingBefore : 8)
 
 write(b)' 0 "substring test"
 
+run_test 'func add ( _ x : Int, _ y : Int) ->Int {
+    var p = x + y
+    return p
+}
+
+var a = add(5, 8)
+
+var x = 5
+var b = a - x
+
+write(a, b)' 0 "function add call test"
 
 generate_test_summary
