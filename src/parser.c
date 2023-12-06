@@ -18,6 +18,8 @@ static unsigned inBlock = 0;
 static bool inFunction = false;
 static local_symtable *local_table = NULL;
 
+bool XD = false;
+
 Stack *stack_of_local_tables = NULL;
 Stack *stack_code_gen = NULL;
 char* current_function_name = NULL;
@@ -539,8 +541,10 @@ NodeType topTerminal(Stack *stack, int *topTerminalIndex)
         if (stackTop != NODE_EXPRESSION && stackTop != NODE_SHIFTER) // if stackTop is terminal
         {
             *topTerminalIndex = i;
+
             return stackTop;
         }
+        
     }
 
     return -1;
@@ -700,7 +704,6 @@ token_type_t checkForImmediateOperands(token_type_t tokenType, Stack *stack)
 {
     token_t token;
     NodeType *temp = malloc(sizeof(NodeType));
-
     switch (tokenType)
     {
     case TOKEN_IDENTIFIER:
@@ -730,6 +733,7 @@ token_type_t checkForImmediateOperands(token_type_t tokenType, Stack *stack)
     default:
         break;
     }
+    
     return tokenType;
 }
 
@@ -932,8 +936,14 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
 
     do
     {
-
         tokenType = token.type;
+        // while (token.type != TOKEN_EOF)
+        // {
+        //     printf("TOKEN TYPE: %d\n", token.type);
+        //     token = get_token(file);
+        // }
+        // printf("\n");
+        // return false;
 
         if (tokenType == TOKEN_EOL && condition)
         {
@@ -1023,6 +1033,9 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
 
         tableValue = nodeTypeToIndex(stackTop, *inputPtr); // get value from precedence table
 
+        // printf("INPUT: %d\n", *inputPtr);
+        // printf("TABLE VALUE: %c\n", tableValue);
+
         switch (tableValue)
         {
         case '=': // push input to stack
@@ -1044,9 +1057,24 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
                 return false;
             }
 
+            if (XD) {
+                printf("TOKEN TYPE: %d\n", token.type);
+                token = get_token(file);
+                printf("TOKEN TYPE: %d\n", token.type);
+                token = get_token(file);
+                printf("TOKEN TYPE: %d\n", token.type);
+                token = get_token(file);
+                printf("TOKEN TYPE: %d\n", token.type);
+                token = get_token(file);
+                printf("TOKEN TYPE: %d\n", token.type);
+                token = get_token(file);
+                printf("TOKEN TYPE: %d\n", token.type);
+
+            }
+
             stack_push(stack, inputPtr);
             token = get_token(file);
-
+            
             skip_comments(&token);
 
             if (token.type == TOKEN_UNKNOWN)
@@ -1054,7 +1082,13 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
                 error = ERR_LEX_ANALYSIS;
                 return false;
             }
-
+            // for (int i = 0; i < stack_size(stack); i++)
+            // {
+            //     printf("STACK: %d\n", *((NodeType *)(stack->frames[i].data)));
+            // }
+            // printf("TOKEN TYPE1: %d\n", token.type);
+            // token = get_token(file);
+            // printf("TOKEN TYPE2: %d\n", token.type);
             break;
         case '>': // reduce
             free(inputPtr);
@@ -1120,7 +1154,7 @@ bool parseExpression(TreeNode *nodeExpression, token_t prevToken, bool condition
     stack_free(idTypeStack);
     stack_free(identifier_labels_stack);
     stack_free(tokenValueStack);
-
+    XD = true;
     return true;
 }
 
