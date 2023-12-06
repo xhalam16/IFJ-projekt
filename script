@@ -1451,9 +1451,27 @@ var output = var1 ?? var2' 0 "coallescing correct"
 
 run_test '
 var var1 : Int? = 3
+var var2 : Double = 20
+
+var output = var1 ?? var2
+' 7 "coallescing incorrect"
+
+
+run_test '
+var var1 : Int? = 3
 var var2 : Int = 20
 
-var output = var1 ?? var2' 0 "coallescing correct"
+var output = var1 ?? var2
+' 0 "coallescing correct"
+
+run_test '
+var var1 : Int? = 3
+var var2 : Int = 20
+
+var output = var1 ?? var2
+let z = output + 3' 0 "coallescing correct"
+
+
 
 
 generate_test_summary
