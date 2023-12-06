@@ -30,6 +30,10 @@ static Stack *local_tables_stack = NULL;
 static unsigned loop_counter_index = 0;
 static unsigned help_var_index = 0;
 
+/**
+ * @brief Inicializuje globální proměnné, pokud ještě nejsou inicializované
+ * @return Vrací true, pokud se inicializace povedla, jinak false
+*/
 bool setGlobalVars(void)
 {
     if (f != NULL)
@@ -58,6 +62,7 @@ bool setGlobalVars(void)
     return true;
 }
 
+// func readInt() -> Int? | func readDouble() -> Double? | func readString() -> String?
 void generateRead(char *type, char *left_value)
 {
     if (!setGlobalVars())
@@ -73,6 +78,7 @@ void generateRead(char *type, char *left_value)
     }
 }
 
+// func write( term_1, term_2, ..., term_n)
 void generateWrite(TreeNode *parameters)
 {
     if (!setGlobalVars())
@@ -94,6 +100,7 @@ void generateWrite(TreeNode *parameters)
     }
 }
 
+// func Int2Double(_ term : Int) -> Double
 void generateInt2Double(TreeNode *paramValue, char *left_value)
 {
     if (!setGlobalVars())
@@ -108,6 +115,7 @@ void generateInt2Double(TreeNode *paramValue, char *left_value)
         fprintf(f, "INT2FLOAT %s@%s %s@%s\n", frame, left_value, type, paramValue->label);
 }
 
+// func Double2Int(_ term : Double) -> Int
 void generateDouble2Int(TreeNode *paramValue, char *left_value)
 {
     if (!setGlobalVars())
@@ -122,6 +130,7 @@ void generateDouble2Int(TreeNode *paramValue, char *left_value)
         fprintf(f, "FLOAT2INT %s@%s %s@%s\n", frame, left_value, type, paramValue->label);
 }
 
+// func length(_ s : String) -> Int
 void generateLength(TreeNode *paramValue, char *left_value)
 {
     if (!setGlobalVars())
@@ -137,6 +146,7 @@ void generateLength(TreeNode *paramValue, char *left_value)
         fprintf(f, "STRLEN %s@%s %s@%s\n", frame, left_value, type, paramValue->label);
 }
 
+// func ord(_ c : String) -> Int
 void generateOrd(TreeNode *paramValue, char *left_value)
 {
     if (!setGlobalVars())
@@ -150,17 +160,22 @@ void generateOrd(TreeNode *paramValue, char *left_value)
 
     if (left_value)
     {
+        // pomocná proměnná pro uložení délky řetězce
         fprintf(f, "DEFVAR %s@$res_%d\n", frame, res_index);
         fprintf(f, "STRLEN %s@$res_%d %s@%s\n", frame, res_index, type, paramValue->label);
+        // pokud je délka řetězce 0, vrátíme 0
         fprintf(f, "JUMPIFEQ $else$%d %s@$res_%d int@0\n", labelId, frame, res_index++);
+        // pokud je délka řetězce větší než 0, vrátíme znak na indexu 0
         fprintf(f, "STRI2INT %s@%s %s@%s int@0\n", frame, left_value, type, paramValue->label);
         fprintf(f, "JUMP $else$end$%d\n", labelId);
         fprintf(f, "LABEL $else$%d\n", labelId);
+        // vrátíme 0
         fprintf(f, "MOVE %s@%s int@0\n", frame, left_value);
         fprintf(f, "LABEL $else$end$%d\n", labelId++);
     }
 }
 
+// func chr(_ i : Int) -> String
 void generateChr(TreeNode *paramValue, char *left_value)
 {
     if (!setGlobalVars())
@@ -256,6 +271,12 @@ void generateSubString(TreeNode *parameters, char *left_value)
     }
 }
 
+/**
+ * @brief kontroluje, zda je funkce vestavěná a případně ji generuje
+ * @param funcCall - uzel volání funkce
+ * @param left_value - název proměnné, do které se bude ukládat výstup funkce
+ * @return Vrací true, pokud je funkce vestavěná, jinak false
+*/
 bool is_built_in_function(TreeNode *funcCall, char *left_value)
 {
     if (strcmp(funcCall->children[0]->label, "readInt") == 0)
@@ -323,11 +344,13 @@ void generateFuncCall(TreeNode *node)
         return;
     }
 
+    // vytvoření nového dočasného rámce
     fprintf(f, "CREATEFRAME\n");
 
     char *frame = localFunc ? "LF" : "GF";
     char *type;
 
+    // uložení parametrů do dočasného rámce
     if (node->children[1]->children[0]->type != NODE_EPSILON)
     {
         for (unsigned i = 0; i < node->children[1]->numChildren; i++)
@@ -349,9 +372,14 @@ void generateFuncCall(TreeNode *node)
         }
     }
 
+    // zavolání funkce
     fprintf(f, "CALL %s\n", node->children[0]->label);
 }
 
+/**
+ * @brief generuje příkaz uvnitř bloku
+ * @param node - uzel příkazu
+*/
 void generateCommand(TreeNode *node)
 {
 
@@ -394,6 +422,7 @@ void generateFuncDeclaration(TreeNode *node)
         return;
     }
 
+    // lokální tabulka pro parametry funkce implementována jako dynamické pole
     DynamicArray *params = malloc(sizeof(DynamicArray));
     
     if (params == NULL)
@@ -401,6 +430,7 @@ void generateFuncDeclaration(TreeNode *node)
         return;
     }
 
+    // lokální tabulka pro lokální proměnné funkce implementována jako dynamické pole
     DynamicArray *local_declarations = malloc(sizeof(DynamicArray));
     
     if (local_declarations == NULL)
@@ -408,38 +438,42 @@ void generateFuncDeclaration(TreeNode *node)
         return;
     }
 
+    // inicializace lokálních tabulek
     arrayInit(params);
     arrayInit(local_declarations);
 
+    // vytvoření nové položky na zásobníku pro lokální tabulku parametrů
     StackItem *paramArray = malloc(sizeof(StackItem));
     if (paramArray == NULL)
     {
         return;
     }
 
+    // vytvoření nové položky na zásobníku pro lokální tabulku proměnných
     StackItem *item = malloc(sizeof(StackItem));
-    
     if (item == NULL)
     {
         return;
     }
 
     paramArray->array = params;
-    paramArray->index = varsId++;
+    paramArray->index = varsId++; // index proměnných pro přístup k parametrům
 
     item->array = local_declarations;
-    item->index = varsId++;
+    item->index = varsId++; // index proměnných pro přístup k lokálním proměnným uvnitř funkce
 
+    // vložení tabulek na zásobník
     stack_push(local_tables_stack, paramArray);
     stack_push(local_tables_stack, item);
 
-    fprintf(f, "JUMP $end$%s\n", node->children[1]->label);
-    fprintf(f, "LABEL %s\n", node->children[1]->label);
-    fprintf(f, "PUSHFRAME\n");
+    fprintf(f, "JUMP $end$%s\n", node->children[1]->label); // skok na konec funkce pokud není ještě definovaná
+    fprintf(f, "LABEL %s\n", node->children[1]->label); // pomocné návěští pro přeskočení nedefinované funkce
+    fprintf(f, "PUSHFRAME\n"); // vložení dočasaného rámce na zásobník lokálních rámců
 
-    if (node->children[3]->type != NODE_EPSILON)
+    if (node->children[3]->type != NODE_EPSILON) // pokud má funkce návratovou hodnotu
         fprintf(f, "DEFVAR LF@%%retval\n");
 
+    // definice parametrů funkce a vložení do tabulky symbolů
     if (node->children[2]->children[0]->type != NODE_EPSILON)
     {
         for (unsigned i = 0; i < node->children[2]->numChildren; i++)
@@ -461,25 +495,29 @@ void generateFuncDeclaration(TreeNode *node)
         }
     }
 
-    localFunc = true;
+    localFunc = true; // bude se pracovat s lokálním rámcem
 
-    counter++;
+    counter++; // zvýšení počítadla zanoření
 
     /* Pokud má funkce tělo */
     if (node->children[4]->type != NODE_EPSILON)
     {
         for (unsigned i = 0; i < node->children[4]->numChildren; i++) // procházíme příkazy
         {
-
             generateCommand(node->children[4]->children[i]); // generujeme příkaz
         }
     }
 
-    counter--;
+    counter--; // snížení počítadla zanoření
 
+    // uvolnění a popnutí lokálních tabulek ze zásobníku
     arrayDispose(local_declarations);
     free(local_declarations);
     free(item);
+    stack_pop(local_tables_stack);
+    arrayDispose(params);
+    free(params);
+    free(paramArray);
     stack_pop(local_tables_stack);
 
     localFunc = false;
@@ -598,11 +636,8 @@ char *check_local_tables(char *identifier, bool left_value)
 
             for (unsigned j = 0; j < arraySize(((StackItem *)stack_get(local_tables_stack, i)->data)->array); j++)
             {
-                // printf("STACK DATA: %s\n", ((ArrayData *)(((DynamicArray *)((StackItem *)(stack_get(local_tables_stack, i)->data))->array)->items[j].data))->label);
-                // printf("IDENTIFIER: %s\n", identifier);
                 if (strcmp(identifier, ((ArrayData *)(((DynamicArray *)((StackItem *)(stack_get(local_tables_stack, i)->data))->array)->items[j].data))->label) == 0)
                 {
-                    // printf("IDENTIFIER: %s\n", identifier);
                     char *newLabel = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
                     bool *defined = &(((ArrayData *)((StackItem *)stack_get(local_tables_stack, i)->data)->array->items[j].data)->defined);
                     if (*defined || left_value)
@@ -730,16 +765,6 @@ TreeNode *is_terminal(TreeNode *node)
 
     return NULL;
 }
-
-// bool is_double(TreeNode *node)
-// {
-//     if (node->type == NODE_DOUBLE)
-//     {
-//         return true;
-//     }
-//     return false;
-// }
-
 
 int generateExpression(TreeNode *node)
 {
@@ -889,7 +914,8 @@ int generateExpression(TreeNode *node)
                     fprintf(f, "NOT %s@$res_%d %s@$res_%d\n", frame, res_index, frame, res_index - 1);
                 }
                 /* Operátor + má speciální význam v tom, že když se jedná o opearndy typu String, provádí se konkatenace */
-                else if(operation_id == NODE_OPERATOR_ADD){;
+                else if(operation_id == NODE_OPERATOR_ADD){
+                    printf("NODE: %d\n", node->children[2]->children[0]->type);
                     fprintf(f, "TYPE %s@$res_%d %s@%s\n", frame, res_index, left_child_type, left_child_varname);
 
                     fprintf(f, "JUMPIFNEQ $else$%d %s@$res_%d string@string\n", labelId, frame, res_index);
@@ -947,8 +973,14 @@ void generateIf(TreeNode *node)
 
     char *frame = localFunc ? "LF" : "GF";
 
-    generateExpression(node->children[0]);
-
+    if(node->children[0]->type == NODE_GUARD_LET) {
+        char *frame_id = check_local_tables(node->children[0]->children[0]->label, false);
+        fprintf(f, "DEFVAR %s@$res_%d\n", frame, res_index);
+        fprintf(f, "EQ %s@$res_%d %s@%s nil@nil\n", frame, res_index, frame_id, node->children[0]->children[0]->label);
+    } else {
+        generateExpression(node->children[0]);
+    }
+    
     unsigned ifId = labelId++;
     fprintf(f, "JUMPIFNEQ $else$%d %s@$res_%d bool@true\n", ifId, frame, res_index++);
 
@@ -1091,7 +1123,6 @@ void generateDeclaration(TreeNode *node)
     }
     else
     {
-        
         fprintf(f, "DEFVAR %s@%s\n", frame, label);
     }
 
