@@ -32,7 +32,6 @@ static unsigned help_var_index = 0; //index pro pomocnou promennou ve funkci sub
 
 /**
  * @brief Inicializuje globální proměnné, pokud ještě nejsou inicializované
- * @return Vrací true, pokud se inicializace povedla, jinak false
  */
 bool setGlobalVars(void)
 {
@@ -62,7 +61,9 @@ bool setGlobalVars(void)
     return true;
 }
 
-// func readInt() -> Int? | func readDouble() -> Double? | func readString() -> String?
+/**
+ * @brief func readInt() -> Int | func readDouble() -> Double | func readString() -> String
+*/
 void generateRead(char *type, char *left_value)
 {
     if (!setGlobalVars())
@@ -78,7 +79,9 @@ void generateRead(char *type, char *left_value)
     }
 }
 
-// func write( term_1, term_2, ..., term_n)
+/**
+ * @brief func write( term_1, term_2, ..., term_n)
+*/
 void generateWrite(TreeNode *parameters)
 {
     if (!setGlobalVars())
@@ -100,7 +103,9 @@ void generateWrite(TreeNode *parameters)
     }
 }
 
-// func Int2Double(_ term : Int) -> Double
+/**
+ * @brief func Int2Double(_ term : Int) -> Double
+*/
 void generateInt2Double(TreeNode *paramValue, char *left_value)
 {
     if (!setGlobalVars())
@@ -115,7 +120,9 @@ void generateInt2Double(TreeNode *paramValue, char *left_value)
         fprintf(f, "INT2FLOAT %s@%s %s@%s\n", frame, left_value, type, paramValue->label);
 }
 
-// func Double2Int(_ term : Double) -> Int
+/**
+ * @brief func Double2Int(_ term : Double) -> Int
+*/
 void generateDouble2Int(TreeNode *paramValue, char *left_value)
 {
     if (!setGlobalVars())
@@ -130,7 +137,9 @@ void generateDouble2Int(TreeNode *paramValue, char *left_value)
         fprintf(f, "FLOAT2INT %s@%s %s@%s\n", frame, left_value, type, paramValue->label);
 }
 
-// func length(_ s : String) -> Int
+/**
+ * @brief func length(_ s : String) -> Int
+*/
 void generateLength(TreeNode *paramValue, char *left_value)
 {
     if (!setGlobalVars())
@@ -146,7 +155,9 @@ void generateLength(TreeNode *paramValue, char *left_value)
         fprintf(f, "STRLEN %s@%s %s@%s\n", frame, left_value, type, paramValue->label);
 }
 
-// func ord(_ c : String) -> Int
+/**
+ * @brief func ord(_ c : String) -> Int
+*/
 void generateOrd(TreeNode *paramValue, char *left_value)
 {
     if (!setGlobalVars())
@@ -175,7 +186,9 @@ void generateOrd(TreeNode *paramValue, char *left_value)
     }
 }
 
-// func chr(_ i : Int) -> String
+/**
+ * @brief func chr(_ i : Int) -> String
+*/
 void generateChr(TreeNode *paramValue, char *left_value)
 {
     if (!setGlobalVars())
@@ -276,9 +289,6 @@ void generateSubString(TreeNode *parameters, char *left_value)
 
 /**
  * @brief kontroluje, zda je funkce vestavěná a případně ji generuje
- * @param funcCall - uzel volání funkce
- * @param left_value - název proměnné, do které se bude ukládat výstup funkce
- * @return Vrací true, pokud je funkce vestavěná, jinak false
  */
 bool is_built_in_function(TreeNode *funcCall, char *left_value)
 {
@@ -335,6 +345,9 @@ bool is_built_in_function(TreeNode *funcCall, char *left_value)
     return false;
 }
 
+/**
+ * @brief generuje volání funkce
+*/
 void generateFuncCall(TreeNode *node)
 {
     if (!setGlobalVars())
@@ -381,7 +394,6 @@ void generateFuncCall(TreeNode *node)
 
 /**
  * @brief generuje příkaz uvnitř bloku
- * @param node - uzel příkazu
  */
 void generateCommand(TreeNode *node)
 {
@@ -418,6 +430,9 @@ void generateCommand(TreeNode *node)
     }
 }
 
+/**
+ * @brief generuje deklaraci funkce
+*/
 void generateFuncDeclaration(TreeNode *node)
 {
     if (!setGlobalVars())
@@ -530,6 +545,9 @@ void generateFuncDeclaration(TreeNode *node)
     fprintf(f, "LABEL $end$%s\n", node->children[1]->label); // označíme konec funkce
 }
 
+/**
+ * @brief generuje příkaz return
+*/
 void generateReturn(TreeNode *node)
 {
     if (!setGlobalVars())
@@ -582,7 +600,7 @@ void generateReturn(TreeNode *node)
 }
 
 /**
- * @brief  * @brief Funkce vrací ukazatel na terminál na terminální uzel, pokud je výraz terminál
+ * @brief rozpoznává typ operátoru a ukládá jej do stringu
 */
 int recognize_bin_operation(TreeNode *node, char **operation_string)
 {
@@ -629,9 +647,7 @@ int recognize_bin_operation(TreeNode *node, char **operation_string)
 }
 
 /**
- * @brief Hledá v zásobníku lokálních tabulek, v jakém bloku s jakým indexem byla proměnná definovaná
- * @param identifier - název hledané proměnné
- * @param left_value - zda se jedná o levou stranu přiřazení
+ * @brief Hledá v zásobníku lokálních tabulek v jakém bloku s jakým indexem byla proměnná definovaná
  */
 char *check_local_tables(char *identifier, bool left_value)
 {
@@ -672,7 +688,9 @@ char *check_local_tables(char *identifier, bool left_value)
     return frame;
 }
 
-// kontrola a převod escape sekvencí
+/**
+ * @brief kontroluje a převádí escape sekvence v řetězci
+*/
 char *convert_string(char *string)
 {
     DynamicBuffer *buffer = malloc(sizeof(DynamicBuffer));
@@ -716,7 +734,7 @@ char *convert_string(char *string)
 /**
  * @brief Funkce vrací string odpovídající typu konstanty, případně LF nebo GF, pokud se jedná o identifikátor
 */
-char *recognize_type(TreeNode *node, bool local)
+char *recognize_type(TreeNode *node)
 {
     /* Pokud není uzel NULL, urči pro terminál, zda se jedná o konstantu, eventuálně o jakou a vrať její typ ve formě stringu*/
     if (node != NULL)
@@ -786,7 +804,7 @@ TreeNode *is_terminal(TreeNode *node)
 /**
  * @brief Kontroluje, zda je jeden z operandů typu double a druhý typu int literál. V takovém případě převádí int literál na double
 */
-void check_operand_types_literal(TreeNode *node, bool local, char **left_child_type, char *left_child_varname, char **right_child_type, char *right_child_varname) {
+void check_operand_types_literal(TreeNode *node, char **left_child_type, char *left_child_varname, char **right_child_type, char *right_child_varname) {
     char *frame = localFunc ? "LF" : "GF";
 
     /* Chceme zkontrolovat, zda pokud je jeden z operandů literál typu Int, zda není druhý operand typu Double. Pokud ano, převedeme int literál na Double */
@@ -834,7 +852,7 @@ void check_operand_types_literal(TreeNode *node, bool local, char **left_child_t
  *  @brief Tato funkce zkontroluje, zda je jeden operátor typu float a druhý typu int. Pokud ano, musí převést operand typu int na typ float.
  *  V takovém případě je totuž operand typu int buď literál, který je třeba převést dne zadání nebo proměnná typu int, která však byla přiřazena v původním jazyce do Double promenne
 */
-void check_operand_types_var(TreeNode *node, bool local, char *left_child_type, char *left_child_varname, char *right_child_type, char *right_child_varname) {
+void check_operand_types_var(TreeNode *node, char *left_child_type, char *left_child_varname, char *right_child_type, char *right_child_varname) {
     char *frame = localFunc ? "LF" : "GF";
 
     if (node->children[0]->children[0]->type == NODE_IDENTIFIER && node->children[2]->children[0]->type == NODE_IDENTIFIER)
@@ -861,7 +879,7 @@ void check_operand_types_var(TreeNode *node, bool local, char *left_child_type, 
 /**
  * @brief Funkce generuje instrukce pro výpočet výrazu, který je předán jako parametr
 */
-int generateExpression(TreeNode *node, bool local)
+int generateExpression(TreeNode *node)
 {
 
     if (!setGlobalVars())
@@ -1049,9 +1067,9 @@ int generateExpression(TreeNode *node, bool local)
             /* Pokud jde o operace - nebo * */
             else if(operation_id == NODE_OPERATOR_SUB || operation_id == NODE_OPERATOR_MUL) {
                 /* U těchto operací zkontroluji, zda není náhodou jedna proměnná int a druhá float, potom bych přetypoval na int na float */
-                check_operand_types_var(node, local, left_child_type, left_child_varname, right_child_type, right_child_varname);
+                check_operand_types_var(node, left_child_type, left_child_varname, right_child_type, right_child_varname);
                 /* Dále zkontrolujeme, zda není jeden z operandů typu float a druhý int literál, potom bychom přetypovali int literál na float */
-                check_operand_types_literal(node, local, &left_child_type, left_child_varname, &right_child_type, right_child_varname);
+                check_operand_types_literal(node, &left_child_type, left_child_varname, &right_child_type, right_child_varname);
 
                 fprintf(f, "%s %s@$res_%d %s@%s %s@%s\n", operation, frame, res_index, left_child_type, left_child_varname, right_child_type, right_child_varname);
             }
@@ -1066,6 +1084,9 @@ int generateExpression(TreeNode *node, bool local)
     return res_index;
 }
 
+/**
+ * @brief Funkce generuje if else konstrukci
+*/
 void generateIf(TreeNode *node)
 {
     if (!setGlobalVars())
@@ -1181,6 +1202,9 @@ void generateIf(TreeNode *node)
     stack_pop(local_tables_stack);
 }
 
+/**
+ * @brief Funkce generuje while konstrukci
+*/
 void generateWhile(TreeNode *node)
 {
 
@@ -1242,6 +1266,9 @@ void generateWhile(TreeNode *node)
     fprintf(f, "LABEL $end$while$%d\n", endWhile);
 }
 
+/**
+ * @brief Funkce generuje deklaraci
+*/
 void generateDeclaration(TreeNode *node)
 {
 
@@ -1286,6 +1313,9 @@ void generateDeclaration(TreeNode *node)
         generateAssign(node);
 }
 
+/**
+ * @brief Funkce generuje přiřazení
+*/
 void generateAssign(TreeNode *node)
 {
     if (!setGlobalVars())
