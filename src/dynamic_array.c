@@ -1,3 +1,10 @@
+/* 
+ * Projekt: Překladač jazyka IFJ23
+ * Soubor: dynamic_array.c
+ * Datum: 24. 11. 2023
+ * Autor: Šimon Motl, xmotls00
+ */
+
 #include "header_files/dynamic_array.h"
 
 void arrayInit(DynamicArray *array)

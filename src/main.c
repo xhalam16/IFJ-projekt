@@ -1,4 +1,14 @@
+/* 
+ * Projekt: Překladač jazyka IFJ23
+ * Soubor: main.c
+ * Datum: 24. 11. 2023
+ * Autor: Šimon Motl, xmotls00
+ *        Richard Juřica, xjuric31
+ *        Marek Halamka, xhalam16
+ */
+
 #include "header_files/parser.h"
+
 
 int main(void)
 {
@@ -10,13 +20,13 @@ int main(void)
     }
 
     error = ERR_SYNTAX_ANALYSIS;
-    // file = stdin;
-    file = fopen("test.txt", "r");
-    if (file == NULL)
-    {
-        error = ERR_INTERNAL;
-        return error;
-    }
+    file = stdin;
+    // file = fopen("test.txt", "r");
+    // if (file == NULL)
+    // {
+    //     error = ERR_INTERNAL;
+    //     return error;
+    // }
 
     TreeNode *startNeterminal = createNewNode(NULL, NODE_PROGRAM, false);
 
@@ -25,18 +35,16 @@ int main(void)
         error = ERR_NONE;
     }
 
-    bool ar[10] = {true};
-
     dispose(startNeterminal);
     symtable_free(global_table, GLOBAL_TABLE);
     stack_free(stack_of_local_tables);
 
-    if (fclose(file) == EOF)
-    {
-        error = ERR_INTERNAL;
-    }
+    // if (fclose(file) == EOF)
+    // {
+    //     error = ERR_INTERNAL;
+    // }
 
-    printf("%d\n", error);
+    // printf("%d\n", error);
     return error;
 }
 

@@ -39,13 +39,13 @@ bool setGlobalVars(void)
     {
         return true;
     }
-    // f = stdout;fopen(stdout, "w");
-    f = fopen("out.ifjcode", "w");
+    f = stdout;
+    // f = fopen("out.ifjcode", "w");
 
-    if (f == NULL)
-    {
-        return false;
-    }
+    // if (f == NULL)
+    // {
+    //     return false;
+    // }
 
     if (local_tables_stack == NULL)
     {
@@ -861,7 +861,6 @@ void check_operand_types_var(TreeNode *node, char *left_child_type, char *left_c
     {
         fprintf(f, "TYPE %s@$res_%d %s@%s\n", frame, res_index, left_child_type, left_child_varname);
         res_index++;
-        //fprintf(f, "DEFVAR %s@$res_%d\n", frame, res_index);
         fprintf(f, "TYPE %s@$res_%d %s@%s\n", frame, res_index, right_child_type, right_child_varname);
         /* Pokud jsou promenne stejneho typu, neni potreba nic konvertovat a skaceme na konec */
         fprintf(f, "JUMPIFEQ $else_var_end$%d %s@$res_%d %s@$res_%d\n", labelId, frame, res_index, frame, res_index - 1);
@@ -962,7 +961,6 @@ int generateExpression(TreeNode *node)
             /* Pokud je pravé dítě neterminál, nastav název proměnné na pomocnou proměnnou $res_index, podle odpovídajícího indexu */
             if (rightTree == NULL)
             {
-                // printf("RIGHT CHILD TYPE: %d\n", node->children[2]->children[0]->terminal);
                 right_child_varname = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
                 if (right_child_varname == NULL) // Kontrola alokace paměti
                 {
