@@ -44,6 +44,7 @@ extern error_code_t error;
 extern FILE *file;
 extern global_symtable *global_table;
 extern Stack *stack_of_local_tables;
+extern char* current_function_name;
 
 
 /**

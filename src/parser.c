@@ -20,6 +20,7 @@ static local_symtable *local_table = NULL;
 
 Stack *stack_of_local_tables = NULL;
 Stack *stack_code_gen = NULL;
+char* current_function_name = NULL;
 
 bool fill_global_builtin_functions(global_symtable *table)
 {
@@ -2139,6 +2140,13 @@ bool parseFuncDeclaration(TreeNode *node)
         return false;
     }
 
+    if(move_buffer(&current_function_name, bf) != ERR_CODE_OK)
+    {
+        return false;
+    }
+
+    
+
     free_token(token);
 
     if (!skipEmptyLines(&token))
@@ -2629,7 +2637,7 @@ bool parse(TreeNode *startNeterminal)
             }
 
             semantic_result = semantic(nextNeterminal);
-            printf("semantic result declaration: %d\n", semantic_result);
+            //printf("semantic result declaration: %d\n", semantic_result);
             if (semantic_result != ERR_NONE)
             {
                 error = semantic_result;
@@ -2645,6 +2653,8 @@ bool parse(TreeNode *startNeterminal)
 
             break;
         case TOKEN_KEYWORD_FUNC:
+
+            current_function_name = NULL;
 
             if (inBlock || !parseFuncDeclaration(nextNeterminal))
             {
@@ -2694,6 +2704,14 @@ bool parse(TreeNode *startNeterminal)
                 // printf("return error\n");
                 return false;
             }
+
+            semantic_result = semantic(nextNeterminal);
+            if (semantic_result != ERR_NONE)
+            {
+                error = semantic_result;
+                return false;
+            }
+
 
             break;
 
