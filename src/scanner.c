@@ -943,7 +943,7 @@ token_t get_token(FILE *source_file)
             // division
             ungetc(c, source_file);
             token.type = TOKEN_OPERATOR_DIV;
-            buffer_append_string(buffer, "/");
+            buffer_append_string(raw_buffer, "/");
         }
     }
     else if (c == '+')
