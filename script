@@ -1414,6 +1414,12 @@ var x : Int =  a
 
 var xx : Double = 3' 0 "correct type declaration"
 
+run_test 'func fibonacci(_ n: Int) -> Int {
+    while n < 10 {
+        var a = 10
+        return a
+    }
+}' 0 "correct while statement fibonacci"
 run_test '
 func fibonacci(_ n: Int) -> Int {
     if n == 1 {
@@ -1471,6 +1477,15 @@ var var2 : Int = 20
 var output = var1 ?? var2
 let z = output + 3' 0 "coallescing correct"
 
+run_test 'var y = 4.4
+
+var x : Double = y
+var z = Double2Int(y)
+write(z, "\n")
+z = Double2Int(x)
+write(z, "\n")
+y = Int2Double(z)
+write(y, "\n")' 0 "correct type conversion"
 run_test '
 var optionalValue: Int? = nil
 

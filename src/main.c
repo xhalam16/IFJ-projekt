@@ -25,12 +25,8 @@ int main(void)
         error = ERR_NONE;
     }
 
-    // print_global_table(global_table);
-
-    // print_stack(stack_of_local_tables);
     bool ar[10] = {true};
 
-    // printTree(startNeterminal, ar, 0, 0);
     dispose(startNeterminal);
     symtable_free(global_table, GLOBAL_TABLE);
     stack_free(stack_of_local_tables);
