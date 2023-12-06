@@ -113,9 +113,13 @@ void generateInt2Double(TreeNode *paramValue, char *left_value)
         return;
     }
 
+    char *frame = localFunc ? "LF" : "GF";
     char *type = recognize_type(paramValue);
-    char *frame = check_local_tables(left_value, true);
-
+    if (!strstr(left_value, "$res"))
+    {
+        frame = check_local_tables(left_value, true);
+    }
+    
     if (left_value)
         fprintf(f, "INT2FLOAT %s@%s %s@%s\n", frame, left_value, type, paramValue->label);
 }
@@ -130,8 +134,12 @@ void generateDouble2Int(TreeNode *paramValue, char *left_value)
         return;
     }
 
+    char *frame = localFunc ? "LF" : "GF";
     char *type = recognize_type(paramValue);
-    char *frame = check_local_tables(left_value, true);
+    if (!strstr(left_value, "$res"))
+    {
+        frame = check_local_tables(left_value, true);
+    }
 
     if (left_value)
         fprintf(f, "FLOAT2INT %s@%s %s@%s\n", frame, left_value, type, paramValue->label);
@@ -147,9 +155,12 @@ void generateLength(TreeNode *paramValue, char *left_value)
         return;
     }
 
+    char *frame = localFunc ? "LF" : "GF";
     char *type = recognize_type(paramValue);
-
-    char *frame = check_local_tables(left_value, true);
+    if (!strstr(left_value, "$res"))
+    {
+        frame = check_local_tables(left_value, true);
+    }
 
     if (left_value)
         fprintf(f, "STRLEN %s@%s %s@%s\n", frame, left_value, type, paramValue->label);
@@ -165,9 +176,12 @@ void generateOrd(TreeNode *paramValue, char *left_value)
         return;
     }
 
+    char *frame = localFunc ? "LF" : "GF";
     char *type = recognize_type(paramValue);
-
-    char *frame = check_local_tables(left_value, true);
+    if (!strstr(left_value, "$res"))
+    {
+        frame = check_local_tables(left_value, true);
+    }
 
     if (left_value)
     {
@@ -196,8 +210,12 @@ void generateChr(TreeNode *paramValue, char *left_value)
         return;
     }
 
+    char *frame = localFunc ? "LF" : "GF";
     char *type = recognize_type(paramValue);
-    char *frame = check_local_tables(left_value, true);
+    if (!strstr(left_value, "$res"))
+    {
+        frame = check_local_tables(left_value, true);
+    }
 
     if (left_value)
         fprintf(f, "INT2CHAR %s@%s %s@%s\n", frame, left_value, type, paramValue->label);
@@ -591,6 +609,7 @@ void generateReturn(TreeNode *node)
             {
                 return;
             }
+            type = localFunc ? "LF" : "GF";
             sprintf(result, "$res_%d", res_index++);
         }
     }
@@ -826,7 +845,7 @@ void check_operand_types_literal(TreeNode *node, char **left_child_type, char *l
             strcpy(left_child_varname, left_value);
             free(left_value);
 
-            fprintf(f, "LABEL $else_lit$%d\n", labelId);
+            fprintf(f, "LABEL $else_lit$%d\n", labelId++);
         }
         /* Pokud je pravý operand literál typu Int */
         else if (node->children[2]->children[0]->type == NODE_INT && node->children[0]->children[0]->type != NODE_INT)
@@ -843,7 +862,7 @@ void check_operand_types_literal(TreeNode *node, char **left_child_type, char *l
             strcpy(right_child_varname, left_value);
             free(left_value);
 
-            fprintf(f, "LABEL $else_lit$%d\n", labelId);
+            fprintf(f, "LABEL $else_lit$%d\n", labelId++);
         }
     }
 }
@@ -871,7 +890,7 @@ void check_operand_types_var(TreeNode *node, char *left_child_type, char *left_c
         fprintf(f, "LABEL $else_var$%d\n", labelId);
         /* Přetypujeme druhý operand */
         fprintf(f, "INT2FLOAT %s@%s %s@%s\n", right_child_type, right_child_varname, right_child_type, right_child_varname);
-        fprintf(f, "LABEL $else_var_end$%d\n", labelId);
+        fprintf(f, "LABEL $else_var_end$%d\n", labelId++);
     }
 }
 
