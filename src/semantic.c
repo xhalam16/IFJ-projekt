@@ -309,7 +309,7 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
         }
         else{
             if(is_immediate_operand(child->type)){
-
+                
                 if(*data_type != DATA_NONE){
                     data_type_t child_type = node_type_to_data(child->type);
                     if(!is_datatype_compatible(*data_type, child_type, coal_found)){
@@ -322,6 +322,12 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
                         return ERR_SEMANTIC_TYPE_COMPATIBILITY;
                     }
                 }
+
+                if(next_identifier_unwrapped){
+                    // we cannot use unwrapping operator on any immediate value
+                    return ERR_SEMANTIC_TYPE_COMPATIBILITY;
+                }
+
                 
                 set_by_variable = false;
                 *data_type = node_type_to_data(child->type);
@@ -380,7 +386,6 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
                 if(is_nil != NULL && *is_nil == DATA_NIL){
                     // variable has value nil
                     if(!var_nilable){
-                        // todo idk what error to return
                         return ERR_SEMANTIC_OTHERS;
                     }
 
@@ -390,7 +395,7 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
                     }
                     
 
-                    next_identifier_unwrapped = false;
+                    //next_identifier_unwrapped = false;
                 }
 
                 // if we use unwrapping operator on something that is not nilable, we return error
@@ -403,7 +408,7 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
                         expression_nilable_bool = true;
                         scan_for_coal = true;
                     }else{
-
+                        scan_for_coal = false;
                         expression_nilable_bool = false;
                         next_identifier_unwrapped = false;
                     }
@@ -427,7 +432,7 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
                         }
                     }else{
                         if(*data_type != var_data_type){
-                        return ERR_SEMANTIC_TYPE_COMPATIBILITY;
+                            return ERR_SEMANTIC_TYPE_COMPATIBILITY;
                         }
                     }
                     
@@ -442,6 +447,7 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
                 return ERR_NONE;
 
             }else if(is_binary_arithmetic(child->type)){
+
                 if(scan_for_coal && child->type != NODE_OPERATOR_NIL_COALESCING){
                     return ERR_SEMANTIC_TYPE_COMPATIBILITY;
                 }else{
@@ -474,6 +480,7 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
     
 
     if(scan_for_coal){
+        printf("next_identifier_unwrapped\n");
         return ERR_SEMANTIC_TYPE_COMPATIBILITY;
     }
 
