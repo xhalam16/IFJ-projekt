@@ -31,7 +31,7 @@
 static FILE *f;
 static unsigned labelId;
 static unsigned varsId;
-static int res_index;
+static unsigned res_index;
 static bool localFunc;
 static unsigned counter;
 static Stack *local_tables_stack;
