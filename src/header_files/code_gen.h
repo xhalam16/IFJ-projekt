@@ -67,18 +67,16 @@ typedef struct ArrayData {
  * @brief Function generating code for a function call
  * @note Outputs the code to the global variable f (stdout default)
  * @param node The node to generate the code from
- * @param local Signalizes, whether we are in a block
 */
-void generateFuncCall(TreeNode *node, bool local);
+void generateFuncCall(TreeNode *node);
 
 /**
  * @brief Function generating code for function declaration
  * @note Outputs the code to the global variable f (stdout default)
  * @param node The node to generate the code from
- * @param local Signalizes, whether we are in a block
 */
 
-void generateFuncDeclaration(TreeNode *node, bool local);
+void generateFuncDeclaration(TreeNode *node);
 
 
 /**
@@ -93,44 +91,39 @@ void generateReturn(TreeNode *node);
  * @brief Function generating code for assign statement
  * @note Outputs the code to the global variable f (stdout default)
  * @param node The node to generate the code from
- * @param local Signalizes, whether we are in a block
 */
 
-void generateAssign(TreeNode *node, bool local);
+void generateAssign(TreeNode *node);
 
 
 /**
  * @brief Function generating code for if...else statement
  * @note Outputs the code to the global variable f (stdout default)
  * @param node The node to generate the code from
- * @param local Signalizes, whether we are in a block
 */
-void generateIf(TreeNode *node, bool local);
+void generateIf(TreeNode *node);
 
 /**
  * @brief Function generating code for while statement
  * @note Outputs the code to the global variable f (stdout default)
  * @param node The node to generate the code from
- * @param local Signalizes, whether we are in a block
 */
 
-void generateWhile(TreeNode *node, bool local);
+void generateWhile(TreeNode *node);
 
 /**
  * @brief Function generating code for expression
  * @note Outputs the code to the global variable f (stdout default)
  * @param node The node to generate the code from
- * @param local Signalizes, whether we are in a block
  * @return The index of the variable, where the result of the expression is stored
 */
 
-int generateExpression(TreeNode *node, bool local);
+int generateExpression(TreeNode *node);
 
 /**
  * @brief Function generating code for declaration
  * @note Outputs the code to the global variable f (stdout default)
  * @param node The node to generate the code from
- * @param local Signalizes, whether we are in a block
 */
 
-void generateDeclaration(TreeNode *node, bool local);
+void generateDeclaration(TreeNode *node);

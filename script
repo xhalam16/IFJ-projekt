@@ -1477,7 +1477,15 @@ var var2 : Int = 20
 var output = var1 ?? var2
 let z = output + 3' 0 "coallescing correct"
 
+run_test 'var y = 4.4
 
+var x : Double = y
+var z = Double2Int(y)
+write(z, "\n")
+z = Double2Int(x)
+write(z, "\n")
+y = Int2Double(z)
+write(y, "\n")' 0 "correct type conversion"
 
 
 generate_test_summary
