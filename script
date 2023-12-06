@@ -386,11 +386,11 @@ run_test 'func foo() -> Double{
 
 run_test 'func foo() -> Double{
     return 3.3 / 4
-}' 0 "division double return"
+}' 7 "division double return"
 
 run_test 'func foo() -> Double{
     return 3 / 4.4
-}' 0 "division double return"
+}' 7 "division double return"
 
 run_test 'func foo() -> Int{
     return 3 / 4
@@ -398,11 +398,11 @@ run_test 'func foo() -> Int{
 
 run_test 'func foo() -> Int{
     return 3 / 4.4
-}' 4 "division Int return"
+}' 7 "division Int return"
 
 run_test 'func foo() -> Int{
     return 3.3 / 4
-}' 4 "division Int return"
+}' 7 "division Int return"
 
 run_test 'func foo() -> Int{
     return nil ?? 3
@@ -889,7 +889,7 @@ func foo(_ param : String, x param2 : Int){
 let x : String? = "abcd"
 let y : Int? = 3
 
-foo(x, x: y)' 0 "correct function call variables"
+foo(x, x: y)' 4 "incorrect function call variables"
 
 run_test '
 func foo(_ param : String, x param2 : Int){
@@ -1500,6 +1500,71 @@ let z : Double = 3.3!
 ' 7 "force unwrap double literal"
 
 
+run_test '
+func foo(_ x : Int){
+    return
+}
+
+
+let x : Int? = 3
+
+
+foo(x)' 4 "wrong type of passed argument"
+
+
+run_test '
+func foo() -> Double{
+    return 3.3 / 4.4
+}' 0 "correct division and return type"
+
+run_test '
+func foo() -> Double{
+    return 3.3 / 4
+}' 7 "wrong division"
+
+
+run_test '
+func foo() -> Double{
+    return 3 / 4
+}' 4 "correct division wrong return type"
+
+
+run_test '
+func foo() -> Int{
+    return 3 / 4
+}' 0 "correct division correct return type"
+
+run_test '
+func foo() -> Double{
+    return 3.3 / 4.4
+}' 0 "correct division correct return type"
+
+run_test '
+func foo() -> Int{
+    return 3.3 / 4.4
+}' 4 "correct division wrong return type"
+
+
+run_test '
+func foo() -> Int{
+    return (3 + 4) / 4
+}' 0 "correct division correct return type"
+
+run_test '
+func foo() -> Double{
+    return (3.4 + 4.4) / 4.4
+}' 0 "correct division correct return type"
+
+
+run_test '
+func foo() -> Double{
+    return (3.4 + 4) / 4.4
+}' 0 "correct division correct return type"
+
+run_test '
+func foo() -> Double{
+    return (3 + 4) / 4.4
+}' 7 "wrong division correct return type"
 
 
 generate_test_summary

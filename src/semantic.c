@@ -10,7 +10,6 @@
 #include "header_files/semantic.h"
 
 
-// Stack *stack_of_local_tables = NULL;
 bool in_body_neterminal = false;
 bool set_by_variable = false;
 bool next_identifier_unwrapped = false;
@@ -22,12 +21,25 @@ static bool sem_ret = false;
 static bool expression_immediate = true;
 static data_type_t previous = DATA_NONE;
 static data_type_t before_nil = DATA_NONE;
+static bool divison = false;
 
 
+/**
+ * @brief Checks if node is neterminal
+ * @param node Node to check
+ * @return True if node is neterminal, false otherwise
+*/
 bool is_neterminal(TreeNode *node){
     return !node->terminal;
 }
 
+
+/**
+ * @brief Recursively checks how many return statements are in the subtree
+ * @param node Root of the subtree
+ * @param reset If true, the static variable count is reset to 0 (should be called with true, when the function is called for the first time)
+ * @return Number of return statements in the subtree
+*/
 int return_count(TreeNode *node, bool reset){
     static int count = 0;
 
@@ -44,33 +56,11 @@ int return_count(TreeNode *node, bool reset){
     return count;
 }
 
-void get_all_returns(TreeNode *node, TreeNode** returns, bool reset){
-    // function assumes that the returns array is initialized
-    static int index = 0;
-
-    if(reset){
-        index = 0;
-    }
-
-    if(returns == NULL){
-        return;
-    }
-
-    if(node == NULL){
-        return;
-    }
-
-    if(node->type == NODE_RETURN){
-        returns[index++] = node;
-    }
-
-    for(int i = 0; i < node->numChildren; i++){
-        get_all_returns(node->children[i], returns, false);
-    }
-    
-}
-
-
+/**
+ * @brief Gets all children of node except NODE_EPSILON
+ * @param node Node to get children from
+ * @return Number of children
+*/
 size_t get_num_children(TreeNode *node){
     size_t count = 0;
     for(int i = 0; i < node->numChildren; i++){
@@ -81,10 +71,20 @@ size_t get_num_children(TreeNode *node){
     return count;
 }
 
+/**
+ * @brief Checks whether the node is binary arithmetic operator
+ * @param type Type of the node
+ * @return True if the node type is binary arithmetic operator, false otherwise
+*/
 bool is_binary_arithmetic(NodeType type){
     return type == NODE_OPERATOR_ADD || type == NODE_OPERATOR_SUB || type == NODE_OPERATOR_MUL || type == NODE_OPERATOR_DIV || type == NODE_OPERATOR_NIL_COALESCING;
 }
 
+/**
+ * @brief Checks whether the node is binary relation operator
+ * @param type Type of the node
+ * @return True if the node type is binary relation operator, false otherwise
+*/
 bool is_binary_relation(NodeType type){
    switch (type)
    {
@@ -100,10 +100,25 @@ bool is_binary_relation(NodeType type){
    }
 }
 
+
+/**
+ * @brief Checks whether the node is immediate operand
+ * @param type Type of the node
+ * @return True if the node type is an immediate operand, false otherwise
+*/
 bool is_immediate_operand(NodeType type){
     return type == NODE_INT || type == NODE_DOUBLE || type == NODE_STRING || type == NODE_NIL;
 }
 
+
+/**
+ * @brief Checks the stack of local tables for some identifier
+ * @param local_tables Stack of local tables
+ * @param identifier Identifier to search for
+ * @returns Pointer to the record if found, NULL otherwise
+ * @warning This function expects only local tables on the stack, could lead to undefined behaviour if there are other types of data on the stack
+ * @note We check from top to bottom
+*/
 symtable_record_local_t* check_stack(Stack* local_tables, char* identifier){
     // we need to check from top to bottom
     for(int i = local_tables->top; i >= 0; i--){
@@ -117,11 +132,19 @@ symtable_record_local_t* check_stack(Stack* local_tables, char* identifier){
             return record;
         }
     }
-
- 
     return NULL;
     
 }
+
+/**
+ * @brief Gets the nth record of some identifier in the stack of local tables (n == 0 equals to the first record)
+ * @param local_tables Stack of local tables
+ * @param identifier Identifier to search for
+ * @param n Number of the record to get
+ * @returns Pointer to the record if found, NULL otherwise
+ * @warning This function expects only local tables on the stack, could lead to undefined behaviour if there are other types of data on the stack
+ * @note n == 0 equals to the first record
+*/
 
 symtable_record_local_t* get_nth_record(Stack* local_tables, char* identifier, int n){
     // we need to check from top to bottom
@@ -146,14 +169,28 @@ symtable_record_local_t* get_nth_record(Stack* local_tables, char* identifier, i
     
 }
 
-// this function assumes that the node is an immediate operand
-bool is_datatype_compatible(data_type_t type1, data_type_t type2, bool coal_found){
+/**
+ * @brief Checks if the data types are compatible in an expression, defined by the language specification
+ * @param type1 First data type
+ * @param type2 Second data type
+ * @param coal_found True if the coallescing operator was found, false otherwise
+ * @returns True if the data types are compatible, false otherwise
+ * @note This function is used within expression semantic analysis
+*/
+bool is_datatype_compatible(data_type_t type1, data_type_t type2, bool coal_found, bool division){
+
+    if(division){
+        return( type1 == DATA_INT && type2 == DATA_INT) || (type1 == DATA_DOUBLE && type2 == DATA_DOUBLE);
+    }
+
 
     if(type2 == DATA_NIL && coal_found){
         // nil cannot be on the right side of coallescing operator
         return false;
     }
+
     if(type1 == DATA_NIL){
+        // nil is compatible only if the coallescing operator was found
         return coal_found;
     }
 
@@ -173,9 +210,18 @@ bool is_datatype_compatible(data_type_t type1, data_type_t type2, bool coal_foun
     return false;
 }
 
+/**
+ * @brief Checks if the data types are compatible in an assignment, defined by the language specification
+ * @param l_type Left side data type
+ * @param r_type Right side data type
+ * @param r_value_immediate True if the right side is an immediate value, false otherwise
+ * @param coal_found True if the coallescing operator was found, false otherwise
+ * @param l_type_nilable True if the left side is nilable, false otherwise
+ * @param r_type_nilable True if the right side is nilable, false otherwise
+ * @returns True if the data types are compatible, false otherwise
+ * @note This function is used within assignment semantic analysis (declaration and assignment)
+*/
 bool is_assign_compatible(data_type_t l_type, data_type_t r_type, bool r_value_immediate, bool coal_found, bool l_type_nilable, bool r_type_nilable){
-
-
 
     if(l_type == r_type){
         return true;
@@ -198,7 +244,14 @@ bool is_assign_compatible(data_type_t l_type, data_type_t r_type, bool r_value_i
 }
 
 
-
+/**
+ * @brief Checks if the data types are compatible in a relation expression, defined by the language specification
+ * @param type1 First data type
+ * @param type2 Second data type
+ * @param type1_immediate True if the first data type is an immediate value, false otherwise
+ * @param type2_immediate True if the second data type is an immediate value, false otherwise
+ * @returns True if the data types are compatible, false otherwise
+*/
 bool types_compatible_relation(data_type_t type1, data_type_t type2, bool type1_immediate, bool type2_immediate){
     if (type1_immediate && type2_immediate) {
     // if both sides are immediate, double and int are compatible
@@ -216,6 +269,11 @@ bool types_compatible_relation(data_type_t type1, data_type_t type2, bool type1_
 }
 
 
+/**
+ * @brief Checks if the node is NOT an artihmetic operator
+ * @param node Node to check
+ * @returns True if the node is NOT an arithmetic operator, false otherwise
+*/
 bool is_not_arithmetic(TreeNode* node){
     NodeType except[] = {
         NODE_OPERATOR_ABOVE,
@@ -237,6 +295,16 @@ bool is_not_arithmetic(TreeNode* node){
     return false;
 }
 
+/**
+ * @brief Runs a semantic analysis on a artihmetic expression, uses recursion
+ * @param node Root of the expression
+ * @param data_type Pointer to the data type of the expression (it changes during the analysis)
+ * @param local_tables Stack of local tables
+ * @param reset If true, the static variables are reset to their default values (should be called with true, when the function is called for the first time)
+ * @returns Error code
+ * @warning This function works only on arithmetic expressions, it does not work on relation expressions
+ * @note Relation expressions are handled by semantic_relation_expression
+*/
 error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_type, Stack* local_tables, bool reset){
     // data_type will be set to the type of the expression
     // this function checks if the arithmetic expression is valid
@@ -258,20 +326,27 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
    
 
     if(reset){
+        // since this function is recursive, we need to reset the static and global variables
         first_run = true;
         previous = DATA_NONE;
         before_nil = DATA_NONE;
+        expression_immediate = true;
+        divison = false;
+        expression_nilable_bool = false;
     }
         
 
     if(first_run){
-       expression_immediate = true;
+        /* to reduce the amount of code, this branch is executed only once and handles 
+         expressions that can be solved instantly */
 
         if(is_not_arithmetic(node)){
+            // determine the type of error
             return sem_ret ? ERR_SEMANTIC_FUNC : ERR_SEMANTIC_TYPE_COMPATIBILITY;
         }
 
         if(node->numChildren == 1 && node->children[0]->type == NODE_NIL){
+            // if the expression contains only one operand and it is nil immediate
             *data_type = DATA_NIL;
             return ERR_NONE;
         }
@@ -286,6 +361,7 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
             }
         }
         if(node->numChildren >= 2 && node->children[1]->type == NODE_OPERATOR_UNARY){
+            // we detected unary operator
             next_identifier_unwrapped = true;
         }
             
@@ -294,25 +370,30 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
 
     
 
+    // iterate through all children
     for(int i = 0; i < node->numChildren; i++){
         TreeNode* child = node->children[i];
         
         if(child->type == NODE_EXPRESSION){
+            // if we found another expression, lets check if there is unary operator and set flag
             if(child->numChildren >= 2 && child->children[1]->type == NODE_OPERATOR_UNARY){
                 next_identifier_unwrapped = true;
             }
             
+            // now lets call the function recursively and return error code if there is one
             error_code_t er = semantic_arithmetic_expression(child, data_type, local_tables, false);
             if(er != ERR_NONE){
                 return er;
             }
         }
-        else{
+        else{ // its not expression, so lets check if its immediate operand, identifier or binary operator
             if(is_immediate_operand(child->type)){
                 
+                // if its operand, we need to check if the data type is compatible with the previous operand
+                // if its first operand, this if will be skipped
                 if(*data_type != DATA_NONE){
                     data_type_t child_type = node_type_to_data(child->type);
-                    if(!is_datatype_compatible(*data_type, child_type, coal_found)){
+                    if(!is_datatype_compatible(*data_type, child_type, coal_found, divison)){
                         return ERR_SEMANTIC_TYPE_COMPATIBILITY;
                     }
 
@@ -328,15 +409,20 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
                     return ERR_SEMANTIC_TYPE_COMPATIBILITY;
                 }
 
-                
+                // set flag that it is immediate value
                 set_by_variable = false;
+                // change the data type of the expression
                 *data_type = node_type_to_data(child->type);
+                previous = *data_type;
 
                 return ERR_NONE;
 
             }else if(child->type == NODE_IDENTIFIER){
+                // its an identifier, we need to find information about it in and check the expression
                 expression_immediate = false;
                 
+
+                // find the record, or return error if the identifier is not defined
                 symtable_record_local_t* record = check_stack(local_tables, child->label);
                 if(same_symbol_assign){
     
@@ -348,22 +434,29 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
                 bool var_nilable = false;
                 data_type_t *is_nil = NULL;
                 if(record == NULL){
+                    // we did not find it in local tables, so we need to check global table
                     symtable_record_global_t* glob_record = symtable_search(global_table, child->label, GLOBAL_TABLE);
 
                     if(glob_record == NULL){
+                        // we did not find it in global table, so we return error
                         return ERR_SEMANTIC_NOT_DEFINED;
                     }
+
+                    
 
                     if(!glob_record->data->defined){
+                        // its not defined, so we return error
                         return ERR_SEMANTIC_NOT_DEFINED;
                     }
 
-                    if(coal_found){
-                        glob_record->data->nilable = false;
-                    }
+                    // if(coal_found){
+                    //     glob_record->data->nilable = false;
+                    // }
 
                     var_data_type = glob_record->data->data_type;
                     var_nilable = glob_record->data->nilable;
+                    if(coal_found) var_nilable = false;
+
                     is_nil = glob_record->data->value;
 
                     
@@ -373,12 +466,13 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
                         return ERR_SEMANTIC_NOT_DEFINED;
                     }
 
-                    if(coal_found){
-                        record->data->nilable = false;
-                    }
+                    // if(coal_found){
+                    //     record->data->nilable = false;
+                    // }
 
                     var_data_type = record->data->data_type;
                     var_nilable = record->data->nilable;
+                    if(coal_found) var_nilable = false;
                     is_nil = record->data->value;
                 }
 
@@ -417,7 +511,7 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
                 
 
                 if(*data_type != DATA_NONE){
-                    if(!is_datatype_compatible(*data_type, var_data_type, coal_found)){
+                    if(!is_datatype_compatible(*data_type, var_data_type, coal_found, divison)){
                         return ERR_SEMANTIC_TYPE_COMPATIBILITY;
                     }
 
@@ -447,6 +541,8 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
                 return ERR_NONE;
 
             }else if(is_binary_arithmetic(child->type)){
+
+                divison = child->type == NODE_OPERATOR_DIV;
 
                 if(scan_for_coal && child->type != NODE_OPERATOR_NIL_COALESCING){
                     return ERR_SEMANTIC_TYPE_COMPATIBILITY;
@@ -478,9 +574,8 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
     }
 
     
-
+    // if we are still scanning for coallescing operator, we return error
     if(scan_for_coal){
-        printf("next_identifier_unwrapped\n");
         return ERR_SEMANTIC_TYPE_COMPATIBILITY;
     }
 
@@ -714,6 +809,7 @@ error_code_t semantic_func_call(TreeNode* node, Stack* local_tables){
 
 
         data_type_t param_table_type = param_table->data_type;
+        bool param_table_nilable = param_table->nilable;
         // todo we need to determine if the passed parameter is identifier or expression
         // start by determining how many children it has, so we know which node contains the wanted data
         TreeNode* passed_param = param_tree->children[param_tree->numChildren - 1];
@@ -761,10 +857,16 @@ error_code_t semantic_func_call(TreeNode* node, Stack* local_tables){
                     }
 
 
+
                     
                     if(record_global->data->data_type != param_table_type){
                         first(param_list_table);
                         
+                        return ERR_SEMANTIC_FUNC;
+                    }
+
+                    if(record_global->data->nilable != param_table_nilable){
+                        first(param_list_table);
                         return ERR_SEMANTIC_FUNC;
                     }
 
@@ -778,6 +880,11 @@ error_code_t semantic_func_call(TreeNode* node, Stack* local_tables){
                     if(record->data->data_type != param_table_type){
                         first(param_list_table);
                         
+                        return ERR_SEMANTIC_FUNC;
+                    }
+
+                    if(record->data->nilable != param_table_nilable){
+                        first(param_list_table);
                         return ERR_SEMANTIC_FUNC;
                     }
 
@@ -876,11 +983,11 @@ error_code_t semantic_return(TreeNode* node, Stack* local_symbtables, char* func
 
         
 
-        // todo resolve typing and expression semantic
         data_type_t type = DATA_NONE;
         sem_ret = true;
         error_code_t e = semantic_arithmetic_expression(ret_statement, &type, local_symbtables, true);
         sem_ret = false;
+
         if(e != ERR_NONE){
             return e;
         }
@@ -893,7 +1000,7 @@ error_code_t semantic_return(TreeNode* node, Stack* local_symbtables, char* func
             return ERR_NONE;
         }
 
-        if((function_return_type == DATA_DOUBLE && type == DATA_INT && !set_by_variable)){
+        if((function_return_type == DATA_DOUBLE && type == DATA_INT && !set_by_variable && !divison)){
             return ERR_NONE;
         }
 
