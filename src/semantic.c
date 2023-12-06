@@ -519,7 +519,7 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
                             return ERR_SEMANTIC_TYPE_COMPATIBILITY;
                         }
                     }else{
-                        if(*data_type != var_data_type){
+                        if(*data_type != var_data_type && set_by_variable){
                             return ERR_SEMANTIC_TYPE_COMPATIBILITY;
                         }
                     }
