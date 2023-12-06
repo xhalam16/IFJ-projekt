@@ -23,7 +23,7 @@ char *convert_string(char *string);
 static FILE *f = NULL;
 static unsigned labelId = 0;
 static unsigned varsId = 0;
-static int res_index = 0;
+static unsigned res_index = 0;
 static bool localFunc = false;
 static unsigned counter = 0; // počítadlo zanoření
 static Stack *local_tables_stack = NULL;
@@ -766,7 +766,72 @@ TreeNode *is_terminal(TreeNode *node)
     return NULL;
 }
 
-int generateExpression(TreeNode *node)
+void check_operand_types_literal(TreeNode *node, bool local, char **left_child_type, char *left_child_varname, char **right_child_type, char *right_child_varname) {
+    char *frame = localFunc ? "LF" : "GF";
+
+    /* Chceme zkontrolovat, zda pokud je jeden z operandů literál typu Int, zda není druhý operand typu Double. Pokud ano, převedeme int literál na Double */
+    if(node->children[0]->children[0]->type == NODE_INT || node->children[2]->children[0]->type == NODE_INT) {
+        /* Pokud je levý operand literál typu Int */
+        if(node->children[0]->children[0]->type == NODE_INT && node->children[2]->children[0]->type != NODE_INT) {
+            fprintf(f, "DEFVAR %s@$res_%d\n", frame, ++res_index);
+            fprintf(f, "MOVE %s@$res_%d %s@%s\n", frame, res_index, *left_child_type, left_child_varname);
+            fprintf(f, "TYPE %s@$res_%d %s@%s\n", frame, res_index - 1, *right_child_type, right_child_varname);
+            fprintf(f, "JUMPIFNEQ $else_lit$%d %s@$res_%d string@float\n", labelId, frame, res_index - 1);
+
+            char *left_value = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
+            snprintf(left_value, MAX_VAR_NAME_LENGTH, "$res_%d", res_index);
+
+            generateInt2Double(node->children[0]->children[0], left_value);
+            *left_child_type = frame;
+            strcpy(left_child_varname, left_value);
+            free(left_value);
+            
+            fprintf(f, "LABEL $else_lit$%d\n", labelId);
+        }
+        /* Pokud je pravý operand literál typu Int */
+        else if (node->children[2]->children[0]->type == NODE_INT && node->children[0]->children[0]->type != NODE_INT){
+            fprintf(f, "DEFVAR %s@$res_%d\n", frame, ++res_index);
+            fprintf(f, "MOVE %s@$res_%d %s@%s\n", frame, res_index, *right_child_type, right_child_varname);
+            fprintf(f, "TYPE %s@$res_%d %s@%s\n", frame, res_index - 1, *left_child_type, left_child_varname);
+            fprintf(f, "JUMPIFNEQ $else_lit$%d %s@$res_%d string@float\n", labelId, frame, res_index - 1);
+            char *left_value = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
+            snprintf(left_value, MAX_VAR_NAME_LENGTH, "$res_%d", res_index);
+
+            generateInt2Double(node->children[2]->children[0], left_value);
+            *right_child_type = frame;
+            strcpy(right_child_varname, left_value);
+            free(left_value);
+            
+            fprintf(f, "LABEL $else_lit$%d\n", labelId);
+        }
+    }
+}
+
+/* Tato funkce zkontroluje, zda je jeden operátor typu float a druhý typu int. Pokud ano, musí převést operand typu int na typ float.
+ *  V takovém případě je totuž operand typu int buď literál, který je třeba převést dne zadání nebo proměnná typu int, která však byla přiřazena v původním jazyce do Double promenne
+ */
+void check_operand_types_var(TreeNode *node, bool local, char *left_child_type, char *left_child_varname, char *right_child_type, char *right_child_varname) {
+    char *frame = localFunc ? "LF" : "GF";
+
+    if(node->children[0]->children[0]->type == NODE_IDENTIFIER && node->children[2]->children[0]->type == NODE_IDENTIFIER) {
+        fprintf(f, "TYPE %s@$res_%d %s@%s\n", frame, res_index, left_child_type, left_child_varname);
+        res_index++;
+        fprintf(f, "TYPE %s@$res_%d %s@%s\n", frame, res_index, right_child_type, right_child_varname);
+        /* Pokud jsou promenne stejneho typu, neni potreba nic konvertovat a skaceme na konec */
+        fprintf(f, "JUMPIFEQ $else_var_end$%d %s@$res_%d %s@$res_%d\n", labelId, frame, res_index, frame, res_index - 1);
+        /* Pokud není první operand typu int, skáčeme a musíme přetypovat druhý operand */
+        fprintf(f, "JUMPIFNEQ $else_var$%d %s@res_%d string@int\n", labelId, frame, res_index - 1);
+        /* Přetypujeme první operand */
+        fprintf(f, "INT2FLOAT %s@%s %s@%s", left_child_type, left_child_varname, left_child_type, left_child_varname);
+        fprintf(f, "JUMP $else_var_end$%d", labelId); // skaceme na konec
+        fprintf(f, "LABEL $else_var$%d", labelId);
+        /* Přetypujeme druhý operand */
+        fprintf(f, "INT2FLOAT %s@%s %s@%s", right_child_type, right_child_varname, right_child_type, right_child_varname);
+        fprintf(f, "LABEL $else_var_end$%d\n", labelId);
+    }
+}
+
+int generateExpression(TreeNode *node, bool local)
 {
 
     if (!setGlobalVars())
@@ -780,7 +845,6 @@ int generateExpression(TreeNode *node)
     if (node->numChildren == 1)
     {
         /* Pokud jsme došli k terminálu, vrať pouze index, není potřeba ho zvyšovat kvůli terminálům, protože použijeme label terminálu a vynoř se z rekurze */
-        // return res_index;
     }
     /* Expr = expr! */
     else if (node->numChildren == 2)
@@ -797,144 +861,167 @@ int generateExpression(TreeNode *node)
             /* Zpracuj expression, který je na indexu 1 a nakonec vrať poslední použitou hodnotu indexu id pomocných proměnných */
             return generateExpression(node->children[1]);
         }
-        /* Předpokládáme, že první a třetí děti jsou operandy */
+        /* Předpokládáme, že první a třetí děti jsou operandy - jde o binární operaci */
         else
         {
 
             char *operation = NULL;
             int operation_id = recognize_bin_operation(node->children[1], &operation);
 
-            /* Pokud je operace sčítání, odčítání, násobení dělení, menší, větší nebo rovno */
-            if ((operation_id >= NODE_OPERATOR_ADD && operation_id <= NODE_OPERATOR_DIV) || (operation_id >= NODE_OPERATOR_BELOW && operation_id <= NODE_OPERATOR_NEQ))
+            /* Rekurzivně zpracuj nejdříve levý podtrom výrazu a poté pravý podstrom výrazu */
+            int left_index = generateExpression(node->children[0], local);
+            int right_index = generateExpression(node->children[2], local);
+
+            TreeNode *leftTree = is_terminal(node->children[0]); // vrací ukazatel na levý potomek, pokud je to terminál, jinak NULL
+            TreeNode *rightTree = is_terminal(node->children[2]); // vrací ukazatel na pravý potomek, pokud je to terminál, jinak NULL
+
+            char *left_child_type = recognize_type(leftTree, local); //
+
+            if (left_child_type == NULL)
             {
-                /* Rekurzivně zpracuj nejdříve levý podtrom výrazu a poté pravý podstrom výrazu */
-                int left_index = generateExpression(node->children[0]);
-                int right_index = generateExpression(node->children[2]);
+                return -1;
+            }
 
-                TreeNode *leftTree = is_terminal(node->children[0]); // vrací ukazatel na levý potomek, pokud je to terminál, jinak NULL
-                TreeNode *rightTree = is_terminal(node->children[2]); // vrací ukazatel na pravý potomek, pokud je to terminál, jinak NULL
+            char *right_child_type = recognize_type(rightTree, local);
 
-                char *left_child_type = recognize_type(leftTree); //
+            if (right_child_type == NULL)
+            {
+                return -1;
+            }
 
-                if (left_child_type == NULL)
+            /* Zvyš index counteru pro identifikátory pomocných proměnných pro mezivýsledky */
+            res_index++;
+
+            /* stringy pro uložení názvu proměnných */
+            char *right_child_varname;
+            char *left_child_varname;
+
+            /* Pokud je levé dítě neterminál, nastav název proměnné na pomocnou proměnnou $res_index, podle odpovídajícího indexu */
+            if (leftTree == NULL)
+            {
+                left_child_varname = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH); // -5 bodov!!!!!!!
+                if (left_child_varname == NULL)                                  // Kontrola alokace paměti
                 {
                     return -1;
                 }
-
-                char *right_child_type = recognize_type(rightTree);
-
-                if (right_child_type == NULL)
+                snprintf(left_child_varname, MAX_VAR_NAME_LENGTH, "$res_%d", left_index); // Převeď návratovou hodnotu a do řetězce pro pomocnou proměnnou
+            }
+            else
+            { /* Pokud je pravé dítě terminál, nastav název proměnné na label */
+                left_child_varname = leftTree->label;
+            }
+            /* Pokud je pravé dítě neterminál, nastav název proměnné na pomocnou proměnnou $res_index, podle odpovídajícího indexu */
+            if (rightTree == NULL)
+            {
+                // printf("RIGHT CHILD TYPE: %d\n", node->children[2]->children[0]->terminal);
+                right_child_varname = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
+                if (right_child_varname == NULL) // Kontrola alokace paměti
                 {
                     return -1;
                 }
+                snprintf(right_child_varname, MAX_VAR_NAME_LENGTH, "$res_%d", right_index); // Převeď návratovou hodnotu b do řetězce pro pomocnou proměnnou
+            }
+            else /* Pokud je levé dítě terminál, nastav název proměnné na label */
+            {
+                right_child_varname = rightTree->label;
+            }
 
-                /* Zvyš index counteru pro identifikátory pomocných proměnných pro mezivýsledky */
+            fprintf(f, "DEFVAR %s@$res_%d\n", frame, res_index);
+            
+            /* Operace NOT EQUAL */
+            if (operation_id == NODE_OPERATOR_NEQ)
+            {
+                fprintf(f, "EQ %s@$res_%d %s@%s %s@%s\n", frame, res_index, left_child_type, left_child_varname, right_child_type, right_child_varname);
+                fprintf(f, "NOT %s@$res_%d %s@$res_%d\n", frame, res_index, frame, res_index); // teoreticky by to mozna slo ulozit do stejne promenne idk
+            }
+            /* Operátor ?? */
+            else if (operation_id == NODE_OPERATOR_NIL_COALESCING) {
+                /* TYPE dynamicky zjistí hodnotu symbolu a do res zapíše string odpovídající jeho typu - (int, bool, float, string nebo nil) */
+                fprintf(f, "TYPE %s@$res_%d %s@%s\n", frame, res_index, left_child_type, left_child_varname);
                 res_index++;
-
-                /* stringy pro uložení názvu proměnných */
-                char *right_child_varname;
-                char *left_child_varname;
-
-                /* Pokud je levé dítě neterminál, nastav název proměnné na pomocnou proměnnou $res_index, podle odpovídajícího indexu */
-                if (leftTree == NULL)
-                {
-                    left_child_varname = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH); // -5 bodov!!!!!!!
-                    if (left_child_varname == NULL)                                  // Kontrola alokace paměti
-                    {
-                        return -1;
-                    }
-                    snprintf(left_child_varname, MAX_VAR_NAME_LENGTH, "$res_%d", left_index); // Převeď návratovou hodnotu a do řetězce pro pomocnou proměnnou
-                }
-                else
-                { /* Pokud je pravé dítě terminál, nastav název proměnné na label */
-                    left_child_varname = leftTree->label;
-                }
-                /* Pokud je pravé dítě neterminál, nastav název proměnné na pomocnou proměnnou $res_index, podle odpovídajícího indexu */
-                if (rightTree == NULL)
-                {
-                    // printf("RIGHT CHILD TYPE: %d\n", node->children[2]->children[0]->terminal);
-                    right_child_varname = malloc(sizeof(char) * MAX_VAR_NAME_LENGTH);
-                    if (right_child_varname == NULL) // Kontrola alokace paměti
-                    {
-                        return -1;
-                    }
-                    snprintf(right_child_varname, MAX_VAR_NAME_LENGTH, "$res_%d", right_index); // Převeď návratovou hodnotu b do řetězce pro pomocnou proměnnou
-                }
-                else /* Pokud je levé dítě terminál, nastav název proměnné na label */
-                {
-                    right_child_varname = rightTree->label;
-                }
-
                 fprintf(f, "DEFVAR %s@$res_%d\n", frame, res_index);
 
-                /* Operace NOT EQUAL */
-                if (operation_id == NODE_OPERATOR_NEQ)
-                {
-                    fprintf(f, "EQ %s@$res_%d %s@%s %s@%s\n", frame, res_index, left_child_type, left_child_varname, right_child_type, right_child_varname);
-                    fprintf(f, "NOT %s@$res_%d %s@$res_%d\n", frame, res_index, frame, res_index); // teoreticky by to mozna slo ulozit do stejne promenne idk
+                fprintf(f, "JUMPIFNEQ $else$%d %s@$res_%d string@nil\n", labelId, frame, res_index - 1);
+
+                /* Větev, pokud má levý operand hodnotu nil - výsledkem je pravá hodnota */
+                fprintf(f, "MOVE %s@$res_%d %s@%s\n", frame, res_index, right_child_type, right_child_varname);
+                fprintf(f, "JUMP $else$end$%d\n", labelId);
+
+                /* vetev, pokud nemá levý operand hodnotu nil - výsledkem je levá hodnota */
+                fprintf(f, "LABEL $else$%d\n", labelId);
+                fprintf(f, "MOVE %s@$res_%d %s@%s\n", frame, res_index, left_child_type, left_child_varname);
+
+                fprintf(f, "LABEL $else$end$%d\n", labelId);
+                labelId++;
+            }
+            /* Neostré nerovnosti */
+            else if (operation_id == NODE_OPERATOR_AEQ || operation_id == NODE_OPERATOR_BEQ)
+            {
+                switch (operation_id) {
+                    case NODE_OPERATOR_AEQ:
+                        operation = "LT";
+                        break;
+
+                    case NODE_OPERATOR_BEQ:
+                        operation = "GT";
+                        break;
                 }
-                /* Operátor ?? */
-                else if (operation_id == NODE_OPERATOR_NIL_COALESCING) {
-                    fprintf(f, "DEFVAR %s@$res_%d\n", frame, res_index);
-                    /* TYPE dynamicky zjistí hodnotu symbolu a do res zapíše string odpovídající jeho typu - (int, bool, float, string nebo nil) */
-                    fprintf(f, "TYPE %s@$res_%d %s@%s\n", frame, res_index, left_child_type, left_child_varname);
-                    res_index++;
-                    fprintf(f, "DEFVAR %s@$res_%d\n", frame, res_index);
 
-                    fprintf(f, "JUMPIFNEQ $else$%d %s@$res_%d string@nil\n", labelId, frame, res_index - 1);
+                fprintf(f, "%s %s@$res_%d %s@%s %s@%s\n", operation, frame, res_index, left_child_type, left_child_varname, right_child_type, right_child_varname);
+                res_index++;
 
-                    /* Větev, pokud má levý operand hodnotu nil - výsledkem je pravá hodnota */
-                    fprintf(f, "MOVE %s@$res_%d %s@%s\n", frame, res_index, right_child_type, right_child_varname);
-                    fprintf(f, "JUMP $else$end$%d\n", labelId);
+                fprintf(f, "DEFVAR %s@$res_%d\n", frame, res_index);
+                fprintf(f, "NOT %s@$res_%d %s@$res_%d\n", frame, res_index, frame, res_index - 1);
+            }
+            /* Operátor + má speciální význam v tom, že když se jedná o opearndy typu String, provádí se konkatenace */
+            else if(operation_id == NODE_OPERATOR_ADD){
+                fprintf(f, "TYPE %s@$res_%d %s@%s\n", frame, res_index, left_child_type, left_child_varname);
 
-                    /* vetev, pokud nemá levý operand hodnotu nil - výsledkem je levá hodnota */
-                    fprintf(f, "LABEL $else$%d\n", labelId);
-                    fprintf(f, "MOVE %s@$res_%d %s@%s\n", frame, res_index, left_child_type, left_child_varname);
+                fprintf(f, "JUMPIFNEQ $else$%d %s@$res_%d string@string\n", labelId, frame, res_index);
 
-                    fprintf(f, "LABEL $else$end$%d\n", labelId);
-                    labelId++;
-                }
-                /* Neostré nerovnosti */
-                else if (operation_id == NODE_OPERATOR_AEQ || operation_id == NODE_OPERATOR_BEQ)
-                {
-                    switch (operation_id) {
-                        case NODE_OPERATOR_AEQ:
-                            operation = "LT";
-                            break;
+                /* Pokud jsou operandy typu string, provádí se konkatenace */
+                fprintf(f, "CONCAT %s@$res_%d %s@%s %s@%s\n", frame, res_index, left_child_type, left_child_varname, right_child_type, right_child_varname);
+                fprintf(f, "JUMP $else$end$%d\n", labelId);
 
-                        case NODE_OPERATOR_BEQ:
-                            operation = "GT";
-                            break;
-                    }
+                /* Pokud není první operand typu string, urcite je typu int nebo double takze provedeme klasickou aritmetickou operaci */
+                fprintf(f, "LABEL $else$%d\n", labelId);
 
-                    fprintf(f, "%s %s@$res_%d %s@%s %s@%s\n", operation, frame, res_index, left_child_type, left_child_varname, right_child_type, right_child_varname);
-                    res_index++;
+                check_operand_types_literal(node, local, &left_child_type, left_child_varname, &right_child_type, right_child_varname);
+                check_operand_types_var(node, local, left_child_type, left_child_varname, right_child_type, right_child_varname);
 
-                    fprintf(f, "DEFVAR %s@$res_%d\n", frame, res_index);
-                    fprintf(f, "NOT %s@$res_%d %s@$res_%d\n", frame, res_index, frame, res_index - 1);
-                }
-                /* Operátor + má speciální význam v tom, že když se jedná o opearndy typu String, provádí se konkatenace */
-                else if(operation_id == NODE_OPERATOR_ADD){
-                    printf("NODE: %d\n", node->children[2]->children[0]->type);
-                    fprintf(f, "TYPE %s@$res_%d %s@%s\n", frame, res_index, left_child_type, left_child_varname);
+                fprintf(f, "ADD %s@$res_%d %s@%s %s@%s\n", frame, res_index, left_child_type, left_child_varname, right_child_type, right_child_varname);
 
-                    fprintf(f, "JUMPIFNEQ $else$%d %s@$res_%d string@string\n", labelId, frame, res_index);
+                fprintf(f, "LABEL $else$end$%d\n", labelId);
+                labelId++;
+            }
+            /* Operátor dělení má dvě speciální instrukce DIV (oba operandy float) nebo IDIV (oba operandy int) */
+            else if(operation_id == NODE_OPERATOR_DIV) {
+                check_operand_types_var(node, local, left_child_type, left_child_varname, right_child_type, right_child_varname);
+                fprintf(f, "TYPE %s@$res_%d %s@%s\n", frame, res_index, left_child_type, left_child_varname);
 
-                    /* Pokud jsou operandy typu string, provádí se konkatenace */
-                    fprintf(f, "CONCAT %s@$res_%d %s@%s %s@%s\n", frame, res_index, left_child_type, left_child_varname, right_child_type, right_child_varname);
-                    fprintf(f, "JUMP $else$end$%d\n", labelId);
+                fprintf(f, "JUMPIFNEQ $else$%d %s@$res_%d string@float\n", labelId, frame, res_index);
 
-                    /* Pokud není první operand typu string, urcite je typu int nebo double takze provedeme klasickou aritmetickou operaci */
-                    fprintf(f, "LABEL $else$%d\n", labelId);
-                    fprintf(f, "ADD %s@$res_%d %s@%s %s@%s\n", frame, res_index, left_child_type, left_child_varname, right_child_type, right_child_varname);
+                /* Pokud jsou operandy typu float */
+                fprintf(f, "DIV %s@$res_%d %s@%s %s@%s\n", frame, res_index, left_child_type, left_child_varname, right_child_type, right_child_varname);
+                fprintf(f, "JUMP $else$end$%d\n", labelId);
 
-                    fprintf(f, "LABEL $else$end$%d\n", labelId);
-                    labelId++;
-                }
-                else
-                { // pokud jde o jinou operaci - tzn. : -, *, /, <, >, ==
-                    fprintf(f, "%s %s@$res_%d %s@%s %s@%s\n", operation, frame, res_index, left_child_type, left_child_varname, right_child_type, right_child_varname);
-                }
+                /* Pokud jsou operandy typu int */
+                fprintf(f, "LABEL $else$%d\n", labelId);
+                fprintf(f, "IDIV %s@$res_%d %s@%s %s@%s\n", frame, res_index, left_child_type, left_child_varname, right_child_type, right_child_varname);
+
+                fprintf(f, "LABEL $else$end$%d\n", labelId);
+                labelId++;
+            }
+            /* Pokud jde o operace - nebo * */
+            else if(operation_id == NODE_OPERATOR_SUB || operation_id == NODE_OPERATOR_MUL) {
+                check_operand_types_var(node, local, left_child_type, left_child_varname, right_child_type, right_child_varname);
+                check_operand_types_literal(node, local, &left_child_type, left_child_varname, &right_child_type, right_child_varname);
+
+                fprintf(f, "%s %s@$res_%d %s@%s %s@%s\n", operation, frame, res_index, left_child_type, left_child_varname, right_child_type, right_child_varname);
+            }
+            else
+            { // pokud jde o jinou operaci - tzn. : <, >, ==
+                fprintf(f, "%s %s@$res_%d %s@%s %s@%s\n", operation, frame, res_index, left_child_type, left_child_varname, right_child_type, right_child_varname);
             }
         }
     }

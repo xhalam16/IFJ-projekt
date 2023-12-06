@@ -2866,3 +2866,200 @@ bool parse(TreeNode *startNeterminal)
 
     return true;
 }
+
+void print_global_table(global_symtable *table)
+{
+    // printf("Global table:");
+    if (get_size(table) == 0)
+    {
+        // printf(" is empty\n");
+        return;
+    }
+
+    // printf("\n");
+    for (int i = 0; i < table->capacity; i++)
+    {
+        symtable_record_global_t *item = table->records[i];
+        if (item != NULL)
+        {
+            // printf("Record: ");
+            // printf("data type: %d, symbol type %d, nilable: %d, defined %d, key %s, value %p\n", item->data->data_type, item->data->symbol_type, item->data->nilable, item->data->defined, item->key, item->data->value);
+            // printf("Parameters:\n");
+            parameter_list_t *list = item->data->parameters;
+            if (list == NULL)
+                continue;
+
+            if (list->size == SIZE_MAX)
+                continue;
+
+            first(list);
+            for (int i = 0; i < parameter_list_get_size(list); i++)
+            {
+                function_parameter_t *param = parameter_list_get_active(list);
+                // printf("label: %s, name: %s, data type: %d, nilable: %d\n", param->label, param->name, param->data_type, param->nilable);
+
+                parameter_list_next(list);
+            }
+            // printf("\n");
+        }
+    }
+}
+
+void print_local_table(local_symtable *table)
+{
+    printf("Local table:\n");
+
+    for (int i = 0; i < table->capacity; i++)
+    {
+
+        symtable_record_local_t *item = table->records[i];
+
+        if (item != NULL)
+        {
+
+            printf("data type: %d, symbol type %d, nilable: %d, defined %d, key %s, value %p\n", item->data->data_type, item->data->symbol_type, item->data->nilable, item->data->defined, item->key, item->data->value);
+        }
+    }
+}
+
+char *node_type_to_string(NodeType n)
+{
+
+    char *translate[] = {
+        "NODE_PROGRAM",
+        "NODE_BODY",
+        "NODE_BODY_END",
+        "NODE_ASSIGN",
+        "NODE_DECLARATION",
+        "NODE_DECLARATION_FUNCTION",
+        "NODE_EXPRESSION",
+        "NODE_IF_STATEMENT",
+        "NODE_WHILE",
+        "NODE_RETURN",
+        "NODE_KEYWORD_LET",
+        "NODE_GUARD_LET",
+        "NODE_KEYWORD_VAR",
+        "NODE_KEYWORD_RETURN",
+        "NODE_KEYWORD_FUNC",
+        "NODE_FUNCTION_CALL",
+        "NODE_FUNCTION_PARAM",
+        "NODE_PARAM_VALUE",
+        "NODE_PARAM_LIST",
+        "NODE_IDENTIFIER",
+        "NODE_INT",
+        "NODE_DOUBLE",
+        "NODE_STRING",
+        "NODE_NIL",
+        "NODE_INT_NILABLE",
+        "NODE_DOUBLE_NILABLE",
+        "NODE_STRING_NILABLE",
+        "NODE_OPERATOR_ADD",
+        "NODE_OPERATOR_SUB",
+        "NODE_OPERATOR_MUL",
+        "NODE_OPERATOR_DIV",
+        "NODE_OPERATOR_BELOW",
+        "NODE_OPERATOR_ABOVE",
+        "NODE_OPERATOR_BEQ",
+        "NODE_OPERATOR_AEQ",
+        "NODE_OPERATOR_EQUAL",
+        "NODE_OPERATOR_NEQ",
+        "NODE_OPERATOR_NIL_COALESCING",
+        "NODE_OPERATOR_UNARY",
+        "NODE_LEFT_PARENTHESIS",
+        "NODE_RIGHT_PARENTHESIS",
+        "NODE_RIGHT_BRACE",
+        "NODE_LEFT_BRACE",
+        "NODE_EOL",
+        "NODE_DATATYPE_INT",
+        "NODE_DATATYPE_DOUBLE",
+        "NODE_DATATYPE_STRING",
+        "NODE_DATATYPE_INT_NILABLE",
+        "NODE_DATATYPE_DOUBLE_NILABLE",
+        "NODE_DATATYPE_STRING_NILABLE",
+        "NODE_EPSILON",
+        "NODE_UNDERSCORE"};
+    return translate[n];
+}
+
+void printTree(TreeNode *x, bool *flag, int depth, int isLast)
+{
+    if (x == NULL)
+        return;
+
+    for (int i = 1; i < depth; ++i)
+    {
+        if (flag[i])
+        {
+            printf("|   ");
+        }
+        else
+        {
+            printf("    ");
+        }
+    }
+
+    if (depth == 0)
+        printf("%s, with value %s\n", node_type_to_string(x->type), x->label);
+
+    else if (isLast)
+    {
+        printf("+--- %s, with value %s\n", node_type_to_string(x->type), x->label);
+
+        flag[depth] = false;
+    }
+    else
+    {
+        printf("+--- %s, with value %s\n", node_type_to_string(x->type), x->label);
+    }
+
+    for (size_t it = 0; it < x->numChildren; ++it)
+    {
+        printTree(x->children[it], flag, depth + 1,
+                  it == (x->numChildren) - 1);
+    }
+    flag[depth] = true;
+}
+
+// int main(void)
+// {
+//     stack_of_local_tables = stack_init(STACK_INIT_CAPACITY);
+//     if (stack_of_local_tables == NULL)
+//     {
+//         error = ERR_INTERNAL;
+//         return error;
+//     }
+
+//     error = ERR_SYNTAX_ANALYSIS;
+//     // file = stdin;
+//     file = fopen("test.txt", "r");
+//     if (file == NULL)
+//     {
+//         error = ERR_INTERNAL;
+//         return error;
+//     }
+
+//     TreeNode *startNeterminal = createNewNode(NULL, NODE_PROGRAM, false);
+
+//     if (parse(startNeterminal))
+//     {
+//         error = ERR_NONE;
+//     }
+
+//     // print_global_table(global_table);
+
+//     // print_stack(stack_of_local_tables);
+//     bool ar[10] = {true};
+
+//     //printTree(startNeterminal, ar, 0, 0);
+//     dispose(startNeterminal);
+//     symtable_free(global_table, GLOBAL_TABLE);
+//     stack_free(stack_of_local_tables);
+
+//     if (fclose(file) == EOF)
+//     {
+//         error = ERR_INTERNAL;
+//     }
+
+//     printf("%d\n", error);
+//     return error;
+// }
