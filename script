@@ -935,6 +935,14 @@ let y : String = "abcd"
 let z = x ?? y
 ' 7 "coallescing wrong types"
 
+
+run_test '
+let x : Int? = 3
+let y : String = "abcd"
+    
+let z = x ?? y
+' 7 "coallescing wrong types"
+
 run_test 'func foo(_ param : Int, _ param2 : String, _ param3 : Double) -> Int{
     
     return 5
@@ -1423,5 +1431,47 @@ func fibonacci(_ n: Int) -> Int {
 let result = fibonacci(6)
 
 write(result)' 0 "correct fibonacci"
+
+run_test '
+func fibonacci(_ n: Int) -> Int {
+    while n < 10 {
+        var a = 10
+        return a
+    }
+}
+' 0 "return deep in while"
+
+
+run_test '
+var var1 : Int? = nil
+var var2 : Int = 20
+
+var output = var1 ?? var2' 0 "coallescing correct"
+
+
+run_test '
+var var1 : Int? = 3
+var var2 : Double = 20
+
+var output = var1 ?? var2
+' 7 "coallescing incorrect"
+
+
+run_test '
+var var1 : Int? = 3
+var var2 : Int = 20
+
+var output = var1 ?? var2
+' 0 "coallescing correct"
+
+run_test '
+var var1 : Int? = 3
+var var2 : Int = 20
+
+var output = var1 ?? var2
+let z = output + 3' 0 "coallescing correct"
+
+
+
 
 generate_test_summary
