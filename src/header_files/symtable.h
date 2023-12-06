@@ -26,6 +26,7 @@ typedef struct symtable_record symtable_record_t;
 
 /**
  * @brief Enum representing type of table
+ * @typedef table_type_t
 */
 typedef enum table_type {
     GLOBAL_TABLE,
@@ -35,6 +36,7 @@ typedef enum table_type {
 
 /**
  * @brief Enum representing type of symbol
+ * @typedef symbol_type_t
 */
 typedef enum symbol_type {
     SYM_VAR,
@@ -46,7 +48,8 @@ typedef enum symbol_type {
 
 
 /**
- * @brief Enum representing type of data
+ * @brief Enum representing types of data
+ * @typedef data_type_t
 */
 typedef enum data_types {
     DATA_INT,
@@ -64,6 +67,7 @@ typedef enum data_types {
  * @param data_type - type of data (DATA_INT, DATA_DOUBLE, DATA_STRING, DATA_NIL)
  * @param nilable - true if data is nilable, false otherwise
  * @param next - pointer to next parameter
+ * @typedef function_parameter_t
 */
 typedef struct function_parameter {
     char *name;
@@ -75,34 +79,113 @@ typedef struct function_parameter {
 } function_parameter_t;
 
 
+/**
+ * @brief SLL of parameters of function
+ * @param first - pointer to first parameter
+ * @param active - pointer to active parameter
+ * @param size - number of parameters in list
+*/
 typedef struct parameter_list {
     function_parameter_t *first;
     function_parameter_t *active;
     size_t size;
 } parameter_list_t;
 
+
+// ***************************************** PARAMETER LIST METHODS ******************************************
+
+
+/**
+ * @brief Initializes parameter list
+ * @param list - pointer to list
+ * @warning Function expects valid pointer to list
+*/
 void parameter_list_init(parameter_list_t *list);
+
+/**
+ * @brief Checks if list is empty
+ * @param list - pointer to list
+ * @returns true if list is empty, false otherwise
+ * @warning Function expects valid pointer to list
+*/
 
 bool parameter_list_empty(parameter_list_t *list);
 
+/**
+ * @brief Checks if list is active
+ * @param list - pointer to list
+ * @returns true if list is active, false otherwise
+ * @warning Function expects valid pointer to list
+*/
+
 bool parameter_list_active(parameter_list_t *list);
+
+
+/**
+ * @brief Inserts parameter into list
+ * @param list - pointer to list
+ * @param parameter - pointer to parameter to be inserted
+ * @warning Function expects valid pointer to list and parameter
+*/
 
 void parameter_list_insert(parameter_list_t *list, function_parameter_t *parameter);
 
+/**
+ * @brief Sets next element of list as active
+ * @param list - pointer to list
+ * @warning Function expects valid pointer to list
+ * @note If the list is not active, function does nothing
+*/
 void parameter_list_next(parameter_list_t *list);
 
-void parameter_list_free(parameter_list_t *list);
 
+/**
+ * @brief Sets first element of list as active
+ * @param list - pointer to list
+*/
 void first(parameter_list_t *list);
 
+
+/**
+ * @brief Returns the size of list
+ * @param list - pointer to list
+*/
 size_t parameter_list_get_size(parameter_list_t *list);
+
+/**
+ * @brief Returns pointer to active element (parameter)
+ * @param list - pointer to list
+ * @warning Function expects valid pointer to list
+ * @note If the list is not active, function returns NULL
+*/
 
 function_parameter_t *parameter_list_get_active(parameter_list_t *list);
 
+
+/**
+ * @brief Initializes parameter
+ * @param param - pointer to parameter
+ * @warning Function expects valid pointer to parameter
+*/
+
 void init_param(function_parameter_t *param);
+
+/**
+ * @brief Frees parameter
+ * @param param - pointer to parameter
+ * @warning Function expects valid pointer to parameter
+*/
 
 void free_param(function_parameter_t *param);
 
+
+/**
+ * @brief Frees parameter list
+ * @param list - pointer to list
+ * @note This function also frees all parameters in list
+*/
+
+void parameter_list_free(parameter_list_t *list);
 
 
 
@@ -116,6 +199,7 @@ void free_param(function_parameter_t *param);
  * @param nilable - true if data is nilable, false otherwise
  * @param defined - true if data is defined, false otherwise
  * @param value - pointer to value of any data type
+ * @typedef symtable_local_data_t
 */
 typedef struct symtable_local_data {
     symbol_type_t symbol_type;
@@ -133,6 +217,7 @@ typedef struct symtable_local_data {
  * @brief Structure representing record of local table
  * @param key - key of record (usually name of variable or function)
  * @param data - pointer to data of record
+ * @typedef symtable_record_local_t
 */
 typedef struct symtable_record_local {
     char *key;
@@ -145,6 +230,7 @@ typedef struct symtable_record_local {
  * @param records - array of pointers to records
  * @param size - number of records in table
  * @param capacity - capacity of table
+ * @typedef local_symtable
 */
 typedef struct l_symtable{
     symtable_record_local_t **records;
@@ -163,6 +249,7 @@ typedef struct l_symtable{
  * @param defined - true if data is defined, false otherwise
  * @param value - pointer to value of any data type
  * @param parameters - pointer to parameters of function (NULL if symbol_type != SYM_FUNC)
+ * @typedef symtable_global_data_t
 */
 typedef struct symtable_global_data{
     symbol_type_t symbol_type;
@@ -181,6 +268,7 @@ typedef struct symtable_global_data{
  * @brief Structure representing record of global table
  * @param key - key of record (usually name of variable or function)
  * @param data - pointer to data of record
+ * @typedef symtable_record_global_t
 */
 typedef struct symtable_record_global {
     char *key;
@@ -194,6 +282,7 @@ typedef struct symtable_record_global {
  * @param records - array of pointers to records
  * @param size - number of records in table
  * @param capacity - capacity of table
+ * @typedef global_symtable
 */
 typedef struct {
     symtable_record_global_t **records;
