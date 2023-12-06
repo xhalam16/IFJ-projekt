@@ -765,17 +765,18 @@ token_t get_token(FILE *source_file)
 
             if ((c == '+' || c == '-') && !loading_exponent)
             {
-                // this is not a valid number
-
-                token.type = TOKEN_UNKNOWN;
+                // this is not a valid number, its operator between two numbers
+                token.type = is_double ? TOKEN_DOUBLE : TOKEN_INT;
+                ungetc(c, source_file);
                 return token;
             }
 
             if ((c == '+' || c == '-') && sign_after_e)
             {
-                // this is not a valid number
+                // this is not a valid number, its operator between two numbers
 
-                token.type = TOKEN_UNKNOWN;
+                token.type = is_double ? TOKEN_DOUBLE : TOKEN_INT;
+                ungetc(c, source_file);
                 return token;
             }
 
@@ -790,7 +791,7 @@ token_t get_token(FILE *source_file)
 
         } while (isdigit(c) || c == '.' || c == 'e' || c == 'E' || c == '-' || c == '+');
 
-        ungetc(c, source_file);
+         ungetc(c, source_file);
 
 
         // lastly determine if the number is int or double
@@ -940,6 +941,7 @@ token_t get_token(FILE *source_file)
         else
         {
             // division
+            ungetc(c, source_file);
             token.type = TOKEN_OPERATOR_DIV;
             buffer_append_string(buffer, "/");
         }
