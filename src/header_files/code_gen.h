@@ -1,6 +1,6 @@
 /* 
  * Projekt: Překladač jazyka IFJ23
- * Soubor: symtable.c
+ * Soubor: code_gen.h
  * Datum: 24. 11. 2023
  * Autor: Šimon Motl, xmotls00
  *        Richard Juřica, xjuric31
