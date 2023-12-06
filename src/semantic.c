@@ -20,6 +20,9 @@ static bool expression_nilable_bool = false;
 static bool same_symbol_assign = false;
 static bool sem_ret = false;
 static bool expression_immediate = true;
+static data_type_t previous = DATA_NONE;
+static data_type_t before_nil = DATA_NONE;
+
 
 bool is_neterminal(TreeNode *node){
     return !node->terminal;
@@ -252,7 +255,14 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
     // / - division, for int - celociselne deleni, for double - normal division
     static bool first_run = true;
 
-    if(reset) first_run = true;
+   
+
+    if(reset){
+        first_run = true;
+        previous = DATA_NONE;
+        before_nil = DATA_NONE;
+    }
+        
 
     if(first_run){
        expression_immediate = true;
@@ -374,8 +384,10 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
                         return ERR_SEMANTIC_OTHERS;
                     }
 
-                    if(!next_identifier_unwrapped && !coal_found)
-                        var_data_type = DATA_NIL;
+                    if(!next_identifier_unwrapped && !coal_found){
+                        before_nil = var_data_type;
+                        var_data_type = DATA_NIL;        
+                    }
                     
 
                     next_identifier_unwrapped = false;
@@ -408,12 +420,22 @@ error_code_t semantic_arithmetic_expression(TreeNode* node, data_type_t *data_ty
                         // this covers either 3.2 - x, where x is Int
                        return ERR_SEMANTIC_TYPE_COMPATIBILITY;
                     }
-                    
-                    if(*data_type != var_data_type){
+
+                    if(coal_found){
+                        if(var_data_type != previous){
+                            return ERR_SEMANTIC_TYPE_COMPATIBILITY;
+                        }
+                    }else{
+                        if(*data_type != var_data_type){
                         return ERR_SEMANTIC_TYPE_COMPATIBILITY;
+                        }
                     }
+                    
+                    
+                    
 
                 }
+                previous = before_nil == DATA_NONE ? var_data_type : before_nil;
                 *data_type = var_data_type;
                 set_by_variable = true;
 
@@ -807,7 +829,7 @@ error_code_t semantic_func_call(TreeNode* node, Stack* local_tables){
 
 }
 
-error_code_t semantic_return(TreeNode* node, Stack* local_symbtables, data_type_t function_return_type, bool func_return_nilable){
+error_code_t semantic_return(TreeNode* node, Stack* local_symbtables, char* function_name){
     // this function checks if the return statement is valid
     // and if the return type matches the function return type
     // Tree:
@@ -815,6 +837,16 @@ error_code_t semantic_return(TreeNode* node, Stack* local_symbtables, data_type_
     
     TreeNode* ret_statement = node->children[0];
     // if the expression is empty, we need to check if the function return type is void
+    data_type_t function_return_type = DATA_NONE;
+    bool func_return_nilable = false;
+
+    symtable_record_global_t *record = symtable_search(global_table, function_name, GLOBAL_TABLE);
+    if(record == NULL){
+        return ERR_INTERNAL;
+    }
+
+    function_return_type = record->data->data_type;
+    func_return_nilable = record->data->nilable;
     
     if(ret_statement->type == NODE_FUNCTION_CALL){
          
@@ -894,7 +926,7 @@ error_code_t semantic_func_declaration(TreeNode* node){
     // child 2 - param_list
     // child 3 - return type
     // child 4 - body
-    
+
     TreeNode *function_name = node->children[1];
     TreeNode *func_return_type = node->children[3];
     TreeNode *body = node->children[4];
@@ -915,6 +947,7 @@ error_code_t semantic_func_declaration(TreeNode* node){
                 return ERR_SEMANTIC_DEFINITION;
             }
 
+
             
         }else{
             // this is most likely a symbol redefinition resulting in error
@@ -932,25 +965,25 @@ error_code_t semantic_func_declaration(TreeNode* node){
     //     return ERR_SEMANTIC_FUNC;
     // }
     int ret_count = return_count(body, true);
-    TreeNode** returns = malloc(sizeof(TreeNode*) * ret_count);
-    get_all_returns(body, returns, true);
-    for(int i = 0; i < ret_count; i++){
-        TreeNode* return_node = returns[i];
-        if(return_node != NULL){
-            error_code_t er = semantic_return(return_node, stack_of_local_tables, record->data->data_type, record->data->nilable);
-            if(er != ERR_NONE){
-                free(returns);
-                return er;
-            }
-        }
-    }
+    // TreeNode** returns = malloc(sizeof(TreeNode*) * ret_count);
+    // get_all_returns(body, returns, true);
+    // for(int i = 0; i < ret_count; i++){
+    //     TreeNode* return_node = returns[i];
+    //     if(return_node != NULL){
+    //         error_code_t er = semantic_return(return_node, stack_of_local_tables, record->data->data_type, record->data->nilable);
+    //         if(er != ERR_NONE){
+    //             free(returns);
+    //             return er;
+    //         }
+    //     }
+    // }
 
     if(ret_count == 0 && record->data->data_type != DATA_NONE){
-        free(returns);
+       // free(returns);
         return ERR_SEMANTIC_FUNC;
     }
     
-    free(returns);
+   // free(returns);
     return ERR_NONE;
 }
 
@@ -1356,6 +1389,8 @@ error_code_t semantic(TreeNode *node){
 
     case NODE_WHILE:
         return semantic_while_statement(node, stack_of_local_tables);
+    case NODE_RETURN:
+        return semantic_return(node, stack_of_local_tables, current_function_name);
 
 
     default:
