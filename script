@@ -1566,5 +1566,12 @@ func foo() -> Double{
     return (3 + 4) / 4.4
 }' 7 "wrong division correct return type"
 
+run_test 'var a : String = "MessijelepsinezRonaldo"
+var c : Int =  0 +3
+
+var b = substring(of : a, startingAt : c, endingBefore : 8)
+
+write(b)' 0 "substring test"
+
 
 generate_test_summary
