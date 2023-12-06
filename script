@@ -1471,6 +1471,34 @@ var var2 : Int = 20
 var output = var1 ?? var2
 let z = output + 3' 0 "coallescing correct"
 
+run_test '
+var optionalValue: Int? = nil
+
+// Force unwrap, ale optionalValue je nil, takže dojde k pádu programu, ale ne k chybě při kompilaci
+let unwrappedValue = optionalValue!
+write(unwrappedValue)' 0 "force unwrap nil"
+
+
+run_test '
+let z : Int? = nil!
+' 7 "force unwrap nil literal"
+
+run_test '
+let z : Int? = 3!
+' 7 "force unwrap int literal"
+
+run_test '
+let z : Int = 3! + 3
+' 7 "force unwrap int literal"
+
+run_test '
+let z : String = "string"!
+' 7 "force unwrap string literal"
+
+run_test '
+let z : Double = 3.3!
+' 7 "force unwrap double literal"
+
 
 
 
